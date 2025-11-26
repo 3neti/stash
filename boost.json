@@ -1,0 +1,11 @@
+{
+    "agents": [
+        "phpstorm"
+    ],
+    "editors": [
+        "claude_code",
+        "phpstorm"
+    ],
+    "guidelines": [],
+    "herd_mcp": true
+}
