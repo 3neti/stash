@@ -1,11 +1,17 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/vue-starter-kit",
+    "name": "3neti/dead-drop",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Stash - Self-evolving multi-tenant document processing platform powered by DeadDrop mono-repo packages.",
     "keywords": [
         "laravel",
-        "framework"
+        "framework",
+        "stash",
+        "dead-drop",
+        "multi-tenant",
+        "document-processing",
+        "meta-campaign",
+        "ai-powered"
     ],
     "license": "MIT",
     "require": {
@@ -27,9 +33,19 @@
         "pestphp/pest": "^4.1",
         "pestphp/pest-plugin-laravel": "^4.0"
     },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "packages/*",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
     "autoload": {
         "psr-4": {
             "App\\": "app/",
+            "LBHurtado\\DeadDrop\\": "packages/*/src",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         }
