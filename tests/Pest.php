@@ -15,6 +15,10 @@ pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature');
 
+// DeadDrop Package Tests
+pest()->extend(Tests\DeadDropTestCase::class)
+    ->in('Unit/DeadDrop', 'Feature/DeadDrop', 'Integration/DeadDrop');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations

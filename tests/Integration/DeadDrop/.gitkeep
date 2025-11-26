@@ -1,0 +1,8 @@
+# DeadDrop Integration Tests
+
+Integration tests for multi-component DeadDrop workflows go here.
+
+Examples:
+- tests/Integration/DeadDrop/FullPipeline/
+- tests/Integration/DeadDrop/AIRouting/
+- tests/Integration/DeadDrop/QueueProcessing/

@@ -26,3 +26,9 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Laravel Boost generated files
+/boost.json
+/.mcp.json
+/CLAUDE.md
+/.junie/

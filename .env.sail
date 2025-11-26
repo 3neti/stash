@@ -1,0 +1,78 @@
+APP_NAME=Stash
+APP_ENV=testing
+APP_KEY=base64:S/SNG3zK29GMiJUFkjj52HSPdwf+suGDbpvCe/trueY=
+APP_DEBUG=true
+APP_URL=http://localhost
+
+APP_LOCALE=en
+APP_FALLBACK_LOCALE=en
+APP_FAKER_LOCALE=en_US
+
+APP_MAINTENANCE_DRIVER=file
+
+PHP_CLI_SERVER_WORKERS=4
+
+BCRYPT_ROUNDS=12
+
+LOG_CHANNEL=stack
+LOG_STACK=single
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=debug
+
+# Docker/Sail PostgreSQL Configuration
+DB_CONNECTION=pgsql
+DB_HOST=pgsql
+DB_PORT=5432
+DB_DATABASE=stash
+DB_USERNAME=sail
+DB_PASSWORD=password
+
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
+SESSION_ENCRYPT=false
+SESSION_PATH=/
+SESSION_DOMAIN=null
+
+BROADCAST_CONNECTION=log
+
+# Use S3/Minio for file storage in Docker
+FILESYSTEM_DISK=s3
+
+# Use Redis for queues in Docker
+QUEUE_CONNECTION=redis
+
+# Use Redis for cache in Docker
+CACHE_STORE=redis
+CACHE_PREFIX=stash_sail
+
+MEMCACHED_HOST=127.0.0.1
+
+# Docker/Sail Redis Configuration
+REDIS_CLIENT=phpredis
+REDIS_HOST=redis
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+
+MAIL_MAILER=log
+MAIL_SCHEME=null
+MAIL_HOST=127.0.0.1
+MAIL_PORT=2525
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_FROM_ADDRESS="hello@example.com"
+MAIL_FROM_NAME="${APP_NAME}"
+
+# Minio S3-Compatible Storage (Docker internal)
+AWS_ACCESS_KEY_ID=sail
+AWS_SECRET_ACCESS_KEY=password
+AWS_DEFAULT_REGION=us-east-1
+AWS_BUCKET=stash
+AWS_ENDPOINT=http://minio:9000
+AWS_USE_PATH_STYLE_ENDPOINT=true
+
+VITE_APP_NAME="${APP_NAME}"
+
+# Meta-Campaign Sandbox Configuration
+META_CAMPAIGN_SANDBOX=true
+META_CAMPAIGN_TIMEOUT=300
+META_CAMPAIGN_MAX_MEMORY=512M

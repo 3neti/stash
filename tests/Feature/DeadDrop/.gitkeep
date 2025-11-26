@@ -1,0 +1,8 @@
+# DeadDrop Feature Tests
+
+Feature tests for DeadDrop workflows and HTTP endpoints go here.
+
+Examples:
+- tests/Feature/DeadDrop/CampaignApi/
+- tests/Feature/DeadDrop/ProcessorPipeline/
+- tests/Feature/DeadDrop/CredentialVault/
