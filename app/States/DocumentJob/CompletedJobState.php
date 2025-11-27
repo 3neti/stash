@@ -6,7 +6,7 @@ use App\Models\DocumentJob;
 
 class CompletedJobState extends DocumentJobState
 {
-    protected static $name = 'completed';
+    public static $name = 'completed';
     public function color(): string
     {
         return 'green';

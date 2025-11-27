@@ -4,7 +4,7 @@ namespace App\States\Document;
 
 class PendingDocumentState extends DocumentState
 {
-    protected static $name = 'pending';
+    public static $name = 'pending';
 
     public function color(): string
     {

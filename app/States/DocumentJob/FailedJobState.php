@@ -6,7 +6,7 @@ use App\Models\DocumentJob;
 
 class FailedJobState extends DocumentJobState
 {
-    protected static $name = 'failed';
+    public static $name = 'failed';
     public function color(): string
     {
         return 'red';

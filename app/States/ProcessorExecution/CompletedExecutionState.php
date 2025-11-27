@@ -6,7 +6,7 @@ use App\Models\ProcessorExecution;
 
 class CompletedExecutionState extends ProcessorExecutionState
 {
-    protected static $name = 'completed';
+    public static $name = 'completed';
     public function color(): string
     {
         return 'green';
