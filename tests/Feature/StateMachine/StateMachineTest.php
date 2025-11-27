@@ -9,29 +9,39 @@ use App\Models\Tenant;
 use App\States\Document\{PendingDocumentState, QueuedDocumentState, ProcessingDocumentState, CompletedDocumentState, FailedDocumentState, CancelledDocumentState};
 use App\States\DocumentJob\{PendingJobState, QueuedJobState, RunningJobState, CompletedJobState, FailedJobState, CancelledJobState};
 use App\States\ProcessorExecution\{PendingExecutionState, RunningExecutionState, CompletedExecutionState, FailedExecutionState, SkippedExecutionState};
+use App\Tenancy\TenantConnectionManager;
 use App\Tenancy\TenantContext;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Mockery;
 use Spatie\ModelStates\Exceptions\TransitionNotAllowed;
 
-uses(RefreshDatabase::class);
+// This test uses TenantAwareTestCase which runs tenant migrations
 
 beforeEach(function () {
-    // Create tenant with database using the command
-    $tenantName = 'Test-' . Str::random(8);
-    $domain = Str::slug($tenantName) . '.test';
-    
-    Artisan::call('tenant:create', [
-        'name' => $tenantName,
-        '--domain' => $domain,
+    // Create tenant record on central DB (no physical DB creation needed in tests)
+    $this->tenant = Tenant::factory()->create([
+        'name' => 'Test Tenant',
+        'slug' => 'test-tenant',
+        'status' => 'active',
     ]);
     
-    $this->tenant = Tenant::where('name', $tenantName)->first();
+    // Mock the TenantConnectionManager to skip physical database creation
+    $mockManager = Mockery::mock(TenantConnectionManager::class);
+    $mockManager->shouldReceive('switchToTenant')->andReturnNull();
+    $mockManager->shouldReceive('switchToCentral')->andReturnNull();
+    $this->app->instance(TenantConnectionManager::class, $mockManager);
     
-    TenantContext::run($this->tenant, function () {
-        $this->campaign = Campaign::factory()->create();
-    });
+    // Initialize tenant context (tenant connection already points to test DB)
+    TenantContext::initialize($this->tenant);
+    
+    // Create test campaign on tenant connection
+    $this->campaign = Campaign::factory()->create();
+});
+
+afterEach(function () {
+    TenantContext::forgetCurrent();
+    Mockery::close();
 });
 
 describe('Document State Machine', function () {

@@ -6,6 +6,8 @@ use App\Models\Document;
 
 class FailedDocumentState extends DocumentState
 {
+    protected static $name = 'failed';
+
     public function color(): string
     {
         return 'red';

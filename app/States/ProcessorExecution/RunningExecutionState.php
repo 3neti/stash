@@ -6,6 +6,7 @@ use App\Models\ProcessorExecution;
 
 class RunningExecutionState extends ProcessorExecutionState
 {
+    protected static $name = 'running';
     public function color(): string
     {
         return 'yellow';
