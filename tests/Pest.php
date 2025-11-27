@@ -19,7 +19,7 @@ pest()->extend(Tests\TenantAwareTestCase::class)
 pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature/Auth', 'Feature/Settings')
-    ->in('Feature/*.php'); // Top-level Feature test files only
+    ->in('Feature/*.php', 'Unit/*.php'); // Top-level Feature and Unit test files only
 
 // DeadDrop Package Tests
 pest()->extend(Tests\DeadDropTestCase::class)

@@ -4,7 +4,7 @@ namespace App\States\Document;
 
 class CancelledDocumentState extends DocumentState
 {
-    protected static $name = 'cancelled';
+    public static $name = 'cancelled';
 
     public function color(): string
     {
