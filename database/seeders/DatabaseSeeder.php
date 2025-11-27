@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Tenant;
+use App\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -13,11 +13,28 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->command->info('Starting database seeding...');
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $tenants = Tenant::all();
+
+        if ($tenants->isEmpty()) {
+            $this->command->error('No tenants found. Please create tenants first using: php artisan tenant:create');
+            return;
+        }
+
+        foreach ($tenants as $tenant) {
+            $this->command->info("\nSeeding tenant: {$tenant->name} ({$tenant->id})");
+
+            TenantContext::run($tenant, function () {
+                $this->call([
+                    ProcessorSeeder::class,
+                    CredentialSeeder::class,
+                    CampaignSeeder::class,
+                    DemoDataSeeder::class,
+                ]);
+            });
+        }
+
+        $this->command->info("\n✅ Database seeding completed for " . $tenants->count() . " tenant(s)");
     }
 }
