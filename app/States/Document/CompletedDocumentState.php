@@ -6,6 +6,8 @@ use App\Models\Document;
 
 class CompletedDocumentState extends DocumentState
 {
+    protected static $name = 'completed';
+
     public function color(): string
     {
         return 'green';

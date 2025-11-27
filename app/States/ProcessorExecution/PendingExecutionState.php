@@ -4,6 +4,7 @@ namespace App\States\ProcessorExecution;
 
 class PendingExecutionState extends ProcessorExecutionState
 {
+    protected static $name = 'pending';
     public function color(): string
     {
         return 'gray';

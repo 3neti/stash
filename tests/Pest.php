@@ -11,9 +11,15 @@
 |
 */
 
+// State machine tests need tenant tables
+pest()->extend(Tests\TenantAwareTestCase::class)
+    ->in('Feature/StateMachine');
+
+// All other Feature tests
 pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Feature');
+    ->in('Feature/Auth', 'Feature/Settings')
+    ->in('Feature/*.php'); // Top-level Feature test files only
 
 // DeadDrop Package Tests
 pest()->extend(Tests\DeadDropTestCase::class)

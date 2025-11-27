@@ -6,6 +6,7 @@ use App\Models\ProcessorExecution;
 
 class FailedExecutionState extends ProcessorExecutionState
 {
+    protected static $name = 'failed';
     public function color(): string
     {
         return 'red';

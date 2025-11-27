@@ -5,8 +5,8 @@ use App\States\Document\{CompletedDocumentState, FailedDocumentState};
 use App\States\DocumentJob\{RunningJobState, CompletedJobState};
 use App\States\ProcessorExecution\CompletedExecutionState;
 use App\Tenancy\TenantContext;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\Crypt;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
 
 uses(RefreshDatabase::class);
 

@@ -55,7 +55,6 @@ class Document extends Model
     ];
 
     protected $attributes = [
-        'status' => 'pending',
         'retry_count' => 0,
         'storage_disk' => 's3',
     ];

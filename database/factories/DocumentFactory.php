@@ -26,7 +26,7 @@ class DocumentFactory extends Factory
             'storage_path' => 'documents/' . fake()->uuid() . '.pdf',
             'storage_disk' => 's3',
             'hash' => hash('sha256', fake()->uuid()),
-            'status' => fake()->randomElement(['pending', 'queued', 'processing', 'completed', 'failed']),
+            // status is handled by DocumentState::config()->default()
             'metadata' => [
                 'pages' => fake()->numberBetween(1, 50),
                 'language' => 'en',

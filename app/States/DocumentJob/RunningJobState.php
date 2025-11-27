@@ -6,6 +6,7 @@ use App\Models\DocumentJob;
 
 class RunningJobState extends DocumentJobState
 {
+    protected static $name = 'running';
     public function color(): string
     {
         return 'yellow';
