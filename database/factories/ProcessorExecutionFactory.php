@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\DocumentJob;
+use App\Models\Processor;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,8 +19,8 @@ class ProcessorExecutionFactory extends Factory
     public function definition(): array
     {
         return [
-            'job_id' => null,
-            'processor_id' => null,
+            'job_id' => DocumentJob::factory(),
+            'processor_id' => Processor::factory(),
             'input_data' => [
                 'document_path' => 'documents/sample.pdf',
             ],
@@ -26,7 +28,7 @@ class ProcessorExecutionFactory extends Factory
             'config' => [
                 'enabled' => true,
             ],
-            'status' => fake()->randomElement(['pending', 'running', 'completed', 'failed', 'skipped']),
+            'state' => fake()->randomElement(['pending', 'running', 'completed', 'failed', 'skipped']),
             'duration_ms' => null,
             'tokens_used' => 0,
             'cost_credits' => 0,
@@ -36,7 +38,7 @@ class ProcessorExecutionFactory extends Factory
     public function completed(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'completed',
+            'state' => 'completed',
             'output_data' => [
                 'text' => fake()->paragraph(),
                 'confidence' => fake()->randomFloat(2, 0.8, 1.0),
@@ -52,7 +54,7 @@ class ProcessorExecutionFactory extends Factory
     public function failed(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'failed',
+            'state' => 'failed',
             'error_message' => fake()->sentence(),
             'duration_ms' => fake()->numberBetween(100, 1000),
         ]);

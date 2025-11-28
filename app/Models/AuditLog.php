@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Tenancy\Traits\BelongsToTenant;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 
 /**
  * AuditLog Model
@@ -16,10 +16,8 @@ use Illuminate\Support\Str;
  */
 class AuditLog extends Model
 {
-    use BelongsToTenant, HasFactory;
+    use BelongsToTenant, HasFactory, HasUlids;
 
-    public $incrementing = false;
-    protected $keyType = 'string';
     public $timestamps = false; // Only created_at
 
     protected $fillable = [
@@ -46,9 +44,6 @@ class AuditLog extends Model
         parent::boot();
 
         static::creating(function (AuditLog $log) {
-            if (empty($log->id)) {
-                $log->id = (string) Str::ulid();
-            }
             $log->created_at = now();
         });
 
@@ -110,7 +105,7 @@ class AuditLog extends Model
         string $event,
         ?array $oldValues = null,
         ?array $newValues = null,
-        ?string $userId = null,
+        string|int|null $userId = null,
         ?array $tags = null
     ): self {
         return self::create([

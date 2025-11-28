@@ -6,28 +6,27 @@ namespace App\Models;
 
 use App\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Str;
+use App\Models\Campaign;
+use App\Models\Processor;
 
 /**
  * Credential Model
  * 
- * Encrypted credential storage with hierarchical scoping.
- * Scopes: system > subscriber > campaign > processor
+ * Encrypted credential storage with polymorphic scoping.
+ * Can belong to: Campaign, Processor, or null (system-level)
  */
 class Credential extends Model
 {
-    use BelongsToTenant, HasFactory, SoftDeletes;
-
-    public $incrementing = false;
-    protected $keyType = 'string';
+    use BelongsToTenant, HasFactory, HasUlids, SoftDeletes;
 
     protected $fillable = [
-        'scope_type',
-        'scope_id',
+        'credentialable_type',
+        'credentialable_id',
         'key',
         'value',
         'provider',
@@ -48,15 +47,12 @@ class Credential extends Model
         'is_active' => true,
     ];
 
-    protected static function boot(): void
+    /**
+     * Get the owning credentialable model (Campaign, Processor, or null).
+     */
+    public function credentialable(): \Illuminate\Database\Eloquent\Relations\MorphTo
     {
-        parent::boot();
-
-        static::creating(function (Credential $credential) {
-            if (empty($credential->id)) {
-                $credential->id = (string) Str::ulid();
-            }
-        });
+        return $this->morphTo();
     }
 
     /**
@@ -75,10 +71,15 @@ class Credential extends Model
         return $query->where('is_active', true);
     }
 
-    public function scopeForScope($query, string $scopeType, ?string $scopeId = null)
+    public function scopeForModel($query, ?Model $model = null)
     {
-        return $query->where('scope_type', $scopeType)
-                     ->where('scope_id', $scopeId);
+        if ($model === null) {
+            return $query->whereNull('credentialable_type')
+                         ->whereNull('credentialable_id');
+        }
+
+        return $query->where('credentialable_type', get_class($model))
+                     ->where('credentialable_id', $model->id);
     }
 
     public function scopeForKey($query, string $key)
@@ -112,19 +113,18 @@ class Credential extends Model
     /**
      * Resolve credential with hierarchical fallback.
      * 
-     * Order: processor > campaign > subscriber > system
+     * Order: processor > campaign > system (null)
      */
     public static function resolve(
         string $key,
-        ?string $processorId = null,
-        ?string $campaignId = null,
-        ?string $subscriberId = null
+        ?Processor $processor = null,
+        ?Campaign $campaign = null
     ): ?self {
         // Try processor scope first
-        if ($processorId) {
+        if ($processor) {
             $credential = self::active()
                 ->notExpired()
-                ->forScope('processor', $processorId)
+                ->forModel($processor)
                 ->forKey($key)
                 ->first();
 
@@ -134,10 +134,10 @@ class Credential extends Model
         }
 
         // Try campaign scope
-        if ($campaignId) {
+        if ($campaign) {
             $credential = self::active()
                 ->notExpired()
-                ->forScope('campaign', $campaignId)
+                ->forModel($campaign)
                 ->forKey($key)
                 ->first();
 
@@ -146,23 +146,10 @@ class Credential extends Model
             }
         }
 
-        // Try subscriber scope
-        if ($subscriberId) {
-            $credential = self::active()
-                ->notExpired()
-                ->forScope('subscriber', $subscriberId)
-                ->forKey($key)
-                ->first();
-
-            if ($credential) {
-                return $credential;
-            }
-        }
-
-        // Fall back to system scope
+        // Fall back to system scope (null credentialable)
         return self::active()
             ->notExpired()
-            ->forScope('system', null)
+            ->forModel(null)
             ->forKey($key)
             ->first();
     }

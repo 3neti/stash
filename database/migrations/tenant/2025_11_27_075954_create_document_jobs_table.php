@@ -18,7 +18,7 @@ return new class extends Migration
             $table->ulid('document_id');
             $table->json('pipeline_instance');
             $table->integer('current_processor_index')->default(0);
-            $table->enum('status', ['pending', 'queued', 'running', 'completed', 'failed', 'cancelled'])->default('pending');
+            $table->string('state')->default('pending');
             $table->string('queue_name')->nullable();
             $table->integer('attempts')->default(0);
             $table->integer('max_attempts')->default(3);
@@ -31,7 +31,7 @@ return new class extends Migration
             $table->foreign('campaign_id')->references('id')->on('campaigns')->cascadeOnDelete();
             $table->foreign('document_id')->references('id')->on('documents')->cascadeOnDelete();
 
-            $table->index(['campaign_id', 'status']);
+            $table->index(['campaign_id', 'state']);
             $table->index('document_id');
         });
     }

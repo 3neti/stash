@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Tenancy\Traits\BelongsToTenant;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 
 /**
  * UsageEvent Model
@@ -16,10 +16,7 @@ use Illuminate\Support\Str;
  */
 class UsageEvent extends Model
 {
-    use BelongsToTenant, HasFactory;
-
-    public $incrementing = false;
-    protected $keyType = 'string';
+    use BelongsToTenant, HasFactory, HasUlids;
 
     protected $fillable = [
         'campaign_id',
@@ -44,9 +41,6 @@ class UsageEvent extends Model
         parent::boot();
 
         static::creating(function (UsageEvent $event) {
-            if (empty($event->id)) {
-                $event->id = (string) Str::ulid();
-            }
             if (empty($event->recorded_at)) {
                 $event->recorded_at = now();
             }
