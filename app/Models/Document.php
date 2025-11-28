@@ -102,6 +102,11 @@ class Document extends Model
         return $this->hasMany(DocumentJob::class);
     }
 
+    public function documentJob(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(DocumentJob::class)->latestOfMany();
+    }
+
     public function usageEvents(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(UsageEvent::class);

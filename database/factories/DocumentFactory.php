@@ -38,6 +38,13 @@ class DocumentFactory extends Factory
         ];
     }
 
+    public function pending(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'state' => 'pending',
+        ]);
+    }
+
     public function completed(): static
     {
         return $this->state(fn (array $attributes) => [
