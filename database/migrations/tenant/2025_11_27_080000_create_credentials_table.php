@@ -13,8 +13,7 @@ return new class extends Migration
     {
         Schema::create('credentials', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->enum('scope_type', ['system', 'tenant', 'campaign', 'processor']);
-            $table->string('scope_id')->nullable();
+            $table->nullableUlidMorphs('credentialable');
             $table->string('key');
             $table->text('value');
             $table->string('provider')->nullable();
@@ -25,7 +24,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->unique(['scope_type', 'scope_id', 'key']);
+            $table->unique(['credentialable_type', 'credentialable_id', 'key']);
             $table->index(['provider', 'is_active']);
         });
     }

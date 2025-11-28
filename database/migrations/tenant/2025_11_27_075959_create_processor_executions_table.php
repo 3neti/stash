@@ -18,7 +18,7 @@ return new class extends Migration
             $table->json('input_data');
             $table->json('output_data')->nullable();
             $table->json('config');
-            $table->enum('status', ['pending', 'running', 'completed', 'failed', 'skipped'])->default('pending');
+            $table->string('state')->default('pending');
             $table->integer('duration_ms')->nullable();
             $table->text('error_message')->nullable();
             $table->integer('tokens_used')->default(0);
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->foreign('job_id')->references('id')->on('document_jobs')->cascadeOnDelete();
             $table->foreign('processor_id')->references('id')->on('processors')->cascadeOnDelete();
 
-            $table->index(['job_id', 'status']);
+            $table->index(['job_id', 'state']);
             $table->index('processor_id');
         });
     }

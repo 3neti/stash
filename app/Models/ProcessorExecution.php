@@ -6,9 +6,9 @@ namespace App\Models;
 
 use App\States\ProcessorExecution\ProcessorExecutionState;
 use App\Tenancy\Traits\BelongsToTenant;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 use Spatie\ModelStates\HasStates;
 
 /**
@@ -18,10 +18,7 @@ use Spatie\ModelStates\HasStates;
  */
 class ProcessorExecution extends Model
 {
-    use BelongsToTenant, HasFactory, HasStates;
-
-    public $incrementing = false;
-    protected $keyType = 'string';
+    use BelongsToTenant, HasFactory, HasStates, HasUlids;
 
     protected $fillable = [
         'job_id',
@@ -29,7 +26,7 @@ class ProcessorExecution extends Model
         'input_data',
         'output_data',
         'config',
-        'status',
+        'state',
         'duration_ms',
         'error_message',
         'tokens_used',
@@ -47,25 +44,14 @@ class ProcessorExecution extends Model
         'cost_credits' => 'integer',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
-        'status' => ProcessorExecutionState::class,
+        'state' => ProcessorExecutionState::class,
     ];
 
     protected $attributes = [
-        'status' => 'pending',
+        'state' => 'pending',
         'tokens_used' => 0,
         'cost_credits' => 0,
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (ProcessorExecution $execution) {
-            if (empty($execution->id)) {
-                $execution->id = (string) Str::ulid();
-            }
-        });
-    }
 
     public function documentJob(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -79,30 +65,28 @@ class ProcessorExecution extends Model
 
     public function scopeCompleted($query)
     {
-        return $query->where('status', 'completed');
+        return $query->whereState('state', 'completed');
     }
 
     public function scopeFailed($query)
     {
-        return $query->where('status', 'failed');
+        return $query->whereState('state', 'failed');
     }
 
     public function isCompleted(): bool
     {
-        return $this->status === 'completed';
+        return $this->state->is('completed');
     }
 
     public function isFailed(): bool
     {
-        return $this->status === 'failed';
+        return $this->state->is('failed');
     }
 
     public function start(): void
     {
-        $this->update([
-            'status' => 'running',
-            'started_at' => now(),
-        ]);
+        $this->state->transitionTo('running');
+        $this->update(['started_at' => now()]);
     }
 
     public function complete(array $output, int $tokensUsed = 0, int $costCredits = 0): void
@@ -110,8 +94,8 @@ class ProcessorExecution extends Model
         $startedAt = $this->started_at ?? now();
         $durationMs = now()->diffInMilliseconds($startedAt);
 
+        $this->state->transitionTo('completed');
         $this->update([
-            'status' => 'completed',
             'output_data' => $output,
             'duration_ms' => $durationMs,
             'tokens_used' => $tokensUsed,
@@ -125,8 +109,8 @@ class ProcessorExecution extends Model
         $startedAt = $this->started_at ?? now();
         $durationMs = now()->diffInMilliseconds($startedAt);
 
+        $this->state->transitionTo('failed');
         $this->update([
-            'status' => 'failed',
             'error_message' => $error,
             'duration_ms' => $durationMs,
             'completed_at' => now(),

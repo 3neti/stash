@@ -20,10 +20,8 @@ abstract class DocumentJobState extends State
             ->allowTransition(RunningJobState::class, CompletedJobState::class)
             ->allowTransition(RunningJobState::class, FailedJobState::class)
             ->allowTransition(FailedJobState::class, QueuedJobState::class)
-            ->allowTransitions([
-                PendingJobState::class,
-                QueuedJobState::class,
-                RunningJobState::class,
-            ], CancelledJobState::class);
+            ->allowTransition(PendingJobState::class, CancelledJobState::class)
+            ->allowTransition(QueuedJobState::class, CancelledJobState::class)
+            ->allowTransition(RunningJobState::class, CancelledJobState::class);
     }
 }

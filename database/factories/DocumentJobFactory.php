@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Campaign;
+use App\Models\Document;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,14 +20,14 @@ class DocumentJobFactory extends Factory
     {
         return [
             'uuid' => fake()->uuid(),
-            'campaign_id' => null,
-            'document_id' => null,
+            'campaign_id' => Campaign::factory(),
+            'document_id' => Document::factory(),
             'pipeline_instance' => [
                 'current_step' => 0,
                 'total_steps' => 3,
             ],
             'current_processor_index' => 0,
-            'status' => fake()->randomElement(['pending', 'queued', 'running', 'completed', 'failed']),
+            'state' => fake()->randomElement(['pending', 'queued', 'running', 'completed', 'failed']),
             'queue_name' => 'default',
             'attempts' => 0,
             'max_attempts' => 3,
@@ -36,7 +38,7 @@ class DocumentJobFactory extends Factory
     public function running(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'running',
+            'state' => 'running',
             'started_at' => fake()->dateTimeBetween('-1 hour', 'now'),
         ]);
     }
@@ -44,7 +46,7 @@ class DocumentJobFactory extends Factory
     public function completed(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'completed',
+            'state' => 'completed',
             'started_at' => fake()->dateTimeBetween('-2 hours', '-1 hour'),
             'completed_at' => fake()->dateTimeBetween('-1 hour', 'now'),
         ]);
@@ -53,7 +55,7 @@ class DocumentJobFactory extends Factory
     public function failed(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'failed',
+            'state' => 'failed',
             'attempts' => 3,
             'error_log' => [
                 [

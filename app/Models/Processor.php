@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Tenancy\Traits\BelongsToTenant;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 
 /**
  * Processor Model
@@ -16,10 +16,7 @@ use Illuminate\Support\Str;
  */
 class Processor extends Model
 {
-    use BelongsToTenant, HasFactory;
-
-    public $incrementing = false;
-    protected $keyType = 'string';
+    use BelongsToTenant, HasFactory, HasUlids;
 
     protected $fillable = [
         'name',
@@ -47,17 +44,6 @@ class Processor extends Model
         'is_active' => true,
         'version' => '1.0.0',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (Processor $processor) {
-            if (empty($processor->id)) {
-                $processor->id = (string) Str::ulid();
-            }
-        });
-    }
 
     public function processorExecutions(): \Illuminate\Database\Eloquent\Relations\HasMany
     {

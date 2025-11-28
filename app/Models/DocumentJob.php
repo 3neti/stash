@@ -6,9 +6,9 @@ namespace App\Models;
 
 use App\States\DocumentJob\DocumentJobState;
 use App\Tenancy\Traits\BelongsToTenant;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 use Spatie\ModelStates\HasStates;
 
 /**
@@ -18,10 +18,7 @@ use Spatie\ModelStates\HasStates;
  */
 class DocumentJob extends Model
 {
-    use BelongsToTenant, HasFactory, HasStates;
-
-    public $incrementing = false;
-    protected $keyType = 'string';
+    use BelongsToTenant, HasFactory, HasStates, HasUlids;
 
     protected $fillable = [
         'uuid',
@@ -29,7 +26,7 @@ class DocumentJob extends Model
         'document_id',
         'pipeline_instance',
         'current_processor_index',
-        'status',
+        'state',
         'queue_name',
         'attempts',
         'max_attempts',
@@ -48,11 +45,11 @@ class DocumentJob extends Model
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
         'failed_at' => 'datetime',
-        'status' => DocumentJobState::class,
+        'state' => DocumentJobState::class,
     ];
 
     protected $attributes = [
-        'status' => 'pending',
+        'state' => 'pending',
         'current_processor_index' => 0,
         'attempts' => 0,
         'max_attempts' => 3,
@@ -63,11 +60,8 @@ class DocumentJob extends Model
         parent::boot();
 
         static::creating(function (DocumentJob $job) {
-            if (empty($job->id)) {
-                $job->id = (string) Str::ulid();
-            }
             if (empty($job->uuid)) {
-                $job->uuid = (string) Str::uuid();
+                $job->uuid = (string) \Illuminate\Support\Str::uuid();
             }
         });
     }
@@ -89,32 +83,32 @@ class DocumentJob extends Model
 
     public function scopeRunning($query)
     {
-        return $query->where('status', 'running');
+        return $query->whereState('state', 'running');
     }
 
     public function scopeCompleted($query)
     {
-        return $query->where('status', 'completed');
+        return $query->whereState('state', 'completed');
     }
 
     public function scopeFailed($query)
     {
-        return $query->where('status', 'failed');
+        return $query->whereState('state', 'failed');
     }
 
     public function isRunning(): bool
     {
-        return $this->status === 'running';
+        return $this->state->is('running');
     }
 
     public function isCompleted(): bool
     {
-        return $this->status === 'completed';
+        return $this->state->is('completed');
     }
 
     public function isFailed(): bool
     {
-        return $this->status === 'failed';
+        return $this->state->is('failed');
     }
 
     public function canRetry(): bool
@@ -124,18 +118,14 @@ class DocumentJob extends Model
 
     public function start(): void
     {
-        $this->update([
-            'status' => 'running',
-            'started_at' => now(),
-        ]);
+        $this->state->transitionTo('running');
+        $this->update(['started_at' => now()]);
     }
 
     public function complete(): void
     {
-        $this->update([
-            'status' => 'completed',
-            'completed_at' => now(),
-        ]);
+        $this->state->transitionTo('completed');
+        $this->update(['completed_at' => now()]);
     }
 
     public function fail(string $error): void
@@ -147,8 +137,8 @@ class DocumentJob extends Model
             'error' => $error,
         ];
 
+        $this->state->transitionTo('failed');
         $this->update([
-            'status' => 'failed',
             'failed_at' => now(),
             'error_log' => $errorLog,
         ]);

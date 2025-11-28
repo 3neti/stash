@@ -17,8 +17,8 @@ class CredentialFactory extends Factory
     public function definition(): array
     {
         return [
-            'scope_type' => fake()->randomElement(['system', 'subscriber', 'campaign', 'processor']),
-            'scope_id' => null,
+            'credentialable_type' => null,  // System-level by default
+            'credentialable_id' => null,
             'key' => fake()->randomElement(['openai_api_key', 'anthropic_api_key', 'aws_access_key', 'smtp_password']),
             'value' => 'test-credential-' . fake()->uuid(),
             'provider' => fake()->randomElement(['openai', 'anthropic', 'aws', 'smtp']),
@@ -33,30 +33,19 @@ class CredentialFactory extends Factory
     public function system(): static
     {
         return $this->state(fn (array $attributes) => [
-            'scope_type' => 'system',
-            'scope_id' => null,
+            'credentialable_type' => null,
+            'credentialable_id' => null,
         ]);
     }
 
-    public function subscriber(): static
+    public function forCampaign(\App\Models\Campaign $campaign): static
     {
-        return $this->state(fn (array $attributes) => [
-            'scope_type' => 'subscriber',
-        ]);
+        return $this->for($campaign, 'credentialable');
     }
 
-    public function campaign(): static
+    public function forProcessor(\App\Models\Processor $processor): static
     {
-        return $this->state(fn (array $attributes) => [
-            'scope_type' => 'campaign',
-        ]);
-    }
-
-    public function processor(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'scope_type' => 'processor',
-        ]);
+        return $this->for($processor, 'credentialable');
     }
 
     public function expired(): static
