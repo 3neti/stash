@@ -22,6 +22,7 @@ abstract class DocumentState extends State
             ->allowTransition(ProcessingDocumentState::class, CompletedDocumentState::class)
             ->allowTransition(ProcessingDocumentState::class, FailedDocumentState::class)
             // Direct transitions (bypass queue)
+            ->allowTransition(PendingDocumentState::class, ProcessingDocumentState::class)
             ->allowTransition(PendingDocumentState::class, CompletedDocumentState::class)
             ->allowTransition(PendingDocumentState::class, FailedDocumentState::class)
             // Cancellation from any state

@@ -11,15 +11,9 @@ use App\Models\Tenant;
 use App\Services\Pipeline\PipelineOrchestrator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use LBHurtado\DeadDrop\Enums\Document\DocumentJobState\CompletedJobState;
-use LBHurtado\DeadDrop\Enums\Document\DocumentJobState\PendingJobState;
-use LBHurtado\DeadDrop\Enums\Document\DocumentJobState\RunningJobState;
-use LBHurtado\DeadDrop\Enums\Document\DocumentState\CompletedState;
-use LBHurtado\DeadDrop\Enums\Document\DocumentState\PendingState;
-use LBHurtado\DeadDrop\Enums\Document\DocumentState\ProcessingState;
-use LBHurtado\DeadDrop\Enums\ProcessorExecution\ProcessorExecutionState\CompletedExecutionState;
-use LBHurtado\DeadDrop\Enums\ProcessorExecution\ProcessorExecutionState\PendingExecutionState;
-use LBHurtado\DeadDrop\Enums\ProcessorExecution\ProcessorExecutionState\RunningExecutionState;
+use App\States\Document\{CompletedDocumentState, PendingDocumentState, ProcessingDocumentState};
+use App\States\DocumentJob\{CompletedJobState, PendingJobState, RunningJobState};
+use App\States\ProcessorExecution\{CompletedExecutionState, PendingExecutionState, RunningExecutionState, FailedExecutionState};
 
 uses()->group('feature', 'pipeline', 'end-to-end');
 
@@ -63,7 +57,7 @@ beforeEach(function () {
         ],
     ]);
 
-    // Ensure processors exist in registry
+    // Ensure processors exist in database
     Processor::firstOrCreate(
         ['slug' => 'ocr'],
         ['name' => 'Tesseract OCR', 'category' => 'ocr', 'class_name' => 'App\Processors\OcrProcessor']
@@ -98,6 +92,12 @@ beforeEach(function () {
     ]);
 
     $this->orchestrator = app(PipelineOrchestrator::class);
+
+    // Register processors with ProcessorRegistry (must be done after orchestrator is created)
+    $registry = app(\App\Services\Pipeline\ProcessorRegistry::class);
+    $registry->register('ocr', \App\Processors\OcrProcessor::class);
+    $registry->register('classifier', \App\Processors\ClassificationProcessor::class);
+    $registry->register('extractor', \App\Processors\ExtractionProcessor::class);
 });
 
 test('processes document through complete pipeline: OCR → Classification → Extraction', function () {
@@ -113,7 +113,7 @@ test('processes document through complete pipeline: OCR → Classification → E
 
     // Verify Document state transitioned
     $this->document->refresh();
-    expect($this->document->state)->toBeInstanceOf(CompletedState::class);
+    expect($this->document->state)->toBeInstanceOf(CompletedDocumentState::class);
 
     // Verify all 3 ProcessorExecutions were created
     $executions = $job->processorExecutions()->orderBy('id')->get();
@@ -149,7 +149,7 @@ test('processes document through complete pipeline: OCR → Classification → E
 
 test('document state transitions correctly during pipeline execution', function () {
     // Initial state
-    expect($this->document->state)->toBeInstanceOf(PendingState::class);
+    expect($this->document->state)->toBeInstanceOf(PendingDocumentState::class);
 
     // Execute first processor (OCR)
     $job = DocumentJob::create([
@@ -163,14 +163,14 @@ test('document state transitions correctly during pipeline execution', function 
     $this->document->toProcessing();
 
     expect($job->state)->toBeInstanceOf(RunningJobState::class)
-        ->and($this->document->fresh()->state)->toBeInstanceOf(ProcessingState::class);
+        ->and($this->document->fresh()->state)->toBeInstanceOf(ProcessingDocumentState::class);
 
     // Execute pipeline
     $this->orchestrator->processDocument($this->document);
 
     // Final state
     expect($job->fresh()->state)->toBeInstanceOf(CompletedJobState::class)
-        ->and($this->document->fresh()->state)->toBeInstanceOf(CompletedState::class);
+        ->and($this->document->fresh()->state)->toBeInstanceOf(CompletedDocumentState::class);
 });
 
 test('processor executions track timing and token usage', function () {
@@ -204,18 +204,18 @@ test('pipeline handles processor failures gracefully', function () {
 
     // Verify job failed
     $job->refresh();
-    expect($job->state)->toBeInstanceOf(\LBHurtado\DeadDrop\Enums\Document\DocumentJobState\FailedJobState::class)
+    expect($job->state)->toBeInstanceOf(\App\States\DocumentJob\FailedJobState::class)
         ->and($job->error_log)->not->toBeEmpty()
         ->and($job->error_log)->toContain('not found');
 
     // Verify first processor execution failed
     $execution = $job->processorExecutions->first();
-    expect($execution->state)->toBeInstanceOf(\LBHurtado\DeadDrop\Enums\ProcessorExecution\ProcessorExecutionState\FailedExecutionState::class)
+    expect($execution->state)->toBeInstanceOf(FailedExecutionState::class)
         ->and($execution->error_message)->not->toBeEmpty();
 
     // Verify document marked as failed
     $failDocument->refresh();
-    expect($failDocument->state)->toBeInstanceOf(\LBHurtado\DeadDrop\Enums\Document\DocumentState\FailedState::class);
+    expect($failDocument->state)->toBeInstanceOf(\App\States\Document\FailedDocumentState::class);
 });
 
 test('pipeline stops after processor failure and does not execute subsequent processors', function () {
@@ -233,7 +233,7 @@ test('pipeline stops after processor failure and does not execute subsequent pro
     $executions = $job->processorExecutions;
     expect($executions)->toHaveCount(1)
         ->and($executions->first()->processor_id)->toBe('ocr')
-        ->and($executions->first()->state)->toBeInstanceOf(\LBHurtado\DeadDrop\Enums\ProcessorExecution\ProcessorExecutionState\FailedExecutionState::class);
+        ->and($executions->first()->state)->toBeInstanceOf(FailedExecutionState::class);
 
     // Classification and Extraction should NOT have been attempted
     expect($job->current_processor_index)->toBe(0);
