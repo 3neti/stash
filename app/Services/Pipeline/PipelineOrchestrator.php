@@ -20,13 +20,13 @@ final readonly class PipelineOrchestrator
     ) {}
 
     /**
-     * Execute pipeline for a document (creates DocumentJob if needed).
+     * Process a document through its pipeline (creates DocumentJob and executes).
      *
      * @param Document $document
      * @return DocumentJob The executed job
      * @throws ProcessorException
      */
-    public function executePipeline(Document $document): DocumentJob
+    public function processDocument(Document $document): DocumentJob
     {
         // Create DocumentJob if one doesn't exist
         $documentJob = DocumentJob::create([
@@ -41,7 +41,7 @@ final readonly class PipelineOrchestrator
         $document->toProcessing();
 
         // Execute the pipeline
-        $success = $this->executeJob($documentJob);
+        $success = $this->executePipeline($documentJob);
 
         // Mark completion
         if ($success) {
@@ -62,7 +62,7 @@ final readonly class PipelineOrchestrator
      * @return bool True if all processors succeeded
      * @throws ProcessorException
      */
-    public function executeJob(DocumentJob $documentJob): bool
+    public function executePipeline(DocumentJob $documentJob): bool
     {
         $document = $documentJob->document()->firstOrFail();
         $pipelineConfig = PipelineConfigData::from($documentJob->pipeline_instance);
