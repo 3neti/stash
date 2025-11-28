@@ -7,23 +7,17 @@
 |
 | The closure you provide to your test functions is always bound to a specific PHPUnit test
 | case class. By default, that class is "PHPUnit\Framework\TestCase". Of course, you may
-| need to change it using the "pest()" function to bind a different classes or traits.
+| need to change it using the "uses()" function to bind a different classes or traits.
 |
 */
 
-// State machine tests need tenant tables (use DeadDropTestCase for proper setup)
-pest()->extend(Tests\DeadDropTestCase::class)
-    ->in('Feature/StateMachine');
+// DeadDrop Package Tests (tenant-aware with dual DB setup)
+uses(Tests\DeadDropTestCase::class)
+    ->in('Feature/DeadDrop');
 
-// All other Feature tests
-pest()->extend(Tests\TestCase::class)
-    ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Feature/Auth', 'Feature/Settings')
-    ->in('Feature/*.php', 'Unit/*.php'); // Top-level Feature and Unit test files only
-
-// DeadDrop Package Tests
-pest()->extend(Tests\DeadDropTestCase::class)
-    ->in('Unit/DeadDrop', 'Feature/DeadDrop', 'Integration/DeadDrop');
+// Laravel Feature Tests (Auth, Settings, etc.) - use standard TestCase with RefreshDatabase
+uses(Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->in('Feature/Auth', 'Feature/Settings');
 
 /*
 |--------------------------------------------------------------------------
