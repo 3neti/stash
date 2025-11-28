@@ -102,7 +102,7 @@ beforeEach(function () {
 
 test('processes document through complete pipeline: OCR → Classification → Extraction', function () {
     // Start the pipeline
-    $job = $this->orchestrator->executePipeline($this->document);
+    $job = $this->orchestrator->processDocument($this->document);
 
     // Verify DocumentJob created
     expect($job)->toBeInstanceOf(DocumentJob::class)
@@ -166,7 +166,7 @@ test('document state transitions correctly during pipeline execution', function 
         ->and($this->document->fresh()->state)->toBeInstanceOf(ProcessingState::class);
 
     // Execute pipeline
-    $this->orchestrator->executePipeline($this->document);
+    $this->orchestrator->processDocument($this->document);
 
     // Final state
     expect($job->fresh()->state)->toBeInstanceOf(CompletedJobState::class)
@@ -174,7 +174,7 @@ test('document state transitions correctly during pipeline execution', function 
 });
 
 test('processor executions track timing and token usage', function () {
-    $job = $this->orchestrator->executePipeline($this->document);
+    $job = $this->orchestrator->processDocument($this->document);
 
     $executions = $job->processorExecutions;
 
@@ -200,7 +200,7 @@ test('pipeline handles processor failures gracefully', function () {
         'mime_type' => 'image/png',
     ]);
 
-    $job = $this->orchestrator->executePipeline($failDocument);
+    $job = $this->orchestrator->processDocument($failDocument);
 
     // Verify job failed
     $job->refresh();
@@ -227,7 +227,7 @@ test('pipeline stops after processor failure and does not execute subsequent pro
         'mime_type' => 'image/png',
     ]);
 
-    $job = $this->orchestrator->executePipeline($failDocument);
+    $job = $this->orchestrator->processDocument($failDocument);
 
     // Only OCR execution should exist (failed)
     $executions = $job->processorExecutions;
@@ -240,7 +240,7 @@ test('pipeline stops after processor failure and does not execute subsequent pro
 });
 
 test('metadata accumulates through pipeline stages', function () {
-    $job = $this->orchestrator->executePipeline($this->document);
+    $job = $this->orchestrator->processDocument($this->document);
 
     $this->document->refresh();
 
@@ -263,7 +263,7 @@ test('metadata accumulates through pipeline stages', function () {
 });
 
 test('pipeline tracks processor count and completion percentage', function () {
-    $job = $this->orchestrator->executePipeline($this->document);
+    $job = $this->orchestrator->processDocument($this->document);
 
     expect($job->pipeline_instance['processors'])->toHaveCount(3)
         ->and($job->current_processor_index)->toBe(2) // 0-indexed, so 2 = 3rd processor
@@ -278,7 +278,7 @@ test('pipeline tracks processor count and completion percentage', function () {
 });
 
 test('each processor execution has unique processor_id from config', function () {
-    $job = $this->orchestrator->executePipeline($this->document);
+    $job = $this->orchestrator->processDocument($this->document);
 
     $executions = $job->processorExecutions()->orderBy('id')->get();
 
@@ -292,7 +292,7 @@ test('pipeline creates processor records on-the-fly if missing', function () {
     $beforeCount = Processor::count();
 
     // Execute pipeline (processors should exist from beforeEach)
-    $job = $this->orchestrator->executePipeline($this->document);
+    $job = $this->orchestrator->processDocument($this->document);
 
     // Count processors after
     $afterCount = Processor::count();
