@@ -36,6 +36,9 @@ class TenancyServiceProvider extends ServiceProvider
         // Register middleware
         $this->app['router']->aliasMiddleware('tenant', InitializeTenancy::class);
 
+        // Load tenant migrations (makes RefreshDatabase work automatically)
+        $this->loadMigrationsFrom(database_path('migrations/tenant'));
+
         // Register console commands
         if ($this->app->runningInConsole()) {
             $this->commands([
