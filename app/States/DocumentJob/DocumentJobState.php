@@ -17,10 +17,11 @@ abstract class DocumentJobState extends State
             ->default(PendingJobState::class)
             ->registerStatesFromDirectory(__DIR__)
             ->allowTransition(PendingJobState::class, QueuedJobState::class)
+            ->allowTransition(PendingJobState::class, RunningJobState::class) // Direct execution
             ->allowTransition(QueuedJobState::class, RunningJobState::class)
             ->allowTransition(RunningJobState::class, CompletedJobState::class)
             ->allowTransition(RunningJobState::class, FailedJobState::class)
-            ->allowTransition(FailedJobState::class, QueuedJobState::class)
+            ->allowTransition(FailedJobState::class, QueuedJobState::class) // Retry
             ->allowTransition(PendingJobState::class, CancelledJobState::class)
             ->allowTransition(QueuedJobState::class, CancelledJobState::class)
             ->allowTransition(RunningJobState::class, CancelledJobState::class);

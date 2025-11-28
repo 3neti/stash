@@ -137,10 +137,27 @@ class Document extends Model
         return $this->state instanceof QueuedDocumentState || $this->state instanceof ProcessingDocumentState;
     }
 
-    public function markCompleted(): void
+    public function toProcessing(): void
+    {
+        $this->state->transitionTo(ProcessingDocumentState::class);
+        $this->save();
+    }
+
+    public function toCompleted(): void
     {
         $this->state->transitionTo(CompletedDocumentState::class);
         $this->update(['processed_at' => now()]);
+    }
+
+    public function toFailed(): void
+    {
+        $this->state->transitionTo(FailedDocumentState::class);
+        $this->save();
+    }
+
+    public function markCompleted(): void
+    {
+        $this->toCompleted();
     }
 
     public function markFailed(string $error): void
