@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Campaign;
+use App\States\Document\PendingDocumentState;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,7 +20,7 @@ class DocumentFactory extends Factory
     {
         return [
             'uuid' => fake()->uuid(),
-            'campaign_id' => null,
+            'campaign_id' => Campaign::factory(),
             'user_id' => null,
             'original_filename' => fake()->word() . '.' . fake()->fileExtension(),
             'mime_type' => fake()->mimeType(),
@@ -26,7 +28,7 @@ class DocumentFactory extends Factory
             'storage_path' => 'documents/' . fake()->uuid() . '.pdf',
             'storage_disk' => 's3',
             'hash' => hash('sha256', fake()->uuid()),
-            // status is handled by DocumentState::config()->default()
+            'state' => PendingDocumentState::$name,
             'metadata' => [
                 'pages' => fake()->numberBetween(1, 50),
                 'language' => 'en',
@@ -39,7 +41,7 @@ class DocumentFactory extends Factory
     public function completed(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'completed',
+            'state' => 'completed',
             'processed_at' => fake()->dateTimeBetween('-7 days', 'now'),
         ]);
     }
@@ -47,7 +49,7 @@ class DocumentFactory extends Factory
     public function failed(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'failed',
+            'state' => 'failed',
             'error_message' => fake()->sentence(),
             'failed_at' => fake()->dateTimeBetween('-7 days', 'now'),
         ]);
@@ -56,7 +58,7 @@ class DocumentFactory extends Factory
     public function processing(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'processing',
+            'state' => 'processing',
         ]);
     }
 }

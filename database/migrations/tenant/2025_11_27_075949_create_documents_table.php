@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('storage_path');
             $table->string('storage_disk')->default('s3');
             $table->string('hash', 64);
-            $table->enum('status', ['pending', 'queued', 'processing', 'completed', 'failed', 'cancelled']);
+            $table->string('state')->default('pending');
             $table->json('metadata')->nullable();
             $table->json('processing_history')->nullable();
             $table->text('error_message')->nullable();
@@ -35,7 +35,7 @@ return new class extends Migration
             $table->foreign('campaign_id')->references('id')->on('campaigns')->cascadeOnDelete();
             // Note: user_id references central database users, so no foreign key constraint
 
-            $table->index(['campaign_id', 'status']);
+            $table->index(['campaign_id', 'state']);
             $table->index('user_id');
             $table->index('created_at');
         });

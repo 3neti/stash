@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\States\Document\CompletedDocumentState;
 use App\States\Document\DocumentState;
+use App\States\Document\FailedDocumentState;
+use App\States\Document\PendingDocumentState;
+use App\States\Document\ProcessingDocumentState;
+use App\States\Document\QueuedDocumentState;
 use App\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -35,7 +40,7 @@ class Document extends Model
         'storage_path',
         'storage_disk',
         'hash',
-        'status',
+        'state',
         'metadata',
         'processing_history',
         'error_message',
@@ -51,7 +56,7 @@ class Document extends Model
         'retry_count' => 'integer',
         'processed_at' => 'datetime',
         'failed_at' => 'datetime',
-        'status' => DocumentState::class,
+        'state' => DocumentState::class,
     ];
 
     protected $attributes = [
@@ -95,46 +100,44 @@ class Document extends Model
 
     public function scopePending($query)
     {
-        return $query->where('status', 'pending');
+        return $query->whereState('state', PendingDocumentState::class);
     }
 
     public function scopeCompleted($query)
     {
-        return $query->where('status', 'completed');
+        return $query->whereState('state', CompletedDocumentState::class);
     }
 
     public function scopeFailed($query)
     {
-        return $query->where('status', 'failed');
+        return $query->whereState('state', FailedDocumentState::class);
     }
 
     public function isCompleted(): bool
     {
-        return $this->status === 'completed';
+        return $this->state instanceof CompletedDocumentState;
     }
 
     public function isFailed(): bool
     {
-        return $this->status === 'failed';
+        return $this->state instanceof FailedDocumentState;
     }
 
     public function isProcessing(): bool
     {
-        return in_array($this->status, ['queued', 'processing']);
+        return $this->state instanceof QueuedDocumentState || $this->state instanceof ProcessingDocumentState;
     }
 
     public function markCompleted(): void
     {
-        $this->update([
-            'status' => 'completed',
-            'processed_at' => now(),
-        ]);
+        $this->state->transitionTo(CompletedDocumentState::class);
+        $this->update(['processed_at' => now()]);
     }
 
     public function markFailed(string $error): void
     {
+        $this->state->transitionTo(FailedDocumentState::class);
         $this->update([
-            'status' => 'failed',
             'error_message' => $error,
             'failed_at' => now(),
         ]);
