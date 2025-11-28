@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -35,10 +36,7 @@ use Illuminate\Support\Facades\Crypt;
  */
 class Campaign extends Model
 {
-    use BelongsToTenant, HasFactory, SoftDeletes;
-
-    public $incrementing = false;
-    protected $keyType = 'string';
+    use BelongsToTenant, HasFactory, HasUlids, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -70,17 +68,6 @@ class Campaign extends Model
         'max_concurrent_jobs' => 10,
         'retention_days' => 90,
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (Campaign $campaign) {
-            if (empty($campaign->id)) {
-                $campaign->id = (string) \Illuminate\Support\Str::ulid();
-            }
-        });
-    }
 
     /**
      * Get/set encrypted credentials.

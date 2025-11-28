@@ -10,10 +10,21 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
  *
  * Provides common setup, helpers, and patterns for testing
  * DeadDrop mono-repo packages.
+ * 
+ * Tenant migrations are automatically loaded via TenancyServiceProvider,
+ * so RefreshDatabase handles both central and tenant tables.
  */
 abstract class DeadDropTestCase extends BaseTestCase
 {
     use RefreshDatabase;
+
+    /**
+     * Define database connections to be refreshed.
+     */
+    protected function connectionsToTransact(): array
+    {
+        return ['pgsql', 'tenant'];
+    }
 
     /**
      * Setup the test environment.
@@ -27,18 +38,17 @@ abstract class DeadDropTestCase extends BaseTestCase
     }
 
     /**
-     * Get package-specific configuration.
+     * Run migrations on tenant connection after refreshing database.
      */
-    protected function getPackageConfig(string $key, mixed $default = null): mixed
+    protected function afterRefreshingDatabase(): void
     {
-        return config("dead-drop.{$key}", $default);
+        // Run tenant migrations on tenant connection
+        $this->artisan('migrate', [
+            '--database' => 'tenant',
+            '--path' => 'database/migrations/tenant',
+            '--force' => true,
+        ]);
     }
-
-    /**
-     * Mock external services for DeadDrop packages.
-     *
-     * @param  array<string, mixed>  $mocks
-     */
     protected function mockServices(array $mocks): void
     {
         foreach ($mocks as $abstract => $mock) {
