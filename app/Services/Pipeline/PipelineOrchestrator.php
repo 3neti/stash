@@ -20,13 +20,49 @@ final readonly class PipelineOrchestrator
     ) {}
 
     /**
+     * Execute pipeline for a document (creates DocumentJob if needed).
+     *
+     * @param Document $document
+     * @return DocumentJob The executed job
+     * @throws ProcessorException
+     */
+    public function executePipeline(Document $document): DocumentJob
+    {
+        // Create DocumentJob if one doesn't exist
+        $documentJob = DocumentJob::create([
+            'document_id' => $document->id,
+            'campaign_id' => $document->campaign_id,
+            'pipeline_instance' => $document->campaign->pipeline_config,
+            'current_processor_index' => 0,
+        ]);
+
+        // Start the job
+        $documentJob->start();
+        $document->toProcessing();
+
+        // Execute the pipeline
+        $success = $this->executeJob($documentJob);
+
+        // Mark completion
+        if ($success) {
+            $documentJob->complete();
+            $document->toCompleted();
+        } else {
+            $documentJob->fail('Pipeline execution failed');
+            $document->toFailed();
+        }
+
+        return $documentJob;
+    }
+
+    /**
      * Execute a complete pipeline for a DocumentJob.
      *
      * @param DocumentJob $documentJob
      * @return bool True if all processors succeeded
      * @throws ProcessorException
      */
-    public function executePipeline(DocumentJob $documentJob): bool
+    public function executeJob(DocumentJob $documentJob): bool
     {
         $document = $documentJob->document()->firstOrFail();
         $pipelineConfig = PipelineConfigData::from($documentJob->pipeline_instance);
@@ -45,6 +81,13 @@ final readonly class PipelineOrchestrator
 
             // Store output for subsequent processors
             $previousOutputs[$processorConfig->id] = $result->output;
+
+            // Update document metadata with processor output
+            $this->updateDocumentMetadata($document, $processorConfig, $result);
+
+            // Advance processor index
+            $documentJob->current_processor_index = $index;
+            $documentJob->save();
 
             if (!$result->success) {
                 $allSuccessful = false;
@@ -125,11 +168,11 @@ final readonly class PipelineOrchestrator
     ): ProcessorExecution {
         // Note: processor_id in the table references processors table
         // We need to lookup or create the processor record
+        $slug = \Illuminate\Support\Str::slug($processorConfig->id);
         $processorRecord = Processor::firstOrCreate(
-            ['id' => $processorConfig->id],
+            ['slug' => $slug],
             [
                 'name' => $processorConfig->id, // Use ID as name for now
-                'slug' => \Illuminate\Support\Str::slug($processorConfig->id),
                 'class_name' => $processorConfig->type,
                 'category' => 'custom',
                 'is_active' => true,
@@ -172,5 +215,36 @@ final readonly class PipelineOrchestrator
         } else {
             $execution->state->transitionTo('failed');
         }
+    }
+
+    /**
+     * Update document metadata with processor output.
+     *
+     * @param Document $document
+     * @param ProcessorConfigData $processorConfig
+     * @param ProcessorResultData $result
+     * @return void
+     */
+    private function updateDocumentMetadata(
+        Document $document,
+        ProcessorConfigData $processorConfig,
+        ProcessorResultData $result
+    ): void {
+        if (!$result->success) {
+            return;
+        }
+
+        $metadata = $document->metadata ?? [];
+
+        // Store processor-specific outputs in metadata
+        match ($processorConfig->type) {
+            'ocr' => $metadata['extracted_text'] = $result->output['text'] ?? null,
+            'classification' => $metadata['category'] = $result->output['category'] ?? null,
+            'extraction' => $metadata['extracted_fields'] = $result->output['fields'] ?? null,
+            default => null,
+        };
+
+        $document->metadata = $metadata;
+        $document->save();
     }
 }
