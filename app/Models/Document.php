@@ -40,7 +40,6 @@ class Document extends Model
         'storage_path',
         'storage_disk',
         'hash',
-        'state',
         'metadata',
         'processing_history',
         'error_message',

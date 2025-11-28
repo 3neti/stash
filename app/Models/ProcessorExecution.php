@@ -26,7 +26,6 @@ class ProcessorExecution extends Model
         'input_data',
         'output_data',
         'config',
-        'state',
         'duration_ms',
         'error_message',
         'tokens_used',
@@ -48,7 +47,6 @@ class ProcessorExecution extends Model
     ];
 
     protected $attributes = [
-        'state' => 'pending',
         'tokens_used' => 0,
         'cost_credits' => 0,
     ];

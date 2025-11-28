@@ -15,6 +15,7 @@ abstract class ProcessorExecutionState extends State
     {
         return parent::config()
             ->default(PendingExecutionState::class)
+            ->registerStatesFromDirectory(__DIR__)
             ->allowTransition(PendingExecutionState::class, RunningExecutionState::class)
             ->allowTransition(RunningExecutionState::class, CompletedExecutionState::class)
             ->allowTransition(RunningExecutionState::class, FailedExecutionState::class)
