@@ -100,6 +100,23 @@ describe('Document Model - Relationships', function () {
             ->and($document->user->id)->toBe($user->id);
     });
 
+    test('can assign user to document after creation', function () {
+        $user = User::factory()->create();
+        $document = Document::factory()->create(['user_id' => null]);
+
+        expect($document->user)->toBeNull();
+
+        // For cross-database relationships, direct assignment works
+        $document->update(['user_id' => $user->id]);
+        
+        // Explicitly load the relationship
+        $document->load('user');
+
+        expect($document->user)->toBeInstanceOf(User::class)
+            ->and($document->user->id)->toBe($user->id)
+            ->and($document->user_id)->toBe($user->id);
+    });
+
     test('document can have no user', function () {
         $document = Document::factory()->create(['user_id' => null]);
 
