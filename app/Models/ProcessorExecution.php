@@ -73,12 +73,12 @@ class ProcessorExecution extends Model
 
     public function isCompleted(): bool
     {
-        return $this->state->is('completed');
+        return $this->state instanceof \App\States\ProcessorExecution\CompletedExecutionState;
     }
 
     public function isFailed(): bool
     {
-        return $this->state->is('failed');
+        return $this->state instanceof \App\States\ProcessorExecution\FailedExecutionState;
     }
 
     public function start(): void

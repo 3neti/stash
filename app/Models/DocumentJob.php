@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\States\DocumentJob\DocumentJobState;
+use App\States\DocumentJob\{CompletedJobState, DocumentJobState, FailedJobState, RunningJobState};
 use App\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -96,17 +96,17 @@ class DocumentJob extends Model
 
     public function isRunning(): bool
     {
-        return $this->state->is('running');
+        return $this->state instanceof RunningJobState;
     }
 
     public function isCompleted(): bool
     {
-        return $this->state->is('completed');
+        return $this->state instanceof CompletedJobState;
     }
 
     public function isFailed(): bool
     {
-        return $this->state->is('failed');
+        return $this->state instanceof FailedJobState;
     }
 
     public function canRetry(): bool
