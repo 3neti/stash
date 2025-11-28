@@ -13,7 +13,6 @@ use App\Tenancy\TenantConnectionManager;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Mockery;
 use Spatie\ModelStates\Exceptions\TransitionNotAllowed;
 
 // This test uses TenantAwareTestCase which runs tenant migrations
@@ -27,7 +26,7 @@ beforeEach(function () {
     ]);
     
     // Mock the TenantConnectionManager to skip physical database creation
-    $mockManager = Mockery::mock(TenantConnectionManager::class);
+    $mockManager = \Mockery::mock(TenantConnectionManager::class);
     $mockManager->shouldReceive('switchToTenant')->andReturnNull();
     $mockManager->shouldReceive('switchToCentral')->andReturnNull();
     $this->app->instance(TenantConnectionManager::class, $mockManager);
@@ -41,7 +40,7 @@ beforeEach(function () {
 
 afterEach(function () {
     TenantContext::forgetCurrent();
-    Mockery::close();
+    \Mockery::close();
 });
 
 describe('Document State Machine', function () {

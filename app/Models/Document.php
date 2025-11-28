@@ -85,7 +85,17 @@ class Document extends Model
 
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(User::class);
+        // Users live on central database, not tenant database
+        $instance = $this->newRelatedInstance(User::class);
+        $instance->setConnection('pgsql');
+        
+        return $this->newBelongsTo(
+            $instance->newQuery(),
+            $this,
+            'user_id',
+            $instance->getKeyName(),
+            'user'
+        );
     }
 
     public function documentJobs(): \Illuminate\Database\Eloquent\Relations\HasMany
