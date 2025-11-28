@@ -59,9 +59,15 @@ abstract class AbstractProcessor implements ProcessorInterface
         try {
             $output = $this->process($document, $config);
             
+            // Extract tokens_used and cost_credits if present (snake_case from processors)
+            $tokensUsed = $output['tokens_used'] ?? null;
+            $costCredits = $output['cost_credits'] ?? null;
+            
             return new ProcessorResultData(
                 success: true,
-                output: $output
+                output: $output,
+                tokensUsed: $tokensUsed,
+                costCredits: $costCredits
             );
         } catch (Throwable $e) {
             return new ProcessorResultData(
