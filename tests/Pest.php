@@ -13,11 +13,23 @@
 
 // DeadDrop Package Tests (tenant-aware with dual DB setup)
 uses(Tests\DeadDropTestCase::class)
-    ->in('Feature/DeadDrop');
+    ->in('Feature/DeadDrop', 'Unit/DeadDrop');
 
 // Laravel Feature Tests (Auth, Settings, etc.) - use standard TestCase with RefreshDatabase
 uses(Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature/Auth', 'Feature/Settings');
+
+// Top-level Feature tests - standard TestCase with RefreshDatabase
+uses(Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->in('Feature/*.php');
+
+// State Machine tests - use DeadDropTestCase
+uses(Tests\DeadDropTestCase::class)
+    ->in('Feature/StateMachine');
+
+// Top-level Unit tests - use DeadDropTestCase (for state tests)
+uses(Tests\DeadDropTestCase::class)
+    ->in('Unit/*.php');
 
 /*
 |--------------------------------------------------------------------------
