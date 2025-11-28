@@ -15,6 +15,7 @@ abstract class DocumentJobState extends State
     {
         return parent::config()
             ->default(PendingJobState::class)
+            ->registerStatesFromDirectory(__DIR__)
             ->allowTransition(PendingJobState::class, QueuedJobState::class)
             ->allowTransition(QueuedJobState::class, RunningJobState::class)
             ->allowTransition(RunningJobState::class, CompletedJobState::class)

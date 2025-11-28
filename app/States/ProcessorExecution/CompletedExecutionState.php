@@ -25,7 +25,7 @@ class CompletedExecutionState extends ProcessorExecutionState
             $execution->completed_at = now();
 
             if ($execution->started_at) {
-                $execution->duration_ms = $execution->started_at->diffInMilliseconds(now());
+                $execution->duration_ms = (int) $execution->started_at->diffInMilliseconds(now());
             }
 
             $execution->saveQuietly();

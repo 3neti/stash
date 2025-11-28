@@ -28,7 +28,6 @@ class ProcessorExecutionFactory extends Factory
             'config' => [
                 'enabled' => true,
             ],
-            'state' => fake()->randomElement(['pending', 'running', 'completed', 'failed', 'skipped']),
             'duration_ms' => null,
             'tokens_used' => 0,
             'cost_credits' => 0,

@@ -27,7 +27,6 @@ class DocumentJobFactory extends Factory
                 'total_steps' => 3,
             ],
             'current_processor_index' => 0,
-            'state' => fake()->randomElement(['pending', 'queued', 'running', 'completed', 'failed']),
             'queue_name' => 'default',
             'attempts' => 0,
             'max_attempts' => 3,

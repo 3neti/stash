@@ -11,8 +11,8 @@
 |
 */
 
-// State machine tests need tenant tables
-pest()->extend(Tests\TenantAwareTestCase::class)
+// State machine tests need tenant tables (use DeadDropTestCase for proper setup)
+pest()->extend(Tests\DeadDropTestCase::class)
     ->in('Feature/StateMachine');
 
 // All other Feature tests

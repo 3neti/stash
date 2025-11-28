@@ -26,7 +26,6 @@ class DocumentJob extends Model
         'document_id',
         'pipeline_instance',
         'current_processor_index',
-        'state',
         'queue_name',
         'attempts',
         'max_attempts',
@@ -49,7 +48,6 @@ class DocumentJob extends Model
     ];
 
     protected $attributes = [
-        'state' => 'pending',
         'current_processor_index' => 0,
         'attempts' => 0,
         'max_attempts' => 3,
