@@ -13,7 +13,7 @@
 
 // DeadDrop Package Tests (tenant-aware with dual DB setup)
 uses(Tests\DeadDropTestCase::class)
-    ->in('Feature/DeadDrop', 'Unit/DeadDrop');
+    ->in('Feature/DeadDrop', 'Unit/DeadDrop', 'Integration');
 
 // Laravel Feature Tests (Auth, Settings, etc.) - use standard TestCase with RefreshDatabase
 uses(Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class)
