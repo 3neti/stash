@@ -139,8 +139,8 @@ final readonly class PipelineOrchestrator
         // Create execution record
         $execution = $this->createExecution($documentJob, $processorConfig, $processorIndex);
 
-        // Start execution
-        $execution->state->transitionTo('running');
+        // Start execution (sets started_at)
+        $execution->start();
 
         // Execute processor
         $startTime = microtime(true);
