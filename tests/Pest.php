@@ -19,6 +19,10 @@ uses(Tests\DeadDropTestCase::class)
 uses(Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature/Auth', 'Feature/Settings');
 
+// API tests - use DeadDropTestCase for tenant-aware testing
+uses(Tests\DeadDropTestCase::class)
+    ->in('Feature/Api');
+
 // Top-level Feature tests - standard TestCase with RefreshDatabase
 uses(Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature/*.php');

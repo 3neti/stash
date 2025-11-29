@@ -60,6 +60,14 @@ return [
             'report' => false,
         ],
 
+        'tenant' => [
+            'driver' => 'local',
+            'root' => storage_path('app/tenants'),
+            'visibility' => 'private',
+            'throw' => true, // Throw exceptions on errors for tenant files
+            'report' => true,
+        ],
+
     ],
 
     /*
