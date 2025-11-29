@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 use App\Actions\Campaigns\GenerateCampaignToken;
+use App\Actions\Campaigns\ListWebhookDeliveries;
 use App\Actions\Campaigns\RevokeCampaignToken;
+use App\Actions\Campaigns\SetCampaignChannel;
+use App\Actions\Campaigns\TestCampaignWebhook;
 use App\Actions\Documents\GetDocumentStatus;
 use App\Actions\Documents\ListDocuments;
 use App\Actions\Documents\UploadDocument;
@@ -28,6 +31,18 @@ Route::middleware('auth:sanctum')->prefix('campaigns/{campaign}')->group(functio
     
     Route::delete('tokens', RevokeCampaignToken::class)
         ->name('api.campaigns.tokens.destroy');
+});
+
+// Channel Management (requires web auth)
+Route::middleware('auth:sanctum')->prefix('campaigns/{campaign}')->group(function () {
+    Route::put('channels', SetCampaignChannel::class)
+        ->name('api.campaigns.channels.update');
+    
+    Route::post('webhook/test', TestCampaignWebhook::class)
+        ->name('api.campaigns.webhook.test');
+    
+    Route::get('webhooks', ListWebhookDeliveries::class)
+        ->name('api.campaigns.webhooks.index');
 });
 
 // Document Ingestion API (requires API token)
