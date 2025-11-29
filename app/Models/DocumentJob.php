@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Events\DocumentProcessingCompleted;
+use App\Events\DocumentProcessingFailed;
 use App\States\DocumentJob\{CompletedJobState, DocumentJobState, FailedJobState, RunningJobState};
 use App\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -124,6 +126,13 @@ class DocumentJob extends Model
     {
         $this->state->transitionTo('completed');
         $this->update(['completed_at' => now()]);
+
+        // Fire webhook event
+        DocumentProcessingCompleted::dispatch(
+            $this->campaign,
+            $this->document,
+            $this
+        );
     }
 
     public function fail(string $error): void
@@ -140,6 +149,13 @@ class DocumentJob extends Model
             'failed_at' => now(),
             'error_log' => $errorLog,
         ]);
+
+        // Fire webhook event
+        DocumentProcessingFailed::dispatch(
+            $this->campaign,
+            $this->document,
+            $this
+        );
     }
 
     public function incrementAttempts(): void

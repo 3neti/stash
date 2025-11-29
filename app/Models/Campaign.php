@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Support\Facades\Crypt;
 use Laravel\Sanctum\HasApiTokens;
+use LBHurtado\ModelChannel\Traits\HasChannels;
 
 /**
  * Campaign Model
@@ -39,7 +40,7 @@ use Laravel\Sanctum\HasApiTokens;
  */
 class Campaign extends Model implements AuthenticatableContract
 {
-    use Authorizable, BelongsToTenant, HasApiTokens, HasFactory, HasUlids, SoftDeletes;
+    use Authorizable, BelongsToTenant, HasApiTokens, HasChannels, HasFactory, HasUlids, SoftDeletes;
 
     protected $fillable = [
         'name',

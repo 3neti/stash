@@ -12,7 +12,9 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('value');
-            $table->morphs('model');
+            $table->string('model_type');
+            $table->string('model_id');
+            $table->index(['model_type', 'model_id']);
             $table->timestamps();
         });
     }
