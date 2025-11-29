@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Tenancy\Traits\BelongsToTenant;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Support\Facades\Crypt;
+use Laravel\Sanctum\HasApiTokens;
 
 /**
  * Campaign Model
@@ -34,9 +37,9 @@ use Illuminate\Support\Facades\Crypt;
  * @property \Carbon\Carbon $updated_at
  * @property \Carbon\Carbon|null $deleted_at
  */
-class Campaign extends Model
+class Campaign extends Model implements AuthenticatableContract
 {
-    use BelongsToTenant, HasFactory, HasUlids, SoftDeletes;
+    use Authorizable, BelongsToTenant, HasApiTokens, HasFactory, HasUlids, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -177,5 +180,61 @@ class Campaign extends Model
     public function getProcessorCountAttribute(): int
     {
         return count($this->pipeline_config['processors'] ?? []);
+    }
+
+    /**
+     * Get the name of the unique identifier for the user.
+     */
+    public function getAuthIdentifierName(): string
+    {
+        return 'id';
+    }
+
+    /**
+     * Get the unique identifier for the user.
+     */
+    public function getAuthIdentifier(): mixed
+    {
+        return $this->id;
+    }
+
+    /**
+     * Get the password for the user.
+     */
+    public function getAuthPassword(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Get the token value for the "remember me" session.
+     */
+    public function getRememberToken(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Set the token value for the "remember me" session.
+     */
+    public function setRememberToken($value): void
+    {
+        //
+    }
+
+    /**
+     * Get the column name for the "remember me" token.
+     */
+    public function getRememberTokenName(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Get the password column name for the user.
+     */
+    public function getAuthPasswordName(): ?string
+    {
+        return null;
     }
 }

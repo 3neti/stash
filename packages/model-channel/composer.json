@@ -1,0 +1,45 @@
+{
+    "name": "lbhurtado/laravel-model-channel",
+    "description": "A package to enable assigning channels to Eloquent Models",
+    "type": "library",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Lester Hurtado",
+            "email": "lester@hurtado.ph"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "LBHurtado\\ModelChannel\\": "src/",
+            "LBHurtado\\ModelChannel\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LBHurtado\\ModelChannel\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LBHurtado\\ModelChannel\\ModelChannelServiceProvider"
+            ]
+        }
+    },
+    "require": {
+        "propaganistas/laravel-phone": "^6.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.3",
+        "pestphp/pest": "^3.8"
+    },
+    "scripts": {
+        "test": "vendor/bin/pest"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
