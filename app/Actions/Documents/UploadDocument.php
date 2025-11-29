@@ -32,7 +32,9 @@ class UploadDocument
     public static function rules(): array
     {
         return [
-            'file' => 'required|file|mimes:pdf,png,jpg,jpeg,tiff|max:10240', // 10MB
+            'file' => 'required_without:files|file|mimes:pdf,png,jpg,jpeg,tiff|max:10240',
+            'files' => 'required_without:file|array|max:10',
+            'files.*' => 'file|mimes:pdf,png,jpg,jpeg,tiff|max:10240',
             'metadata' => 'nullable|array',
             'metadata.description' => 'nullable|string|max:500',
             'metadata.reference_id' => 'nullable|string|max:100',
@@ -95,6 +97,12 @@ class UploadDocument
     {
         $validatedData = $request->validated();
 
+        // Check if batch upload
+        if (isset($validatedData['files'])) {
+            return $this->handleBatchUpload($campaign, $validatedData['files'], $validatedData['metadata'] ?? null);
+        }
+
+        // Single file upload
         $document = $this->handle(
             $campaign,
             $validatedData['file'],
@@ -108,6 +116,47 @@ class UploadDocument
             DocumentData::fromModel($document)->toArray(),
             201
         );
+    }
+
+    /**
+     * Handle batch file upload.
+     */
+    private function handleBatchUpload(
+        Campaign $campaign,
+        array $files,
+        ?array $metadata = null
+    ): JsonResponse {
+        $successful = [];
+        $failed = [];
+
+        foreach ($files as $index => $file) {
+            try {
+                $document = $this->handle($campaign, $file, $metadata);
+                $document->load('documentJob');
+                $successful[] = DocumentData::fromModel($document)->toArray();
+            } catch (\Exception $e) {
+                $failed[] = [
+                    'filename' => $file->getClientOriginalName(),
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        $statusCode = match (true) {
+            count($failed) === 0 => 201, // All successful
+            count($successful) === 0 => 422, // All failed
+            default => 207, // Partial success (Multi-Status)
+        };
+
+        return response()->json([
+            'successful' => $successful,
+            'failed' => $failed,
+            'summary' => [
+                'total' => count($files),
+                'successful' => count($successful),
+                'failed' => count($failed),
+            ],
+        ], $statusCode);
     }
 
     /**

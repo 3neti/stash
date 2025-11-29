@@ -134,6 +134,145 @@ describe('API Rate Limiting', function () {
     })->skip('Slow test - only run manually');
 });
 
+describe('Batch Upload', function () {
+    beforeEach(function () {
+        Storage::fake('tenant');
+        Queue::fake();
+        
+        $this->campaign = Campaign::factory()->create();
+        $this->campaign->createToken('API Token');
+    });
+
+    test('uploads 5 valid files successfully', function () {
+        $files = [];
+        for ($i = 0; $i < 5; $i++) {
+            $files[] = UploadedFile::fake()->create("test{$i}.pdf", 1024, 'application/pdf');
+        }
+
+        $response = $this->actingAs($this->campaign, 'sanctum')
+            ->postJson("/api/campaigns/{$this->campaign->id}/documents", [
+                'files' => $files,
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'successful',
+                'failed',
+                'summary',
+            ])
+            ->assertJson([
+                'summary' => [
+                    'total' => 5,
+                    'successful' => 5,
+                    'failed' => 0,
+                ],
+            ]);
+
+        expect(Document::where('campaign_id', $this->campaign->id)->count())->toBe(5);
+    });
+
+    test('handles validation error for invalid files', function () {
+        $files = [
+            UploadedFile::fake()->create('valid1.pdf', 1024, 'application/pdf'),
+            UploadedFile::fake()->create('valid2.pdf', 1024, 'application/pdf'),
+            UploadedFile::fake()->create('invalid.txt', 100, 'text/plain'),
+        ];
+
+        $response = $this->actingAs($this->campaign, 'sanctum')
+            ->postJson("/api/campaigns/{$this->campaign->id}/documents", [
+                'files' => $files,
+            ]);
+
+        // Laravel validation rejects before we can handle partial failures
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['files.2']);
+    });
+
+    test('returns 422 when all files have invalid types', function () {
+        $files = [
+            UploadedFile::fake()->create('invalid1.txt', 100, 'text/plain'),
+            UploadedFile::fake()->create('invalid2.doc', 100, 'application/msword'),
+        ];
+
+        $response = $this->actingAs($this->campaign, 'sanctum')
+            ->postJson("/api/campaigns/{$this->campaign->id}/documents", [
+                'files' => $files,
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['files.0', 'files.1']);
+    });
+
+    test('enforces max 10 files limit', function () {
+        $files = [];
+        for ($i = 0; $i < 11; $i++) {
+            $files[] = UploadedFile::fake()->create("test{$i}.pdf", 1024, 'application/pdf');
+        }
+
+        $response = $this->actingAs($this->campaign, 'sanctum')
+            ->postJson("/api/campaigns/{$this->campaign->id}/documents", [
+                'files' => $files,
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['files']);
+    });
+});
+
+describe('Webhook Management', function () {
+    beforeEach(function () {
+        $this->user = User::factory()->create();
+        $this->campaign = Campaign::factory()->create();
+    });
+
+    test('sets webhook channel', function () {
+        $response = $this->actingAs($this->user)
+            ->putJson("/api/campaigns/{$this->campaign->id}/channels", [
+                'channel' => 'webhook',
+                'value' => 'https://example.com/webhook',
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'channel' => 'webhook',
+                'value' => 'https://example.com/webhook',
+            ]);
+
+        expect($this->campaign->fresh()->webhook)->toBe('https://example.com/webhook');
+    });
+
+    test('tests webhook delivery', function () {
+        Queue::fake();
+        $this->campaign->setChannel('webhook', 'https://example.com/webhook');
+
+        $response = $this->actingAs($this->user)
+            ->postJson("/api/campaigns/{$this->campaign->id}/webhook/test");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'webhook_url' => 'https://example.com/webhook',
+            ]);
+
+        Queue::assertPushed(\App\Jobs\DispatchWebhook::class);
+    });
+
+    test('lists webhook deliveries', function () {
+        \App\Models\WebhookDelivery::factory()->count(3)->create([
+            'campaign_id' => $this->campaign->id,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/campaigns/{$this->campaign->id}/webhooks");
+
+        $response->assertStatus(200);
+        
+        $json = $response->json();
+        expect($json)->toHaveKeys(['data', 'current_page', 'per_page']);
+        expect(count($json['data']))->toBe(3);
+    });
+});
+
 describe('Document Ingestion API', function () {
     beforeEach(function () {
         Storage::fake('tenant');
