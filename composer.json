@@ -22,8 +22,10 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "laravel/wayfinder": "^0.1.9",
+        "lbhurtado/laravel-model-channel": "@dev",
         "lorisleiva/laravel-actions": "^2.9",
         "openai-php/client": "^0.18.0",
+        "propaganistas/laravel-phone": "^6.0",
         "spatie/laravel-data": "^4.18",
         "spatie/laravel-model-states": "^2.12",
         "thiagoalessio/tesseract_ocr": "^2.13"

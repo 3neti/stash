@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Actions\Campaigns\GenerateCampaignToken;
+use App\Actions\Campaigns\RevokeCampaignToken;
 use App\Actions\Documents\GetDocumentStatus;
 use App\Actions\Documents\ListDocuments;
 use App\Actions\Documents\UploadDocument;
@@ -19,10 +21,20 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Document Ingestion API
-Route::prefix('campaigns/{campaign}')->group(function () {
+// Token Management (requires web auth)
+Route::middleware('auth:sanctum')->prefix('campaigns/{campaign}')->group(function () {
+    Route::post('tokens', GenerateCampaignToken::class)
+        ->name('api.campaigns.tokens.store');
+    
+    Route::delete('tokens', RevokeCampaignToken::class)
+        ->name('api.campaigns.tokens.destroy');
+});
+
+// Document Ingestion API (requires API token)
+Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('campaigns/{campaign}')->group(function () {
     // Upload document to campaign
     Route::post('documents', UploadDocument::class)
+        ->middleware('throttle:api-uploads')
         ->name('api.campaigns.documents.store');
     
     // List documents for campaign
@@ -31,6 +43,6 @@ Route::prefix('campaigns/{campaign}')->group(function () {
 });
 
 // Document status (by UUID, not scoped to campaign)
-Route::get('documents/{uuid}', GetDocumentStatus::class)
+Route::middleware(['auth:sanctum', 'throttle:api'])->get('documents/{uuid}', GetDocumentStatus::class)
     ->name('api.documents.show')
     ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
