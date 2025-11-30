@@ -2,6 +2,13 @@
 
 This directory contains end-to-end browser tests using **Pest v4 Browser Tests** powered by **Playwright**.
 
+## Environment Setup
+
+**Local Development Environment**: Laravel Herd
+- Project URL: `http://stash.test`
+- Test Environment: `.env.testing` configured with `APP_URL=http://stash.test`
+- Playwright manages browser binaries automatically
+
 ## Overview
 
 Browser tests simulate real user interactions in the browser:

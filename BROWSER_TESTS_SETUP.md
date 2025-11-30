@@ -2,6 +2,13 @@
 
 ✅ **Setup Complete!** Your project now has end-to-end browser testing with Pest 4 and Playwright.
 
+## Environment
+
+**Development Environment**: Laravel Herd (macOS)
+- **Project URL**: `http://stash.test` (via Herd local domain)
+- **Test Database**: PostgreSQL `stash_test` (configured in `.env.testing`)
+- **Playwright**: Manages browser engines (Chromium, Firefox, WebKit) automatically
+
 ## What Was Installed
 
 ```
