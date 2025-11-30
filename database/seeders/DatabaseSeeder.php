@@ -15,6 +15,9 @@ class DatabaseSeeder extends Seeder
     {
         $this->command->info('Starting database seeding...');
 
+        // Seed central database users
+        $this->call([UserSeeder::class]);
+
         $tenants = Tenant::all();
 
         if ($tenants->isEmpty()) {

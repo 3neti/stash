@@ -17,13 +17,9 @@ use Pest\Testing\TestClass;
 */
 
 uses(Tests\TestCase::class)->in('tests/Feature', 'tests/Unit');
+uses(Tests\DuskTestCase::class)->in('tests/Browser');
 
-// Browser tests use HTTP to connect to the running Laravel app (Herd @ http://stash.test)
-// They don't need traditional Laravel TestCase bootstrapping here
-uses(Tests\Browser\BrowserTestCase::class)->in('tests/Browser');
-
-// Load browser test helpers before any tests
-require_once __DIR__.'/tests/Browser/Helpers.php';
+// Dusk tests use proper Laravel Dusk framework - they work reliably with container bootstrap
 
 /*
 |--------------------------------------------------------------------------

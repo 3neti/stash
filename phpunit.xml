@@ -37,5 +37,7 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- Temporary: OpenAI API key for pipeline tests. TODO: Use environment variable or secrets management for CI/CD -->
+        <env name="OPENAI_API_KEY" value="your-api-key-here"/>
     </php>
 </phpunit>
