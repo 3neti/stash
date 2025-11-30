@@ -53,22 +53,24 @@ const breadcrumbs: BreadcrumbItem[] = [
             <div class="flex items-center gap-4">
                 <Input
                     v-model="search"
+                    data-testid="search-documents-input"
                     placeholder="Search documents..."
                     class="max-w-sm"
                 />
             </div>
 
-            <div class="space-y-2">
+            <div data-testid="documents-list" class="space-y-2">
                 <Link
                     v-for="document in documents.data"
                     :key="document.id"
+                    data-testid="document-row"
                     :href="`/documents/${document.uuid}`"
                     class="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-accent"
                 >
                     <div class="flex items-center gap-3 flex-1">
                         <FileText class="h-5 w-5 text-muted-foreground" />
                         <div class="flex-1">
-                            <p class="font-medium">{{ document.original_filename }}</p>
+                            <p data-testid="document-name" class="font-medium">{{ document.original_filename }}</p>
                             <div class="flex items-center gap-4 text-sm text-muted-foreground">
                                 <span>{{ document.mime_type }}</span>
                                 <span>{{ formatFileSize(document.size_bytes) }}</span>
@@ -80,7 +82,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                 </Link>
             </div>
 
-            <div v-if="documents.data.length === 0" class="text-center py-12">
+            <div v-if="documents.data.length === 0" data-testid="empty-state" class="text-center py-12">
                 <p class="text-muted-foreground">No documents found</p>
             </div>
         </div>

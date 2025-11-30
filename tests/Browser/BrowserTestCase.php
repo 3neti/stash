@@ -5,21 +5,23 @@ declare(strict_types=1);
 namespace Tests\Browser;
 
 use Illuminate\Foundation\Testing\DatabaseMigrations;
-use PHPUnit\Framework\TestCase;
-use Tests\CreatesApplication;
+use Illuminate\Support\Facades\Artisan;
+use Tests\TestCase;
 
 abstract class BrowserTestCase extends TestCase
 {
-    use CreatesApplication;
     use DatabaseMigrations;
 
     /**
-     * Setup the test environment.
+     * Run tenant migrations after central migrations.
      */
-    protected function setUp(): void
+    protected function afterRefreshingDatabase()
     {
-        parent::setUp();
-
-        $this->createApplication();
+        // Run tenant migrations on central DB (shared schema for testing)
+        Artisan::call('migrate', [
+            '--database' => 'pgsql',
+            '--path' => 'database/migrations/tenant',
+            '--force' => true,
+        ]);
     }
 }

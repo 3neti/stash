@@ -36,12 +36,13 @@ const breadcrumbs: BreadcrumbItem[] = [
                     <CardTitle>Campaign Details</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <form @submit.prevent="submit" class="space-y-4">
+                    <form data-testid="campaign-form" @submit.prevent="submit" class="space-y-4">
                         <div class="space-y-2">
                             <Label for="name">Name</Label>
                             <Input
                                 id="name"
                                 v-model="form.name"
+                                data-testid="campaign-name-input"
                                 placeholder="Enter campaign name"
                                 required
                             />
@@ -55,6 +56,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                             <textarea
                                 id="description"
                                 v-model="form.description"
+                                data-testid="campaign-description-input"
                                 placeholder="Enter campaign description"
                                 rows="4"
                                 class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
@@ -69,6 +71,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                             <Input
                                 id="type"
                                 v-model="form.type"
+                                data-testid="campaign-type-input"
                                 placeholder="Enter campaign type"
                                 required
                             />
@@ -78,10 +81,11 @@ const breadcrumbs: BreadcrumbItem[] = [
                         </div>
 
                         <div class="flex gap-2">
-                            <Button type="submit" :disabled="form.processing">
+                            <Button data-testid="submit-button" type="submit" :disabled="form.processing">
                                 {{ form.processing ? 'Creating...' : 'Create Campaign' }}
                             </Button>
                             <Button
+                                data-testid="cancel-button"
                                 type="button"
                                 variant="outline"
                                 @click="$inertia.visit('/campaigns')"

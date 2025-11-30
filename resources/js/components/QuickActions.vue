@@ -21,7 +21,7 @@ const actions = [
 </script>
 
 <template>
-    <Card>
+    <Card data-testid="quick-actions-card">
         <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
@@ -30,6 +30,7 @@ const actions = [
                 v-for="action in actions"
                 :key="action.title"
                 :href="action.href"
+                :data-testid="action.title === 'New Campaign' ? 'create-campaign-button' : 'upload-documents-button'"
                 class="flex items-start gap-4 rounded-lg border p-4 transition-colors hover:bg-accent"
             >
                 <component :is="action.icon" class="h-5 w-5 text-muted-foreground" />

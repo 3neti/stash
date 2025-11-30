@@ -20,7 +20,7 @@ defineProps<{
 </script>
 
 <template>
-    <Breadcrumb>
+    <Breadcrumb data-testid="breadcrumbs">
         <BreadcrumbList>
             <template v-for="(item, index) in breadcrumbs" :key="index">
                 <BreadcrumbItem>
@@ -29,7 +29,7 @@ defineProps<{
                     </template>
                     <template v-else>
                         <BreadcrumbLink as-child>
-                            <Link :href="item.href ?? '#'">{{
+                            <Link :href="item.href ?? '#'" :data-testid="`breadcrumb-${item.title.toLowerCase()}`">{{
                                 item.title
                             }}</Link>
                         </BreadcrumbLink>

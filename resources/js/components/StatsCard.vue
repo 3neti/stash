@@ -13,7 +13,7 @@ defineProps<Props>();
 </script>
 
 <template>
-    <Card>
+    <Card data-testid="stats-card">
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle class="text-sm font-medium">{{ title }}</CardTitle>
             <component :is="icon" v-if="icon" class="h-4 w-4 text-muted-foreground" />

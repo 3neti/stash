@@ -42,7 +42,7 @@ const breadcrumbs: BreadcrumbItem[] = [
             <div class="flex items-center justify-between">
                 <h1 class="text-2xl font-bold">Campaigns</h1>
                 <Button as-child>
-                    <Link href="/campaigns/create">
+                    <Link data-testid="create-campaign-button" href="/campaigns/create">
                         <Plus class="mr-2 h-4 w-4" />
                         New Campaign
                     </Link>
@@ -52,12 +52,13 @@ const breadcrumbs: BreadcrumbItem[] = [
             <div class="flex items-center gap-4">
                 <Input
                     v-model="search"
+                    data-testid="search-campaigns-input"
                     placeholder="Search campaigns..."
                     class="max-w-sm"
                 />
             </div>
 
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div data-testid="campaigns-list" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <CampaignCard
                     v-for="campaign in campaigns.data"
                     :key="campaign.id"
@@ -65,7 +66,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                 />
             </div>
 
-            <div v-if="campaigns.data.length === 0" class="text-center py-12">
+            <div v-if="campaigns.data.length === 0" data-testid="empty-state" class="text-center py-12">
                 <p class="text-muted-foreground">No campaigns found</p>
             </div>
         </div>

@@ -40,7 +40,7 @@ const statusConfig = computed(() => {
 </script>
 
 <template>
-    <Badge :variant="statusConfig.variant">
+    <Badge data-testid="processing-status" :variant="statusConfig.variant">
         {{ statusConfig.label }}
     </Badge>
 </template>

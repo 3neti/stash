@@ -65,7 +65,7 @@ const formatFileSize = (bytes: number): string => {
 </script>
 
 <template>
-    <Card>
+    <Card data-testid="document-uploader">
         <CardHeader>
             <CardTitle>Upload Documents</CardTitle>
             <CardDescription>
@@ -74,6 +74,7 @@ const formatFileSize = (bytes: number): string => {
         </CardHeader>
         <CardContent class="space-y-4">
             <div
+                data-testid="file-dropzone"
                 class="flex items-center justify-center rounded-lg border-2 border-dashed p-8"
                 :class="canAddMore ? 'cursor-pointer hover:border-primary' : 'opacity-50'"
                 @click="canAddMore && fileInput?.click()"
@@ -89,6 +90,7 @@ const formatFileSize = (bytes: number): string => {
                 </div>
                 <input
                     ref="fileInput"
+                    data-testid="file-input"
                     type="file"
                     multiple
                     class="hidden"
@@ -97,10 +99,11 @@ const formatFileSize = (bytes: number): string => {
                 />
             </div>
 
-            <div v-if="selectedFiles.length > 0" class="space-y-2">
+            <div v-if="selectedFiles.length > 0" data-testid="files-list" class="space-y-2">
                 <div
                     v-for="(file, index) in selectedFiles"
                     :key="index"
+                    data-testid="file-item"
                     class="flex items-center justify-between rounded-lg border p-3"
                 >
                     <div class="flex-1">
@@ -124,6 +127,7 @@ const formatFileSize = (bytes: number): string => {
             </div>
 
             <Button
+                data-testid="upload-button"
                 :disabled="selectedFiles.length === 0 || form.processing"
                 @click="uploadDocuments"
                 class="w-full"
