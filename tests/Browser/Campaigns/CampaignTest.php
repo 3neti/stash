@@ -35,7 +35,17 @@ test('authenticated user can access campaign create form', function () {
     $this->browse(function (Browser $browser) use ($user) {
         $browser->loginAs($user)
             ->visit('/campaigns/create')
-            // Verify not redirected to login (which means auth worked)
             ->assertPathIsNot('/login');
     });
 })->skip('Flaky in full suite - validation tested thoroughly in Feature tests');
+
+test('authenticated user accessing campaign detail page should not get database connection error', function () {
+    // Test for bug: SQLSTATE[42P01]: Undefined table: "campaigns"
+    // This test ensures that when accessing /campaigns/{id}, the framework
+    // doesn't try to query campaigns from the tenant database connection
+    // but instead uses the central database connection where campaigns are stored.
+    
+    // The test is scaffolded to document the bug; we need to fix route model binding
+    // to ensure Campaign::findOrFail() queries the central DB (pgsql) not tenant DB
+    $this->markTestSkipped('Documenting bug: Campaign detail page causes database connection error. Route model binding needs to explicitly use central DB connection.');
+});
