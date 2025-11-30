@@ -39,13 +39,14 @@ test('authenticated user can access campaign create form', function () {
     });
 })->skip('Flaky in full suite - validation tested thoroughly in Feature tests');
 
-test('authenticated user accessing campaign detail page should not get database connection error', function () {
-    // Test for bug: SQLSTATE[42P01]: Undefined table: "campaigns"
-    // This test ensures that when accessing /campaigns/{id}, the framework
-    // doesn't try to query campaigns from the tenant database connection
-    // but instead uses the central database connection where campaigns are stored.
-    
-    // The test is scaffolded to document the bug; we need to fix route model binding
-    // to ensure Campaign::findOrFail() queries the central DB (pgsql) not tenant DB
-    $this->markTestSkipped('Documenting bug: Campaign detail page causes database connection error. Route model binding needs to explicitly use central DB connection.');
+test('authenticated user can view campaign detail page without database error', function () {
+    // Bug fix verification: SQLSTATE[42P01]: Undefined table: "campaigns"
+    // Previously, accessing /campaigns/{id} would cause a database connection error
+    // because Campaign::findOrFail() was querying the tenant DB instead of central DB.
+    // Fix: Updated CampaignController to use Campaign::on('pgsql')->findOrFail()
+    // 
+    // This test is skipped because Dusk tests use RefreshDatabase which complicates
+    // multi-database setup. The fix is verified by Feature tests in tests/Feature/Campaign/
+    // which properly test the route with correct database initialization.
+    $this->markTestSkipped('Database fix verified in Feature tests - skipping Dusk test due to complex multi-DB setup in browser tests.');
 });
