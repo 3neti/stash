@@ -162,6 +162,6 @@ class ProcessorSeeder extends Seeder
             );
         }
 
-        $this->command->info('Seeded ' . count($processors) . ' system processors');
+        $this->command->info('Seeded '.count($processors).' system processors');
     }
 }

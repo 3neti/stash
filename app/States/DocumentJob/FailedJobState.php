@@ -7,6 +7,7 @@ use App\Models\DocumentJob;
 class FailedJobState extends DocumentJobState
 {
     public static $name = 'failed';
+
     public function color(): string
     {
         return 'red';
@@ -21,7 +22,7 @@ class FailedJobState extends DocumentJobState
     {
         parent::__construct($job);
 
-        if (!$job->failed_at) {
+        if (! $job->failed_at) {
             $job->failed_at = now();
             $job->attempts++;
             $job->saveQuietly();
@@ -31,6 +32,7 @@ class FailedJobState extends DocumentJobState
     public function canRetry(): bool
     {
         $job = $this->$model;
+
         return $job->attempts < $job->max_attempts;
     }
 }

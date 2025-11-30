@@ -24,24 +24,24 @@ class DocumentFactory extends Factory
             'image/jpeg',
             'image/tiff',
         ];
-        
+
         $mimeType = fake()->randomElement($mimeTypes);
-        $extension = match($mimeType) {
+        $extension = match ($mimeType) {
             'application/pdf' => 'pdf',
             'image/png' => 'png',
             'image/jpeg' => 'jpg',
             'image/tiff' => 'tiff',
             default => 'pdf',
         };
-        
+
         return [
             'uuid' => fake()->uuid(),
             'campaign_id' => Campaign::factory(),
             'user_id' => null,
-            'original_filename' => fake()->word() . '.' . $extension,
+            'original_filename' => fake()->word().'.'.$extension,
             'mime_type' => $mimeType,
             'size_bytes' => fake()->numberBetween(1024, 10485760),
-            'storage_path' => 'documents/' . fake()->uuid() . '.' . $extension,
+            'storage_path' => 'documents/'.fake()->uuid().'.'.$extension,
             'storage_disk' => 's3',
             'hash' => hash('sha256', fake()->uuid()),
             'state' => PendingDocumentState::$name,

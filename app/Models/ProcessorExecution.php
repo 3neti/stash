@@ -13,7 +13,7 @@ use Spatie\ModelStates\HasStates;
 
 /**
  * ProcessorExecution Model
- * 
+ *
  * Tracks individual processor invocations with metrics.
  */
 class ProcessorExecution extends Model

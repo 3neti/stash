@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * Processor Configuration Data Transfer Object
- * 
+ *
  * Represents a single processor configuration from the pipeline config.
  */
 class ProcessorConfigData extends Data

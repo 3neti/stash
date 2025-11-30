@@ -10,14 +10,12 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Fired when a tenant is initialized.
- * 
+ *
  * Use this event to bootstrap tenant-specific services (cache, filesystem, etc.)
  */
 class TenantInitialized
 {
     use Dispatchable, SerializesModels;
 
-    public function __construct(public Tenant $tenant)
-    {
-    }
+    public function __construct(public Tenant $tenant) {}
 }

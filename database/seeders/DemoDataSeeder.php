@@ -2,13 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Models\AuditLog;
 use App\Models\Campaign;
 use App\Models\Document;
 use App\Models\DocumentJob;
 use App\Models\Processor;
 use App\Models\ProcessorExecution;
 use App\Models\UsageEvent;
-use App\Models\AuditLog;
 use Illuminate\Database\Seeder;
 
 class DemoDataSeeder extends Seeder
@@ -23,11 +23,13 @@ class DemoDataSeeder extends Seeder
 
         if ($campaigns->isEmpty()) {
             $this->command->warn('No campaigns found. Run CampaignSeeder first.');
+
             return;
         }
 
         if ($processors->isEmpty()) {
             $this->command->warn('No processors found. Run ProcessorSeeder first.');
+
             return;
         }
 

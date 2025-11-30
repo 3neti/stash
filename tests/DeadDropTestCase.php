@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
  *
  * Provides common setup, helpers, and patterns for testing
  * DeadDrop mono-repo packages.
- * 
+ *
  * Tenant migrations are automatically loaded via TenancyServiceProvider,
  * so RefreshDatabase handles both central and tenant tables.
  */
@@ -49,6 +49,7 @@ abstract class DeadDropTestCase extends BaseTestCase
             '--force' => true,
         ]);
     }
+
     protected function mockServices(array $mocks): void
     {
         foreach ($mocks as $abstract => $mock) {

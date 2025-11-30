@@ -11,12 +11,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
-use App\Models\Campaign;
-use App\Models\Processor;
 
 /**
  * Credential Model
- * 
+ *
  * Encrypted credential storage with polymorphic scoping.
  * Can belong to: Campaign, Processor, or null (system-level)
  */
@@ -75,11 +73,11 @@ class Credential extends Model
     {
         if ($model === null) {
             return $query->whereNull('credentialable_type')
-                         ->whereNull('credentialable_id');
+                ->whereNull('credentialable_id');
         }
 
         return $query->where('credentialable_type', get_class($model))
-                     ->where('credentialable_id', $model->id);
+            ->where('credentialable_id', $model->id);
     }
 
     public function scopeForKey($query, string $key)
@@ -91,7 +89,7 @@ class Credential extends Model
     {
         return $query->where(function ($q) {
             $q->whereNull('expires_at')
-              ->orWhere('expires_at', '>', now());
+                ->orWhere('expires_at', '>', now());
         });
     }
 
@@ -102,7 +100,7 @@ class Credential extends Model
 
     public function isActive(): bool
     {
-        return $this->is_active && !$this->isExpired();
+        return $this->is_active && ! $this->isExpired();
     }
 
     public function markUsed(): void
@@ -112,7 +110,7 @@ class Credential extends Model
 
     /**
      * Resolve credential with hierarchical fallback.
-     * 
+     *
      * Order: processor > campaign > system (null)
      */
     public static function resolve(

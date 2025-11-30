@@ -13,12 +13,13 @@ use Throwable;
 
 /**
  * Abstract Processor
- * 
+ *
  * Base class for all document processors.
  */
 abstract class AbstractProcessor implements ProcessorInterface
 {
     protected string $name;
+
     protected string $category;
 
     /**
@@ -58,11 +59,11 @@ abstract class AbstractProcessor implements ProcessorInterface
     ): ProcessorResultData {
         try {
             $output = $this->process($document, $config);
-            
+
             // Extract tokens_used and cost_credits if present (snake_case from processors)
             $tokensUsed = $output['tokens_used'] ?? null;
             $costCredits = $output['cost_credits'] ?? null;
-            
+
             return new ProcessorResultData(
                 success: true,
                 output: $output,
@@ -80,7 +81,7 @@ abstract class AbstractProcessor implements ProcessorInterface
 
     /**
      * Process the document. Implement this in subclasses.
-     * 
+     *
      * @return array The processing output
      */
     abstract protected function process(

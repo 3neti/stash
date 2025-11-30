@@ -9,7 +9,7 @@ use App\Tenancy\TenantContext;
 
 /**
  * Trait for queue jobs that need to run in a tenant context.
- * 
+ *
  * Automatically captures the current tenant when the job is dispatched
  * and restores it when the job executes.
  */
@@ -37,7 +37,7 @@ trait TenantAware
                 if ($this->tenantId) {
                     $tenant = Tenant::on('pgsql')->find($this->tenantId);
 
-                    if (!$tenant) {
+                    if (! $tenant) {
                         throw new \RuntimeException("Tenant {$this->tenantId} not found");
                     }
 

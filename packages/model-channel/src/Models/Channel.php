@@ -2,9 +2,9 @@
 
 namespace LBHurtado\ModelChannel\Models;
 
-use LBHurtado\ModelChannel\Database\Factories\ChannelFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use LBHurtado\ModelChannel\Database\Factories\ChannelFactory;
 
 class Channel extends Model
 {
@@ -12,7 +12,7 @@ class Channel extends Model
 
     protected $fillable = [
         'name',
-        'value'
+        'value',
     ];
 
     public static function newFactory(): ChannelFactory

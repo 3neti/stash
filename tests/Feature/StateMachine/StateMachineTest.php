@@ -3,12 +3,25 @@
 use App\Models\Campaign;
 use App\Models\Document;
 use App\Models\DocumentJob;
-use App\Models\ProcessorExecution;
 use App\Models\Processor;
-use App\States\Document\{PendingDocumentState, QueuedDocumentState, ProcessingDocumentState, CompletedDocumentState, FailedDocumentState, CancelledDocumentState};
-use App\States\DocumentJob\{PendingJobState, QueuedJobState, RunningJobState, CompletedJobState, FailedJobState, CancelledJobState};
-use App\States\ProcessorExecution\{PendingExecutionState, RunningExecutionState, CompletedExecutionState, FailedExecutionState, SkippedExecutionState};
-use Spatie\ModelStates\Exceptions\TransitionNotAllowed;
+use App\Models\ProcessorExecution;
+use App\States\Document\CancelledDocumentState;
+use App\States\Document\CompletedDocumentState;
+use App\States\Document\FailedDocumentState;
+use App\States\Document\PendingDocumentState;
+use App\States\Document\ProcessingDocumentState;
+use App\States\Document\QueuedDocumentState;
+use App\States\DocumentJob\CancelledJobState;
+use App\States\DocumentJob\CompletedJobState;
+use App\States\DocumentJob\FailedJobState;
+use App\States\DocumentJob\PendingJobState;
+use App\States\DocumentJob\QueuedJobState;
+use App\States\DocumentJob\RunningJobState;
+use App\States\ProcessorExecution\CompletedExecutionState;
+use App\States\ProcessorExecution\FailedExecutionState;
+use App\States\ProcessorExecution\PendingExecutionState;
+use App\States\ProcessorExecution\RunningExecutionState;
+use App\States\ProcessorExecution\SkippedExecutionState;
 
 beforeEach(function () {
     $this->campaign = Campaign::factory()->create();
@@ -99,7 +112,7 @@ describe('Document State Machine', function () {
         $document->state->transitionTo(QueuedDocumentState::class);
 
         // TransitionNotFound is thrown when transition not registered
-        expect(fn() => $document->state->transitionTo(PendingDocumentState::class))
+        expect(fn () => $document->state->transitionTo(PendingDocumentState::class))
             ->toThrow(Exception::class);
     });
 
@@ -196,7 +209,7 @@ describe('DocumentJob State Machine', function () {
 
     test('job can be cancelled from non-final states', function () {
         $document = Document::factory()->create(['campaign_id' => $this->campaign->id]);
-        
+
         $job1 = DocumentJob::factory()->create([
             'campaign_id' => $this->campaign->id,
             'document_id' => $document->id,
@@ -238,7 +251,7 @@ describe('ProcessorExecution State Machine', function () {
             'document_id' => $document->id,
         ]);
         $processor = Processor::factory()->create();
-        
+
         $execution = ProcessorExecution::factory()->create([
             'job_id' => $job->id,
             'processor_id' => $processor->id,
@@ -255,7 +268,7 @@ describe('ProcessorExecution State Machine', function () {
             'document_id' => $document->id,
         ]);
         $processor = Processor::factory()->create();
-        
+
         $execution = ProcessorExecution::factory()->create([
             'job_id' => $job->id,
             'processor_id' => $processor->id,
@@ -278,7 +291,7 @@ describe('ProcessorExecution State Machine', function () {
             'document_id' => $document->id,
         ]);
         $processor = Processor::factory()->create();
-        
+
         $execution = ProcessorExecution::factory()->create([
             'job_id' => $job->id,
             'processor_id' => $processor->id,
@@ -298,7 +311,7 @@ describe('ProcessorExecution State Machine', function () {
             'document_id' => $document->id,
         ]);
         $processor = Processor::factory()->create();
-        
+
         $execution = ProcessorExecution::factory()->create([
             'job_id' => $job->id,
             'processor_id' => $processor->id,
@@ -316,14 +329,14 @@ describe('ProcessorExecution State Machine', function () {
             'document_id' => $document->id,
         ]);
         $processor = Processor::factory()->create();
-        
+
         $execution = ProcessorExecution::factory()->create([
             'job_id' => $job->id,
             'processor_id' => $processor->id,
         ]);
 
         // TransitionNotFound is thrown when transition not registered
-        expect(fn() => $execution->state->transitionTo(CompletedExecutionState::class))
+        expect(fn () => $execution->state->transitionTo(CompletedExecutionState::class))
             ->toThrow(Exception::class);
     });
 
@@ -334,7 +347,7 @@ describe('ProcessorExecution State Machine', function () {
             'document_id' => $document->id,
         ]);
         $processor = Processor::factory()->create();
-        
+
         $execution = ProcessorExecution::factory()->create([
             'job_id' => $job->id,
             'processor_id' => $processor->id,

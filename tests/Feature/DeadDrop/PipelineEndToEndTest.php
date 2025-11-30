@@ -6,14 +6,14 @@ use App\Models\Campaign;
 use App\Models\Document;
 use App\Models\DocumentJob;
 use App\Models\Processor;
-use App\Models\ProcessorExecution;
 use App\Models\Tenant;
 use App\Services\Pipeline\PipelineOrchestrator;
-use Illuminate\Http\UploadedFile;
+use App\States\Document\CompletedDocumentState;
+use App\States\Document\PendingDocumentState;
+use App\States\DocumentJob\CompletedJobState;
+use App\States\ProcessorExecution\CompletedExecutionState;
+use App\States\ProcessorExecution\FailedExecutionState;
 use Illuminate\Support\Facades\Storage;
-use App\States\Document\{CompletedDocumentState, PendingDocumentState, ProcessingDocumentState};
-use App\States\DocumentJob\{CompletedJobState, PendingJobState, RunningJobState};
-use App\States\ProcessorExecution\{CompletedExecutionState, PendingExecutionState, RunningExecutionState, FailedExecutionState};
 
 uses()->group('feature', 'pipeline', 'end-to-end');
 
@@ -109,16 +109,16 @@ test('processes document through complete pipeline: OCR → Classification → E
     // Verify DocumentJob created
     expect($job)->toBeInstanceOf(DocumentJob::class)
         ->and($job->document_id)->toBe($this->document->id);
-    
+
     // Debug: Show error if failed
     if ($job->isFailed()) {
         dump('Job failed!', $job->error_log);
         $executions = $job->processorExecutions;
         foreach ($executions as $ex) {
-            dump("Processor: {$ex->processor_id}", "State: " . get_class($ex->state), "Error: " . $ex->error_message);
+            dump("Processor: {$ex->processor_id}", 'State: '.get_class($ex->state), 'Error: '.$ex->error_message);
         }
     }
-    
+
     expect($job->state)->toBeInstanceOf(CompletedJobState::class)
         ->and($job->pipeline_instance)->toBeArray()
         ->and($job->pipeline_instance['processors'])->toHaveCount(3);
@@ -280,7 +280,7 @@ test('each processor execution has unique processor_id from config', function ()
     $job = $this->orchestrator->processDocument($this->document);
 
     $executions = $job->processorExecutions()->orderBy('id')->get();
-    
+
     // Get processor IDs
     $ocrProcessor = Processor::where('slug', 'ocr')->first();
     $classifierProcessor = Processor::where('slug', 'classifier')->first();

@@ -7,6 +7,7 @@ use App\Models\DocumentJob;
 class CompletedJobState extends DocumentJobState
 {
     public static $name = 'completed';
+
     public function color(): string
     {
         return 'green';
@@ -21,7 +22,7 @@ class CompletedJobState extends DocumentJobState
     {
         parent::__construct($job);
 
-        if (!$job->completed_at) {
+        if (! $job->completed_at) {
             $job->completed_at = now();
             $job->saveQuietly();
         }

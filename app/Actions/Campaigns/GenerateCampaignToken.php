@@ -10,7 +10,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Generate API token for campaign.
- * 
+ *
  * Revokes existing tokens and creates a new one.
  * Returns plain-text token only once.
  */

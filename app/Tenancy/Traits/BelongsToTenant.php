@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Trait for models that belong to a tenant.
- * 
+ *
  * Automatically sets the connection to 'tenant' for all queries.
  */
 trait BelongsToTenant
@@ -20,7 +20,7 @@ trait BelongsToTenant
     {
         // Set connection on model initialization
         static::creating(function (Model $model) {
-            if (!$model->getConnectionName()) {
+            if (! $model->getConnectionName()) {
                 $model->setConnection('tenant');
             }
         });

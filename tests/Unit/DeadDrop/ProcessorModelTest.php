@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Models\Processor;
-use App\Models\ProcessorExecution;
 use Illuminate\Support\Str;
 
 it('can create a processor with required fields', function () {

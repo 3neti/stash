@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * AuditLog Model
- * 
+ *
  * Immutable audit trail for compliance (read-only, no updates/deletes).
  */
 class AuditLog extends Model
@@ -83,7 +83,7 @@ class AuditLog extends Model
     public function scopeByAuditable($query, string $type, string $id)
     {
         return $query->where('auditable_type', $type)
-                     ->where('auditable_id', $id);
+            ->where('auditable_id', $id);
     }
 
     public function scopeInPeriod($query, $startDate, $endDate)

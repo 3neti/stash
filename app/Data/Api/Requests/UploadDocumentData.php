@@ -13,7 +13,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * Upload Document Request DTO
- * 
+ *
  * Validates and structures document upload requests.
  */
 class UploadDocumentData extends Data
@@ -24,10 +24,10 @@ class UploadDocumentData extends Data
         #[Mimes(['pdf', 'png', 'jpg', 'jpeg', 'tiff'])]
         #[Max(10240)] // 10MB in kilobytes
         public UploadedFile $file,
-        
+
         public ?array $metadata = null,
     ) {}
-    
+
     /**
      * Additional validation rules not covered by attributes.
      */
@@ -40,7 +40,7 @@ class UploadDocumentData extends Data
             'metadata.reference_id' => 'nullable|string|max:100',
         ];
     }
-    
+
     /**
      * Get file size in bytes.
      */
@@ -48,7 +48,7 @@ class UploadDocumentData extends Data
     {
         return $this->file->getSize();
     }
-    
+
     /**
      * Get original filename.
      */
@@ -56,7 +56,7 @@ class UploadDocumentData extends Data
     {
         return $this->file->getClientOriginalName();
     }
-    
+
     /**
      * Get MIME type.
      */
@@ -64,7 +64,7 @@ class UploadDocumentData extends Data
     {
         return $this->file->getMimeType();
     }
-    
+
     /**
      * Calculate SHA-256 hash of file.
      */

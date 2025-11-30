@@ -22,8 +22,9 @@ class TenantDeleteCommand extends Command
         $tenantId = $this->argument('tenant');
         $tenant = Tenant::on('pgsql')->find($tenantId);
 
-        if (!$tenant) {
+        if (! $tenant) {
             $this->error("Tenant {$tenantId} not found");
+
             return self::FAILURE;
         }
 
@@ -31,9 +32,10 @@ class TenantDeleteCommand extends Command
         $this->line("Tenant ID: {$tenant->id}");
         $this->line("Database: {$manager->getTenantDatabaseName($tenant)}");
 
-        if (!$this->option('force')) {
-            if (!$this->confirm('Are you sure you want to continue?', false)) {
+        if (! $this->option('force')) {
+            if (! $this->confirm('Are you sure you want to continue?', false)) {
                 $this->info('Deletion cancelled');
+
                 return self::SUCCESS;
             }
         }
@@ -56,6 +58,7 @@ class TenantDeleteCommand extends Command
             return self::SUCCESS;
         } catch (\Exception $e) {
             $this->error("Failed to delete tenant: {$e->getMessage()}");
+
             return self::FAILURE;
         }
     }

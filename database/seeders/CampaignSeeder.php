@@ -14,9 +14,10 @@ class CampaignSeeder extends Seeder
     public function run(): void
     {
         $processors = Processor::pluck('slug', 'id')->toArray();
-        
+
         if (empty($processors)) {
             $this->command->warn('No processors found. Run ProcessorSeeder first.');
+
             return;
         }
 
@@ -102,6 +103,6 @@ class CampaignSeeder extends Seeder
             );
         }
 
-        $this->command->info('Seeded ' . count($campaigns) . ' campaigns');
+        $this->command->info('Seeded '.count($campaigns).' campaigns');
     }
 }

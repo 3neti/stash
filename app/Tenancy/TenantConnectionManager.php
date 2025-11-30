@@ -97,11 +97,11 @@ class TenantConnectionManager
         $dbName = $this->getTenantDatabaseName($tenant);
 
         $result = DB::connection('pgsql')->select(
-            "SELECT 1 FROM pg_database WHERE datname = ?",
+            'SELECT 1 FROM pg_database WHERE datname = ?',
             [$dbName]
         );
 
-        return !empty($result);
+        return ! empty($result);
     }
 
     /**

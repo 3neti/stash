@@ -31,13 +31,13 @@ class SetTenantContext
         // Load the DocumentJob from central database to get tenant info
         // Note: DocumentJob is on tenant connection, but we need to load it first
         // to determine which tenant to connect to
-        
+
         try {
             // Load from tenant connection (assumes tenant is already set by queue worker)
             $documentJob = DocumentJob::on('tenant')->findOrFail($this->documentJobId);
-            
+
             // Verify tenant connection is active
-            if (!DB::connection('tenant')->getDatabaseName()) {
+            if (! DB::connection('tenant')->getDatabaseName()) {
                 throw new \RuntimeException('Tenant connection not initialized');
             }
 
@@ -54,7 +54,7 @@ class SetTenantContext
                 'document_job_id' => $this->documentJobId,
                 'error' => $e->getMessage(),
             ]);
-            
+
             throw $e;
         }
     }

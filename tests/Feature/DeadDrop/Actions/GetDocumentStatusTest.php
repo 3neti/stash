@@ -16,10 +16,10 @@ describe('GetDocumentStatus Action', function () {
         $document = Document::factory()
             ->for($this->campaign)
             ->create();
-        
-        $action = new GetDocumentStatus();
+
+        $action = new GetDocumentStatus;
         $result = $action->handle($document);
-        
+
         expect($result)->toBeInstanceOf(Document::class)
             ->and($result->id)->toBe($document->id)
             ->and($result->relationLoaded('campaign'))->toBeTrue();
@@ -29,10 +29,10 @@ describe('GetDocumentStatus Action', function () {
         $document = Document::factory()
             ->for($this->campaign)
             ->create();
-        
-        $action = new GetDocumentStatus();
+
+        $action = new GetDocumentStatus;
         $result = $action->handle($document);
-        
+
         expect($result->relationLoaded('campaign'))->toBeTrue()
             ->and($result->campaign)->not->toBeNull()
             ->and($result->campaign->id)->toBe($this->campaign->id);
@@ -42,15 +42,15 @@ describe('GetDocumentStatus Action', function () {
         $document = Document::factory()
             ->for($this->campaign)
             ->create();
-        
+
         $documentJob = DocumentJob::factory()
             ->for($document)
             ->for($this->campaign)
             ->create();
-        
-        $action = new GetDocumentStatus();
+
+        $action = new GetDocumentStatus;
         $result = $action->handle($document);
-        
+
         expect($result->relationLoaded('documentJob'))->toBeTrue()
             ->and($result->documentJob)->not->toBeNull()
             ->and($result->documentJob->id)->toBe($documentJob->id);
@@ -60,22 +60,22 @@ describe('GetDocumentStatus Action', function () {
         $document = Document::factory()
             ->for($this->campaign)
             ->create();
-        
+
         $documentJob = DocumentJob::factory()
             ->for($document)
             ->for($this->campaign)
             ->create();
-        
+
         $processor = Processor::factory()->create(['slug' => 'ocr-processor']);
-        
+
         $execution = ProcessorExecution::factory()
             ->for($documentJob)
             ->for($processor)
             ->create();
-        
-        $action = new GetDocumentStatus();
+
+        $action = new GetDocumentStatus;
         $result = $action->handle($document);
-        
+
         expect($result->documentJob->relationLoaded('processorExecutions'))->toBeTrue()
             ->and($result->documentJob->processorExecutions)->toHaveCount(1)
             ->and($result->documentJob->processorExecutions->first()->relationLoaded('processor'))->toBeTrue()
@@ -86,10 +86,10 @@ describe('GetDocumentStatus Action', function () {
         $document = Document::factory()
             ->for($this->campaign)
             ->create();
-        
-        $action = new GetDocumentStatus();
+
+        $action = new GetDocumentStatus;
         $result = $action->handle($document);
-        
+
         expect($result->relationLoaded('documentJob'))->toBeTrue()
             ->and($result->documentJob)->toBeNull();
     });
@@ -98,15 +98,15 @@ describe('GetDocumentStatus Action', function () {
         $document = Document::factory()
             ->for($this->campaign)
             ->create();
-        
+
         $documentJob = DocumentJob::factory()
             ->for($document)
             ->for($this->campaign)
             ->create();
-        
-        $action = new GetDocumentStatus();
+
+        $action = new GetDocumentStatus;
         $result = $action->handle($document);
-        
+
         expect($result->documentJob)->not->toBeNull()
             ->and($result->documentJob->relationLoaded('processorExecutions'))->toBeTrue()
             ->and($result->documentJob->processorExecutions)->toHaveCount(0);
@@ -116,23 +116,23 @@ describe('GetDocumentStatus Action', function () {
         $document = Document::factory()
             ->for($this->campaign)
             ->create();
-        
+
         $documentJob = DocumentJob::factory()
             ->for($document)
             ->for($this->campaign)
             ->create();
-        
+
         $processor1 = Processor::factory()->create(['slug' => 'ocr']);
         $processor2 = Processor::factory()->create(['slug' => 'classifier']);
         $processor3 = Processor::factory()->create(['slug' => 'extractor']);
-        
+
         ProcessorExecution::factory()->for($documentJob)->for($processor1)->create();
         ProcessorExecution::factory()->for($documentJob)->for($processor2)->create();
         ProcessorExecution::factory()->for($documentJob)->for($processor3)->create();
-        
-        $action = new GetDocumentStatus();
+
+        $action = new GetDocumentStatus;
         $result = $action->handle($document);
-        
+
         expect($result->documentJob->processorExecutions)->toHaveCount(3);
     });
 
@@ -140,30 +140,30 @@ describe('GetDocumentStatus Action', function () {
         $document = Document::factory()
             ->for($this->campaign)
             ->create();
-        
+
         $documentJob = DocumentJob::factory()
             ->for($document)
             ->for($this->campaign)
             ->create();
-        
+
         $processor = Processor::factory()->create();
-        
+
         ProcessorExecution::factory()
             ->for($documentJob)
             ->for($processor)
             ->count(3)
             ->create();
-        
+
         \DB::enableQueryLog();
-        
-        $action = new GetDocumentStatus();
+
+        $action = new GetDocumentStatus;
         $action->handle($document);
-        
+
         $queries = \DB::getQueryLog();
-        
+
         // Should use minimal queries due to eager loading
         expect(count($queries))->toBeLessThan(5);
-        
+
         \DB::disableQueryLog();
     });
 
@@ -171,10 +171,10 @@ describe('GetDocumentStatus Action', function () {
         $document = Document::factory()
             ->for($this->campaign)
             ->create();
-        
-        $action = new GetDocumentStatus();
+
+        $action = new GetDocumentStatus;
         $result = $action->handle($document);
-        
+
         expect($result)->toBe($document);
     });
 });

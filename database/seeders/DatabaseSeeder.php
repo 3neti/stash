@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
 
         if ($tenants->isEmpty()) {
             $this->command->error('No tenants found. Please create tenants first using: php artisan tenant:create');
+
             return;
         }
 
@@ -35,6 +36,6 @@ class DatabaseSeeder extends Seeder
             });
         }
 
-        $this->command->info("\n✅ Database seeding completed for " . $tenants->count() . " tenant(s)");
+        $this->command->info("\n✅ Database seeding completed for ".$tenants->count().' tenant(s)');
     }
 }

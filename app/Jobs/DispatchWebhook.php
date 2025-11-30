@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Dispatch webhook to campaign's configured URL.
- * 
+ *
  * Supports retries with exponential backoff and HMAC signing.
  */
 class DispatchWebhook implements ShouldQueue
@@ -24,14 +24,14 @@ class DispatchWebhook implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $backoff = 60; // seconds
 
     public function __construct(
         public Campaign $campaign,
         public string $eventType,
         public array $payload
-    ) {
-    }
+    ) {}
 
     /**
      * Execute the job.
@@ -122,7 +122,7 @@ class DispatchWebhook implements ShouldQueue
     protected function generateSignature(): string
     {
         $secret = $this->campaign->settings['webhooks']['secret'] ?? '';
-        
+
         return hash_hmac('sha256', json_encode($this->payload), $secret);
     }
 

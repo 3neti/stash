@@ -7,6 +7,7 @@ use App\Models\DocumentJob;
 class RunningJobState extends DocumentJobState
 {
     public static $name = 'running';
+
     public function color(): string
     {
         return 'yellow';
@@ -21,7 +22,7 @@ class RunningJobState extends DocumentJobState
     {
         parent::__construct($job);
 
-        if (!$job->started_at) {
+        if (! $job->started_at) {
             $job->started_at = now();
             $job->saveQuietly();
         }

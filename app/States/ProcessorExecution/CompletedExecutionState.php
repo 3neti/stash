@@ -7,6 +7,7 @@ use App\Models\ProcessorExecution;
 class CompletedExecutionState extends ProcessorExecutionState
 {
     public static $name = 'completed';
+
     public function color(): string
     {
         return 'green';
@@ -21,7 +22,7 @@ class CompletedExecutionState extends ProcessorExecutionState
     {
         parent::__construct($execution);
 
-        if (!$execution->completed_at) {
+        if (! $execution->completed_at) {
             $execution->completed_at = now();
 
             if ($execution->started_at) {

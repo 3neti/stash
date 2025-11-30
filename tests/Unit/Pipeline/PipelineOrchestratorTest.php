@@ -1,11 +1,14 @@
 <?php
 
-use App\Data\Pipeline\{PipelineConfigData, ProcessorConfigData};
-use App\Data\Processors\{ProcessorContextData, ProcessorResultData};
+use App\Data\Pipeline\ProcessorConfigData;
 use App\Exceptions\ProcessorException;
-use App\Models\{Campaign, Document, DocumentJob, ProcessorExecution};
+use App\Models\Campaign;
+use App\Models\Document;
+use App\Models\DocumentJob;
+use App\Models\ProcessorExecution;
 use App\Processors\AbstractProcessor;
-use App\Services\Pipeline\{PipelineOrchestrator, ProcessorRegistry};
+use App\Services\Pipeline\PipelineOrchestrator;
+use App\Services\Pipeline\ProcessorRegistry;
 use Tests\DeadDropTestCase;
 
 uses(DeadDropTestCase::class);
@@ -18,10 +21,12 @@ beforeEach(function () {
 describe('Pipeline Orchestrator', function () {
     test('executes single processor successfully', function () {
         // Register a test processor
-        $testProcessor = new class extends AbstractProcessor {
+        $testProcessor = new class extends AbstractProcessor
+        {
             protected string $name = 'TestProcessor';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return ['text' => 'extracted'];
             }
         };
@@ -63,18 +68,22 @@ describe('Pipeline Orchestrator', function () {
 
     test('executes multiple processors in sequence', function () {
         // Register test processors
-        $processor1 = new class extends AbstractProcessor {
+        $processor1 = new class extends AbstractProcessor
+        {
             protected string $name = 'Processor1';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return ['step1' => 'done'];
             }
         };
 
-        $processor2 = new class extends AbstractProcessor {
+        $processor2 = new class extends AbstractProcessor
+        {
             protected string $name = 'Processor2';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return ['step2' => 'done'];
             }
         };
@@ -114,26 +123,32 @@ describe('Pipeline Orchestrator', function () {
 
     test('stops pipeline on processor failure', function () {
         // Register processors (second one will fail)
-        $processor1 = new class extends AbstractProcessor {
+        $processor1 = new class extends AbstractProcessor
+        {
             protected string $name = 'SuccessProcessor';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return ['success' => true];
             }
         };
 
-        $processor2 = new class extends AbstractProcessor {
+        $processor2 = new class extends AbstractProcessor
+        {
             protected string $name = 'FailProcessor';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 throw new Exception('Processing failed');
             }
         };
 
-        $processor3 = new class extends AbstractProcessor {
+        $processor3 = new class extends AbstractProcessor
+        {
             protected string $name = 'NeverRunsProcessor';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return ['never' => 'executed'];
             }
         };
@@ -174,14 +189,17 @@ describe('Pipeline Orchestrator', function () {
 
     test('throws exception when processor cannot handle document', function () {
         // Register processor that cannot handle documents
-        $processor = new class extends AbstractProcessor {
+        $processor = new class extends AbstractProcessor
+        {
             protected string $name = 'SelectiveProcessor';
 
-            public function canProcess(Document $document): bool {
+            public function canProcess(Document $document): bool
+            {
                 return false; // Cannot process any documents
             }
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return [];
             }
         };
@@ -205,16 +223,19 @@ describe('Pipeline Orchestrator', function () {
         ]);
 
         // Should throw exception
-        expect(fn() => $this->orchestrator->executePipeline($documentJob))
+        expect(fn () => $this->orchestrator->executePipeline($documentJob))
             ->toThrow(ProcessorException::class);
     });
 
     test('records execution duration', function () {
-        $processor = new class extends AbstractProcessor {
+        $processor = new class extends AbstractProcessor
+        {
             protected string $name = 'SlowProcessor';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 usleep(10000); // Sleep for 10ms
+
                 return ['done' => true];
             }
         };

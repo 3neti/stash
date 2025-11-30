@@ -1,12 +1,14 @@
 <?php
 
 use App\Contracts\Processors\ProcessorInterface;
-use App\Data\Pipeline\{PipelineConfigData, ProcessorConfigData};
-use App\Data\Processors\{ProcessorContextData, ProcessorResultData};
+use App\Data\Pipeline\PipelineConfigData;
+use App\Data\Pipeline\ProcessorConfigData;
+use App\Data\Processors\ProcessorContextData;
+use App\Data\Processors\ProcessorResultData;
 use App\Exceptions\ProcessorException;
+use App\Models\Document;
 use App\Processors\AbstractProcessor;
 use App\Services\Pipeline\ProcessorRegistry;
-use App\Models\Document;
 
 uses(Tests\TestCase::class);
 
@@ -108,10 +110,12 @@ describe('Pipeline DTOs', function () {
 describe('Processor Registry', function () {
     test('can register and retrieve processor', function () {
         $registry = app(ProcessorRegistry::class);
-        
+
         // Create a test processor class
-        $testProcessorClass = new class extends AbstractProcessor {
-            protected function process(Document $document, ProcessorConfigData $config): array {
+        $testProcessorClass = new class extends AbstractProcessor
+        {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return ['success' => true];
             }
         };
@@ -125,29 +129,31 @@ describe('Processor Registry', function () {
     test('throws exception for unregistered processor', function () {
         $registry = app(ProcessorRegistry::class);
 
-        expect(fn() => $registry->get('nonexistent'))
+        expect(fn () => $registry->get('nonexistent'))
             ->toThrow(ProcessorException::class);
     });
 
     test('throws exception for invalid class', function () {
         $registry = app(ProcessorRegistry::class);
 
-        expect(fn() => $registry->register('invalid', 'NonExistentClass'))
+        expect(fn () => $registry->register('invalid', 'NonExistentClass'))
             ->toThrow(InvalidArgumentException::class);
     });
 
     test('throws exception for non-processor class', function () {
         $registry = app(ProcessorRegistry::class);
 
-        expect(fn() => $registry->register('invalid', \stdClass::class))
+        expect(fn () => $registry->register('invalid', \stdClass::class))
             ->toThrow(InvalidArgumentException::class);
     });
 
     test('can list registered processor IDs', function () {
         $registry = app(ProcessorRegistry::class);
-        
-        $testProcessorClass = new class extends AbstractProcessor {
-            protected function process(Document $document, ProcessorConfigData $config): array {
+
+        $testProcessorClass = new class extends AbstractProcessor
+        {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return [];
             }
         };
@@ -164,11 +170,14 @@ describe('Processor Registry', function () {
 
 describe('Abstract Processor', function () {
     test('handles successful processing', function () {
-        $processor = new class extends AbstractProcessor {
+        $processor = new class extends AbstractProcessor
+        {
             protected string $name = 'TestProcessor';
+
             protected string $category = 'test';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return ['result' => 'success'];
             }
         };
@@ -185,8 +194,10 @@ describe('Abstract Processor', function () {
     });
 
     test('handles processing exceptions', function () {
-        $processor = new class extends AbstractProcessor {
-            protected function process(Document $document, ProcessorConfigData $config): array {
+        $processor = new class extends AbstractProcessor
+        {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 throw new Exception('Processing failed');
             }
         };
@@ -203,10 +214,12 @@ describe('Abstract Processor', function () {
     });
 
     test('returns processor name', function () {
-        $processor = new class extends AbstractProcessor {
+        $processor = new class extends AbstractProcessor
+        {
             protected string $name = 'MyProcessor';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return [];
             }
         };
@@ -215,8 +228,10 @@ describe('Abstract Processor', function () {
     });
 
     test('returns default category', function () {
-        $processor = new class extends AbstractProcessor {
-            protected function process(Document $document, ProcessorConfigData $config): array {
+        $processor = new class extends AbstractProcessor
+        {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return [];
             }
         };
@@ -225,8 +240,10 @@ describe('Abstract Processor', function () {
     });
 
     test('can process returns true by default', function () {
-        $processor = new class extends AbstractProcessor {
-            protected function process(Document $document, ProcessorConfigData $config): array {
+        $processor = new class extends AbstractProcessor
+        {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return [];
             }
         };

@@ -1,9 +1,23 @@
 <script setup lang="ts">
+import QuickActions from '@/components/QuickActions.vue';
+import StatsCard from '@/components/StatsCard.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type DashboardStats } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import PlaceholderPattern from '../components/PlaceholderPattern.vue';
+import {
+    FileText,
+    FolderOpen,
+    CheckCircle,
+    Clock,
+    AlertCircle,
+} from 'lucide-vue-next';
+
+interface Props {
+    stats: DashboardStats;
+}
+
+defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -17,30 +31,34 @@ const breadcrumbs: BreadcrumbItem[] = [
     <Head title="Dashboard" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div
-            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
-        >
-            <div class="grid auto-rows-min gap-4 md:grid-cols-3">
-                <div
-                    class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-                >
-                    <PlaceholderPattern />
-                </div>
-                <div
-                    class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-                >
-                    <PlaceholderPattern />
-                </div>
-                <div
-                    class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-                >
-                    <PlaceholderPattern />
-                </div>
+        <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StatsCard
+                    title="Total Campaigns"
+                    :value="stats.campaigns.total"
+                    :icon="FolderOpen"
+                    :description="`${stats.campaigns.active} active, ${stats.campaigns.paused} paused`"
+                />
+                <StatsCard
+                    title="Total Documents"
+                    :value="stats.documents.total"
+                    :icon="FileText"
+                />
+                <StatsCard
+                    title="Processing"
+                    :value="stats.documents.processing"
+                    :icon="Clock"
+                    :description="`${stats.documents.pending} pending`"
+                />
+                <StatsCard
+                    title="Completed"
+                    :value="stats.documents.completed"
+                    :icon="CheckCircle"
+                    :description="`${stats.documents.failed} failed`"
+                />
             </div>
-            <div
-                class="relative min-h-[100vh] flex-1 rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border"
-            >
-                <PlaceholderPattern />
+            <div class="grid gap-4 md:grid-cols-2">
+                <QuickActions />
             </div>
         </div>
     </AppLayout>

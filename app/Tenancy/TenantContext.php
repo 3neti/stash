@@ -9,7 +9,7 @@ use App\Models\Tenant;
 
 /**
  * Manages the current tenant context throughout the application lifecycle.
- * 
+ *
  * Inspired by Spatie's TaskSwitcher pattern.
  */
 class TenantContext
@@ -57,7 +57,7 @@ class TenantContext
 
     /**
      * Run a callback in the context of a specific tenant.
-     * 
+     *
      * Restores the previous tenant context after execution.
      */
     public static function run(Tenant $tenant, callable $callback): mixed
@@ -66,6 +66,7 @@ class TenantContext
 
         try {
             self::initialize($tenant);
+
             return $callback();
         } finally {
             if ($previousTenant) {

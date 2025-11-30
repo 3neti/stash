@@ -6,7 +6,10 @@ namespace App\Models;
 
 use App\Events\DocumentProcessingCompleted;
 use App\Events\DocumentProcessingFailed;
-use App\States\DocumentJob\{CompletedJobState, DocumentJobState, FailedJobState, RunningJobState};
+use App\States\DocumentJob\CompletedJobState;
+use App\States\DocumentJob\DocumentJobState;
+use App\States\DocumentJob\FailedJobState;
+use App\States\DocumentJob\RunningJobState;
 use App\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,7 +18,7 @@ use Spatie\ModelStates\HasStates;
 
 /**
  * DocumentJob Model
- * 
+ *
  * Represents a pipeline execution instance for a document.
  */
 class DocumentJob extends Model

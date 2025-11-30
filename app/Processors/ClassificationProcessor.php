@@ -291,7 +291,6 @@ PROMPT;
      * Set OpenAI client (for testing).
      *
      * @param  mixed  $client  The OpenAI client instance (or mock)
-     * @return void
      */
     public function setOpenAIClient($client): void
     {

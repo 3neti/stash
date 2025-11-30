@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * ProcessorExecution API Resource DTO
- * 
+ *
  * Represents a processor execution in API responses.
  */
 class ProcessorExecutionData extends Data
@@ -27,7 +27,7 @@ class ProcessorExecutionData extends Data
         public ?string $started_at = null,
         public ?string $completed_at = null,
     ) {}
-    
+
     /**
      * Create from ProcessorExecution model.
      */
@@ -35,11 +35,11 @@ class ProcessorExecutionData extends Data
     {
         return new self(
             id: $execution->id,
-            processor_slug: $execution->relationLoaded('processor') 
-                ? $execution->processor->slug 
+            processor_slug: $execution->relationLoaded('processor')
+                ? $execution->processor->slug
                 : 'unknown',
-            processor_name: $execution->relationLoaded('processor') 
-                ? $execution->processor->name 
+            processor_name: $execution->relationLoaded('processor')
+                ? $execution->processor->name
                 : 'Unknown',
             status: $execution->state::$name ?? 'pending',
             duration_ms: $execution->duration_ms,

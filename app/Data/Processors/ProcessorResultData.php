@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * Processor Result Data Transfer Object
- * 
+ *
  * Represents the result of a processor execution.
  */
 class ProcessorResultData extends Data

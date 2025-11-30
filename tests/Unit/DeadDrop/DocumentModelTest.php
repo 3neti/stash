@@ -3,14 +3,14 @@
 use App\Models\Campaign;
 use App\Models\Document;
 use App\Models\User;
-use App\States\Document\PendingDocumentState;
 use App\States\Document\CompletedDocumentState;
 use App\States\Document\FailedDocumentState;
+use App\States\Document\PendingDocumentState;
 
 describe('Document Model - Direct Creation', function () {
     test('can create document with minimal attributes', function () {
         $campaign = Campaign::factory()->create();
-        
+
         $document = Document::create([
             'campaign_id' => $campaign->id,
             'original_filename' => 'test.pdf',
@@ -27,7 +27,7 @@ describe('Document Model - Direct Creation', function () {
 
     test('document uses ULID for primary key', function () {
         $campaign = Campaign::factory()->create();
-        
+
         $document = Document::create([
             'campaign_id' => $campaign->id,
             'original_filename' => 'ulid-test.pdf',
@@ -46,7 +46,7 @@ describe('Document Model - Direct Creation', function () {
 
     test('document has correct default values', function () {
         $campaign = Campaign::factory()->create();
-        
+
         $document = Document::create([
             'campaign_id' => $campaign->id,
             'original_filename' => 'defaults-test.pdf',
@@ -76,7 +76,7 @@ describe('Document Model - Factory Creation', function () {
         $documents = Document::factory()->count(5)->create();
 
         expect($documents)->toHaveCount(5);
-        
+
         // Verify all have unique IDs
         $ids = $documents->pluck('id')->unique();
         expect($ids)->toHaveCount(5);
@@ -108,7 +108,7 @@ describe('Document Model - Relationships', function () {
 
         // For cross-database relationships, direct assignment works
         $document->update(['user_id' => $user->id]);
-        
+
         // Explicitly load the relationship
         $document->load('user');
 
@@ -133,7 +133,7 @@ describe('Document Model - State Management', function () {
 
     test('can transition document to completed state', function () {
         $document = Document::factory()->create();
-        
+
         $document->state->transitionTo(CompletedDocumentState::class);
         $document->refresh();
 
@@ -142,7 +142,7 @@ describe('Document Model - State Management', function () {
 
     test('can transition document to failed state', function () {
         $document = Document::factory()->create();
-        
+
         $document->state->transitionTo(FailedDocumentState::class);
         $document->refresh();
 
@@ -253,7 +253,7 @@ describe('Document Model - Scopes', function () {
         $pending = Document::pending()->get();
 
         expect($pending)->toHaveCount(2);
-        expect($pending->every(fn($d) => $d->state instanceof PendingDocumentState))->toBeTrue();
+        expect($pending->every(fn ($d) => $d->state instanceof PendingDocumentState))->toBeTrue();
     });
 
     test('completed scope returns only completed documents', function () {
@@ -266,7 +266,7 @@ describe('Document Model - Scopes', function () {
         $completed = Document::completed()->get();
 
         expect($completed)->toHaveCount(2);
-        expect($completed->every(fn($d) => $d->state instanceof CompletedDocumentState))->toBeTrue();
+        expect($completed->every(fn ($d) => $d->state instanceof CompletedDocumentState))->toBeTrue();
     });
 
     test('failed scope returns only failed documents', function () {
@@ -279,7 +279,7 @@ describe('Document Model - Scopes', function () {
         $failed = Document::failed()->get();
 
         expect($failed)->toHaveCount(2);
-        expect($failed->every(fn($d) => $d->state instanceof FailedDocumentState))->toBeTrue();
+        expect($failed->every(fn ($d) => $d->state instanceof FailedDocumentState))->toBeTrue();
     });
 });
 

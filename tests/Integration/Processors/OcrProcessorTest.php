@@ -2,27 +2,27 @@
 
 use App\Data\Pipeline\ProcessorConfigData;
 use App\Data\Processors\ProcessorContextData;
-use App\Models\{Campaign, Document};
+use App\Models\Campaign;
+use App\Models\Document;
 use App\Processors\OcrProcessor;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 describe('OcrProcessor Integration', function () {
     beforeEach(function () {
         // Ensure storage disk is set up
         Storage::fake('local');
-        
-        $this->processor = new OcrProcessor();
+
+        $this->processor = new OcrProcessor;
     });
 
     test('can extract text from image', function () {
         // Create test document with actual image file
         $campaign = Campaign::factory()->create();
-        
+
         // Copy test image to fake storage
         $testImagePath = base_path('tests/Fixtures/images/test-document.png');
         $storagePath = 'documents/test-document.png';
-        
+
         Storage::disk('local')->put(
             $storagePath,
             file_get_contents($testImagePath)
@@ -74,7 +74,7 @@ describe('OcrProcessor Integration', function () {
 
         foreach ($formats as $format) {
             $storagePath = "documents/test.{$format['ext']}";
-            
+
             // Create simple test image
             Storage::disk('local')->put(
                 $storagePath,
@@ -114,10 +114,10 @@ describe('OcrProcessor Integration', function () {
 
     test('respects language configuration', function () {
         $campaign = Campaign::factory()->create();
-        
+
         $testImagePath = base_path('tests/Fixtures/images/test-document.png');
         $storagePath = 'documents/test-lang.png';
-        
+
         Storage::disk('local')->put(
             $storagePath,
             file_get_contents($testImagePath)
@@ -179,10 +179,10 @@ describe('OcrProcessor Integration', function () {
 
     test('extracts meaningful statistics', function () {
         $campaign = Campaign::factory()->create();
-        
+
         $testImagePath = base_path('tests/Fixtures/images/test-document.png');
         $storagePath = 'documents/test-stats.png';
-        
+
         Storage::disk('local')->put(
             $storagePath,
             file_get_contents($testImagePath)

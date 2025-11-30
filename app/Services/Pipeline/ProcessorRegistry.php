@@ -11,7 +11,7 @@ use InvalidArgumentException;
 
 /**
  * Processor Registry
- * 
+ *
  * Manages registration and instantiation of processors.
  */
 class ProcessorRegistry
@@ -30,11 +30,11 @@ class ProcessorRegistry
      */
     public function register(string $id, string $className): void
     {
-        if (!class_exists($className)) {
+        if (! class_exists($className)) {
             throw new InvalidArgumentException("Processor class '{$className}' does not exist");
         }
 
-        if (!is_subclass_of($className, ProcessorInterface::class)) {
+        if (! is_subclass_of($className, ProcessorInterface::class)) {
             throw new InvalidArgumentException("Processor '{$className}' must implement ProcessorInterface");
         }
 
@@ -54,12 +54,12 @@ class ProcessorRegistry
      */
     public function get(string $id): ProcessorInterface
     {
-        if (!$this->has($id)) {
+        if (! $this->has($id)) {
             throw ProcessorException::processingFailed($id, 'Processor not registered');
         }
 
         $className = $this->processors[$id];
-        
+
         return $this->container->make($className);
     }
 
@@ -78,20 +78,20 @@ class ProcessorRegistry
     public function discover(): void
     {
         $processorsPath = app_path('Processors');
-        
-        if (!is_dir($processorsPath)) {
+
+        if (! is_dir($processorsPath)) {
             return;
         }
 
-        $files = glob($processorsPath . '/*.php');
-        
+        $files = glob($processorsPath.'/*.php');
+
         foreach ($files as $file) {
             $className = $this->getClassNameFromFile($file);
-            
-            if ($className && 
-                class_exists($className) && 
+
+            if ($className &&
+                class_exists($className) &&
                 is_subclass_of($className, ProcessorInterface::class) &&
-                !str_contains($className, 'Abstract')
+                ! str_contains($className, 'Abstract')
             ) {
                 // Use class basename as default ID (e.g., OcrProcessor)
                 $id = class_basename($className);
@@ -109,7 +109,7 @@ class ProcessorRegistry
         $relativePath = ltrim($relativePath, '/');
         $relativePath = str_replace('.php', '', $relativePath);
         $relativePath = str_replace('/', '\\', $relativePath);
-        
-        return 'App\\' . $relativePath;
+
+        return 'App\\'.$relativePath;
     }
 }

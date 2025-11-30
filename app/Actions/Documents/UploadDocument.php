@@ -47,7 +47,7 @@ class UploadDocument
      * @param  Campaign  $campaign  The campaign to associate the document with
      * @param  UploadedFile  $file  The uploaded file
      * @param  array|null  $metadata  Optional metadata for the document
-     * @return Document  The created document
+     * @return Document The created document
      */
     public function handle(
         Campaign $campaign,
@@ -55,7 +55,7 @@ class UploadDocument
         ?array $metadata = null
     ): Document {
         // 1. Generate unique document ID
-        $documentId = (string) new Ulid();
+        $documentId = (string) new Ulid;
 
         // 2. Calculate file hash for integrity
         $hash = hash_file('sha256', $file->getRealPath());
@@ -175,7 +175,7 @@ class UploadDocument
         // Sanitize filename (remove special characters, keep extension)
         $extension = $file->getClientOriginalExtension();
         $sanitizedName = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
-        $filename = $documentId . '_' . $sanitizedName . '.' . $extension;
+        $filename = $documentId.'_'.$sanitizedName.'.'.$extension;
 
         // For tests, when TenantContext is null, use campaign's tenant relationship
         $tenantId = $tenant?->id ?? $campaign->tenant_id ?? 'test';

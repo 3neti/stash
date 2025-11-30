@@ -15,6 +15,7 @@ use thiagoalessio\TesseractOCR\TesseractOCR;
 class OcrProcessor extends AbstractProcessor
 {
     protected string $name = 'Tesseract OCR';
+
     protected string $category = 'ocr';
 
     /**
@@ -65,12 +66,12 @@ class OcrProcessor extends AbstractProcessor
      */
     private function downloadDocument(Document $document): string
     {
-        if (!$document->fileExists()) {
+        if (! $document->fileExists()) {
             throw new \Exception("Document file not found: {$document->storage_path}");
         }
 
         // Create temp file
-        $tempPath = sys_get_temp_dir() . '/' . uniqid('ocr_', true) . '_' . $document->original_filename;
+        $tempPath = sys_get_temp_dir().'/'.uniqid('ocr_', true).'_'.$document->original_filename;
 
         // Download from storage
         $contents = Storage::disk($document->storage_disk)->get($document->storage_path);
@@ -82,7 +83,7 @@ class OcrProcessor extends AbstractProcessor
     /**
      * Extract text using Tesseract OCR.
      *
-     * @param array<string, mixed> $config
+     * @param  array<string, mixed>  $config
      * @return array<string, mixed>
      */
     private function extractText(string $filePath, array $config): array

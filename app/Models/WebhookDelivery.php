@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * WebhookDelivery Model
- * 
+ *
  * Tracks webhook delivery attempts and responses.
  */
 class WebhookDelivery extends Model

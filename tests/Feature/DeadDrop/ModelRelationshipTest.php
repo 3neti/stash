@@ -1,6 +1,12 @@
 <?php
 
-use App\Models\{Campaign, Document, DocumentJob, Processor, ProcessorExecution, Credential, UsageEvent, AuditLog};
+use App\Models\AuditLog;
+use App\Models\Campaign;
+use App\Models\Document;
+use App\Models\DocumentJob;
+use App\Models\Processor;
+use App\Models\ProcessorExecution;
+use App\Models\UsageEvent;
 
 describe('Campaign Relationships', function () {
     test('campaign has many documents', function () {
@@ -203,7 +209,7 @@ describe('AuditLog Polymorphic Relationships', function () {
     test('audit log has polymorphic auditable relationship', function () {
         $campaign = Campaign::factory()->create();
         $document = Document::factory()->create(['campaign_id' => $campaign->id]);
-        
+
         $audit = AuditLog::factory()->create([
             'auditable_type' => Document::class,
             'auditable_id' => $document->id,
@@ -215,7 +221,7 @@ describe('AuditLog Polymorphic Relationships', function () {
 
     test('audit log works with different auditable types', function () {
         $campaign = Campaign::factory()->create();
-        
+
         $campaignAudit = AuditLog::factory()->create([
             'auditable_type' => Campaign::class,
             'auditable_id' => $campaign->id,

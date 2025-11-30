@@ -32,6 +32,7 @@ class TenantCreateCommand extends Command
         // Validate slug uniqueness
         if (Tenant::on('pgsql')->where('slug', $slug)->exists()) {
             $this->error("Tenant with slug '{$slug}' already exists");
+
             return self::FAILURE;
         }
 
@@ -71,9 +72,9 @@ class TenantCreateCommand extends Command
             $this->info("✓ Database created: {$dbName}");
 
             // Run migrations unless skipped
-            if (!$this->option('skip-migrations')) {
+            if (! $this->option('skip-migrations')) {
                 $this->info('Running tenant migrations...');
-                
+
                 TenantContext::run($tenant, function () {
                     Artisan::call('migrate', [
                         '--database' => 'tenant',
@@ -81,16 +82,17 @@ class TenantCreateCommand extends Command
                         '--force' => true,
                     ]);
                 });
-                
+
                 $this->info('✓ Migrations completed');
             }
 
             $this->newLine();
             $this->info("Tenant '{$name}' created successfully!");
-            
+
             return self::SUCCESS;
         } catch (\Exception $e) {
             $this->error("Failed to create tenant: {$e->getMessage()}");
+
             return self::FAILURE;
         }
     }

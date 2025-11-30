@@ -66,11 +66,11 @@ describe('Campaign Model - Factory Creation', function () {
         $campaigns = Campaign::factory()->count(5)->create();
 
         expect($campaigns)->toHaveCount(5);
-        
+
         // Verify all have unique IDs and slugs
         $ids = $campaigns->pluck('id')->unique();
         $slugs = $campaigns->pluck('slug')->unique();
-        
+
         expect($ids)->toHaveCount(5)
             ->and($slugs)->toHaveCount(5);
     });
@@ -85,7 +85,7 @@ describe('Campaign Model - Attributes', function () {
         ]);
 
         $fresh = Campaign::find($campaign->id);
-        
+
         expect($fresh->pipeline_config)->toBeArray()
             ->and($fresh->pipeline_config['processors'])->toBeArray();
     });
@@ -99,7 +99,7 @@ describe('Campaign Model - Attributes', function () {
         ]);
 
         $fresh = Campaign::find($campaign->id);
-        
+
         expect($fresh->settings)->toBeArray()
             ->and($fresh->settings['queue'])->toBe('default');
     });
@@ -118,7 +118,7 @@ describe('Campaign Model - Attributes', function () {
         ]);
 
         $fresh = Campaign::find($campaign->id);
-        
+
         expect($fresh->checklist_template)->toBeArray()
             ->and($fresh->checklist_template)->toHaveCount(2);
     });
@@ -264,7 +264,7 @@ describe('Campaign Model - Scopes', function () {
         $activeCampaigns = Campaign::active()->get();
 
         expect($activeCampaigns)->toHaveCount(2);
-        expect($activeCampaigns->every(fn($c) => $c->status === 'active'))->toBeTrue();
+        expect($activeCampaigns->every(fn ($c) => $c->status === 'active'))->toBeTrue();
     });
 
     test('published scope returns only published campaigns', function () {
@@ -275,7 +275,7 @@ describe('Campaign Model - Scopes', function () {
         $publishedCampaigns = Campaign::published()->get();
 
         expect($publishedCampaigns)->toHaveCount(2);
-        expect($publishedCampaigns->every(fn($c) => $c->published_at !== null))->toBeTrue();
+        expect($publishedCampaigns->every(fn ($c) => $c->published_at !== null))->toBeTrue();
     });
 
     test('draft scope returns only draft campaigns', function () {
@@ -286,7 +286,7 @@ describe('Campaign Model - Scopes', function () {
         $draftCampaigns = Campaign::draft()->get();
 
         expect($draftCampaigns)->toHaveCount(2);
-        expect($draftCampaigns->every(fn($c) => $c->status === 'draft'))->toBeTrue();
+        expect($draftCampaigns->every(fn ($c) => $c->status === 'draft'))->toBeTrue();
     });
 });
 
@@ -314,7 +314,7 @@ describe('Campaign Model - Soft Deletes', function () {
 
         $id = $campaign->id;
         $campaign->delete();
-        
+
         $deleted = Campaign::withTrashed()->find($id);
         $deleted->restore();
 

@@ -19,7 +19,7 @@ class ProcessorFactory extends Factory
         return [
             'name' => fake()->words(3, true),
             'slug' => fake()->unique()->slug(),
-            'class_name' => 'App\\Processors\\' . fake()->word() . 'Processor',
+            'class_name' => 'App\\Processors\\'.fake()->word().'Processor',
             'category' => fake()->randomElement(['ocr', 'classification', 'extraction', 'validation', 'enrichment', 'notification', 'storage', 'custom']),
             'description' => fake()->sentence(),
             'config_schema' => [

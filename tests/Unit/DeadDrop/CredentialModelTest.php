@@ -44,7 +44,7 @@ it('sets default is_active to true', function () {
 
 it('encrypts value on creation', function () {
     $plainValue = 'secret-api-key-12345';
-    
+
     $credential = Credential::create([
         'key' => 'api_key',
         'value' => $plainValue,
@@ -55,13 +55,13 @@ it('encrypts value on creation', function () {
         ->table('credentials')
         ->where('id', $credential->id)
         ->value('value');
-    
+
     expect($raw)->not->toBe($plainValue);
 });
 
 it('decrypts value when accessed', function () {
     $plainValue = 'secret-api-key-67890';
-    
+
     $credential = Credential::create([
         'key' => 'api_key',
         'value' => $plainValue,
@@ -119,7 +119,7 @@ it('can create expired credential using factory state', function () {
 
 it('casts metadata to array', function () {
     $metadata = ['description' => 'Test credential', 'region' => 'us-east-1'];
-    
+
     $credential = Credential::factory()->create([
         'metadata' => $metadata,
     ]);
@@ -163,7 +163,7 @@ it('scopes active credentials', function () {
 
 it('scopes credentials by model', function () {
     $campaign = Campaign::factory()->create();
-    
+
     Credential::factory()->forCampaign($campaign)->create();
     Credential::factory()->system()->create();
 
@@ -244,7 +244,7 @@ it('marks credential as used', function () {
 
 it('resolves processor-scoped credential first', function () {
     $processor = Processor::factory()->create();
-    
+
     Credential::factory()->system()->create(['key' => 'api_key', 'value' => 'system-key']);
     Credential::factory()->forProcessor($processor)->create([
         'key' => 'api_key',
@@ -258,7 +258,7 @@ it('resolves processor-scoped credential first', function () {
 
 it('resolves campaign-scoped credential when processor not found', function () {
     $campaign = Campaign::factory()->create();
-    
+
     Credential::factory()->system()->create(['key' => 'api_key', 'value' => 'system-key']);
     Credential::factory()->forCampaign($campaign)->create([
         'key' => 'api_key',

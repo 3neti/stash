@@ -20,7 +20,7 @@ use Spatie\ModelStates\HasStates;
 
 /**
  * Document Model
- * 
+ *
  * Represents an uploaded file and its processing state.
  */
 class Document extends Model
@@ -28,6 +28,7 @@ class Document extends Model
     use BelongsToTenant, HasFactory, HasStates, SoftDeletes;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -87,7 +88,7 @@ class Document extends Model
         // Users live on central database, not tenant database
         $instance = $this->newRelatedInstance(User::class);
         $instance->setConnection('pgsql');
-        
+
         return $this->newBelongsTo(
             $instance->newQuery(),
             $this,
@@ -210,7 +211,7 @@ class Document extends Model
             $unit++;
         }
 
-        return round($size, 2) . ' ' . $units[$unit];
+        return round($size, 2).' '.$units[$unit];
     }
 
     public function addProcessingHistory(string $stage, array $data): void

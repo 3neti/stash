@@ -18,7 +18,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * List Documents Action
- * 
+ *
  * Lists documents for a campaign with filtering and pagination.
  */
 class ListDocuments
@@ -27,13 +27,13 @@ class ListDocuments
 
     /**
      * Handle listing documents with filters.
-     * 
+     *
      * @param  Campaign  $campaign  The campaign to list documents from
      * @param  string|null  $status  Filter by status (pending, processing, completed, failed)
      * @param  Carbon|null  $dateFrom  Filter by created_at >= date
      * @param  Carbon|null  $dateTo  Filter by created_at <= date
      * @param  int  $perPage  Results per page (default 15, max 100)
-     * @return LengthAwarePaginator  Paginated documents
+     * @return LengthAwarePaginator Paginated documents
      */
     public function handle(
         Campaign $campaign,
@@ -46,22 +46,22 @@ class ListDocuments
         $query = $campaign->documents()
             ->with(['documentJob.processorExecutions.processor'])
             ->orderByDesc('created_at');
-        
+
         // Apply status filter
         if ($status) {
             $stateClass = $this->getStateClass($status);
             $query->whereState('state', $stateClass);
         }
-        
+
         // Apply date range filters
         if ($dateFrom) {
             $query->where('created_at', '>=', $dateFrom);
         }
-        
+
         if ($dateTo) {
             $query->where('created_at', '<=', $dateTo->endOfDay());
         }
-        
+
         // Paginate with max limit of 100
         return $query->paginate(min($perPage, 100));
     }
@@ -72,17 +72,17 @@ class ListDocuments
     public function asController(ActionRequest $request, Campaign $campaign): JsonResponse
     {
         $validatedData = $request->validated();
-        
+
         // Parse request parameters
         $status = $validatedData['status'] ?? null;
-        $dateFrom = isset($validatedData['date_from']) 
-            ? Carbon::parse($validatedData['date_from']) 
+        $dateFrom = isset($validatedData['date_from'])
+            ? Carbon::parse($validatedData['date_from'])
             : null;
-        $dateTo = isset($validatedData['date_to']) 
-            ? Carbon::parse($validatedData['date_to']) 
+        $dateTo = isset($validatedData['date_to'])
+            ? Carbon::parse($validatedData['date_to'])
             : null;
         $perPage = (int) ($validatedData['per_page'] ?? 15);
-        
+
         // Get paginated documents
         $documents = $this->handle(
             $campaign,
@@ -91,7 +91,7 @@ class ListDocuments
             $dateTo,
             $perPage
         );
-        
+
         // Transform to DTOs
         return response()->json([
             'data' => $documents->map(fn ($doc) => DocumentData::fromModel($doc)->toArray()),

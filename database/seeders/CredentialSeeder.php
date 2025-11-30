@@ -17,7 +17,7 @@ class CredentialSeeder extends Seeder
                 'scope_type' => 'system',
                 'scope_id' => null,
                 'key' => 'openai_api_key',
-                'value' => config('services.openai.api_key') ?? 'demo-openai-key-' . bin2hex(random_bytes(16)),
+                'value' => config('services.openai.api_key') ?? 'demo-openai-key-'.bin2hex(random_bytes(16)),
                 'provider' => 'openai',
                 'metadata' => [
                     'description' => 'OpenAI API key for GPT models',
@@ -28,7 +28,7 @@ class CredentialSeeder extends Seeder
                 'scope_type' => 'system',
                 'scope_id' => null,
                 'key' => 'anthropic_api_key',
-                'value' => config('services.anthropic.api_key') ?? 'demo-anthropic-key-' . bin2hex(random_bytes(16)),
+                'value' => config('services.anthropic.api_key') ?? 'demo-anthropic-key-'.bin2hex(random_bytes(16)),
                 'provider' => 'anthropic',
                 'metadata' => [
                     'description' => 'Anthropic API key for Claude models',
@@ -50,7 +50,7 @@ class CredentialSeeder extends Seeder
                 'scope_type' => 'system',
                 'scope_id' => null,
                 'key' => 'aws_secret_key',
-                'value' => config('filesystems.disks.s3.secret') ?? 'demo-aws-secret-key-' . bin2hex(random_bytes(32)),
+                'value' => config('filesystems.disks.s3.secret') ?? 'demo-aws-secret-key-'.bin2hex(random_bytes(32)),
                 'provider' => 'aws',
                 'metadata' => [
                     'description' => 'AWS secret key for S3 storage',
@@ -70,6 +70,6 @@ class CredentialSeeder extends Seeder
             );
         }
 
-        $this->command->info('Seeded ' . count($credentials) . ' system credentials');
+        $this->command->info('Seeded '.count($credentials).' system credentials');
     }
 }

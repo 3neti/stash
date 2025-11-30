@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Processor Model
- * 
+ *
  * Registry of available processor implementations.
  */
 class Processor extends Model

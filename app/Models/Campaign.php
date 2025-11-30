@@ -18,9 +18,9 @@ use LBHurtado\ModelChannel\Traits\HasChannels;
 
 /**
  * Campaign Model
- * 
+ *
  * Represents a document processing workflow (stash) owned by a tenant.
- * 
+ *
  * @property string $id ULID primary key
  * @property string $name Campaign name
  * @property string $slug URL-friendly identifier

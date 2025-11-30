@@ -22,7 +22,7 @@ class FailedDocumentState extends DocumentState
     {
         parent::__construct($document);
 
-        if (!$document->failed_at) {
+        if (! $document->failed_at) {
             $document->failed_at = now();
             $document->saveQuietly();
         }

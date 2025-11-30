@@ -10,7 +10,7 @@ use Spatie\LaravelData\DataCollection;
 
 /**
  * Pipeline Configuration Data Transfer Object
- * 
+ *
  * Represents the entire pipeline configuration from a Campaign.
  */
 class PipelineConfigData extends Data

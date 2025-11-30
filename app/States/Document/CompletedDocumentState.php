@@ -22,7 +22,7 @@ class CompletedDocumentState extends DocumentState
     {
         parent::__construct($document);
 
-        if (!$document->processed_at) {
+        if (! $document->processed_at) {
             $document->processed_at = now();
             $document->saveQuietly();
         }

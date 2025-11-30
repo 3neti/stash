@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->prefix('campaigns/{campaign}')->group(function () {
     Route::post('tokens', GenerateCampaignToken::class)
         ->name('api.campaigns.tokens.store');
-    
+
     Route::delete('tokens', RevokeCampaignToken::class)
         ->name('api.campaigns.tokens.destroy');
 });
@@ -37,10 +37,10 @@ Route::middleware('auth:sanctum')->prefix('campaigns/{campaign}')->group(functio
 Route::middleware('auth:sanctum')->prefix('campaigns/{campaign}')->group(function () {
     Route::put('channels', SetCampaignChannel::class)
         ->name('api.campaigns.channels.update');
-    
+
     Route::post('webhook/test', TestCampaignWebhook::class)
         ->name('api.campaigns.webhook.test');
-    
+
     Route::get('webhooks', ListWebhookDeliveries::class)
         ->name('api.campaigns.webhooks.index');
 });
@@ -51,7 +51,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('campaigns/{campaign
     Route::post('documents', UploadDocument::class)
         ->middleware('throttle:api-uploads')
         ->name('api.campaigns.documents.store');
-    
+
     // List documents for campaign
     Route::get('documents', ListDocuments::class)
         ->name('api.campaigns.documents.index');

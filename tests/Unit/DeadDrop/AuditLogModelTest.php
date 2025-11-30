@@ -78,7 +78,7 @@ it('can create deleted event using factory state', function () {
 
 it('casts old_values to array', function () {
     $oldValues = ['status' => 'draft', 'name' => 'Old Name'];
-    
+
     $log = AuditLog::factory()->create([
         'old_values' => $oldValues,
     ]);
@@ -90,7 +90,7 @@ it('casts old_values to array', function () {
 
 it('casts new_values to array', function () {
     $newValues = ['status' => 'active', 'name' => 'New Name'];
-    
+
     $log = AuditLog::factory()->create([
         'new_values' => $newValues,
     ]);
@@ -102,7 +102,7 @@ it('casts new_values to array', function () {
 
 it('casts tags to array', function () {
     $tags = ['security', 'compliance'];
-    
+
     $log = AuditLog::factory()->create([
         'tags' => $tags,
     ]);
@@ -114,7 +114,7 @@ it('casts tags to array', function () {
 
 it('has polymorphic auditable relationship', function () {
     $campaign = Campaign::factory()->create();
-    
+
     $log = AuditLog::factory()->create([
         'auditable_type' => Campaign::class,
         'auditable_id' => $campaign->id,
@@ -125,7 +125,7 @@ it('has polymorphic auditable relationship', function () {
 
 it('can retrieve auditable entity', function () {
     $campaign = Campaign::factory()->create();
-    
+
     $log = AuditLog::factory()->create([
         'auditable_type' => Campaign::class,
         'auditable_id' => $campaign->id,
@@ -139,7 +139,7 @@ it('can retrieve auditable entity', function () {
 
 it('scopes logs by user', function () {
     $user = User::factory()->create();
-    
+
     AuditLog::factory()->create(['user_id' => $user->id]);
     AuditLog::factory()->create(['user_id' => $user->id]);
     AuditLog::factory()->create(['user_id' => null]);
@@ -161,7 +161,7 @@ it('scopes logs by event', function () {
 
 it('scopes logs by auditable type and id', function () {
     $campaign = Campaign::factory()->create();
-    
+
     AuditLog::factory()->create([
         'auditable_type' => Campaign::class,
         'auditable_id' => $campaign->id,
@@ -204,7 +204,7 @@ it('scopes logs with specific tag', function () {
 
 it('prevents updates to audit logs', function () {
     $log = AuditLog::factory()->create(['event' => 'created']);
-    
+
     $result = $log->update(['event' => 'updated']);
 
     expect($result)->toBeFalse();
@@ -215,7 +215,7 @@ it('prevents updates to audit logs', function () {
 it('prevents deletes of audit logs', function () {
     $log = AuditLog::factory()->create();
     $id = $log->id;
-    
+
     $result = $log->delete();
 
     expect($result)->toBeFalse();

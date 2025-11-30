@@ -8,8 +8,8 @@ use App\Jobs\Middleware\SetTenantContext;
 use App\Models\DocumentJob;
 use App\Services\Pipeline\PipelineOrchestrator;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Log;
  *
  * This job is tenant-aware and retriable.
  */
-class ProcessDocumentJob implements ShouldQueue, ShouldBeUnique
+class ProcessDocumentJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -97,7 +97,7 @@ class ProcessDocumentJob implements ShouldQueue, ShouldBeUnique
             if ($success) {
                 // Mark as completed
                 $documentJob->complete();
-                
+
                 // Update document state
                 $document = $documentJob->document;
                 $document->markCompleted();
@@ -111,7 +111,7 @@ class ProcessDocumentJob implements ShouldQueue, ShouldBeUnique
             }
         } catch (\Throwable $e) {
             $shouldRetry = $this->handleFailure($documentJob, $e->getMessage(), $e);
-            
+
             // Only re-throw if we should retry (let Laravel handle the retry)
             if ($shouldRetry) {
                 throw $e;
@@ -121,7 +121,7 @@ class ProcessDocumentJob implements ShouldQueue, ShouldBeUnique
 
     /**
      * Handle job failure.
-     * 
+     *
      * @return bool True if job should retry, false if exhausted
      */
     private function handleFailure(DocumentJob $documentJob, string $error, ?\Throwable $exception = null): bool
@@ -137,7 +137,7 @@ class ProcessDocumentJob implements ShouldQueue, ShouldBeUnique
         $documentJob->incrementAttempts();
 
         // Check if we can retry
-        if (!$documentJob->canRetry()) {
+        if (! $documentJob->canRetry()) {
             // Final failure - mark as failed
             $documentJob->fail($error);
 
@@ -149,16 +149,16 @@ class ProcessDocumentJob implements ShouldQueue, ShouldBeUnique
                 'document_job_id' => $this->documentJobId,
                 'attempts' => $documentJob->attempts,
             ]);
-            
+
             return false; // Don't retry
         }
-        
+
         return true; // Should retry
     }
 
     /**
      * Handle a job failure (called by Laravel when job fails).
-     * 
+     *
      * This is only called if the exception was re-thrown (for retries).
      * If we already handled the failure in handleFailure(), this does nothing.
      */
@@ -174,7 +174,7 @@ class ProcessDocumentJob implements ShouldQueue, ShouldBeUnique
         // (handleFailure() already marked it as failed if retries exhausted)
         try {
             $documentJob = DocumentJob::find($this->documentJobId);
-            if ($documentJob && !$documentJob->isFailed()) {
+            if ($documentJob && ! $documentJob->isFailed()) {
                 // This should rarely happen, but just in case
                 $documentJob->incrementAttempts();
                 $documentJob->fail($exception->getMessage());

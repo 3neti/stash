@@ -7,13 +7,11 @@ use App\Data\Processors\ProcessorContextData;
 use App\Models\Campaign;
 use App\Models\Document;
 use App\Processors\ClassificationProcessor;
-use OpenAI\Client as OpenAIClient;
-use OpenAI\Responses\Chat\CreateResponse;
 
 uses()->group('integration', 'processors', 'classification');
 
 beforeEach(function () {
-    $this->processor = new ClassificationProcessor();
+    $this->processor = new ClassificationProcessor;
 
     $this->campaign = Campaign::factory()->create([
         'name' => 'Test Classification Campaign',
@@ -167,7 +165,7 @@ test('throws exception when no text available', function () {
 
     // Don't mock client, should fail before API call
     $result = $this->processor->handle($this->document, $config, $context);
-    
+
     expect($result->success)->toBeFalse()
         ->and($result->error)->toContain('No extracted text found');
 });
@@ -192,7 +190,7 @@ test('throws exception when confidence below threshold', function () {
     );
 
     $result = $this->processor->handle($this->document, $config, $context);
-    
+
     expect($result->success)->toBeFalse()
         ->and($result->error)->toContain('confidence 0.65 is below minimum threshold 0.70');
 });
@@ -216,7 +214,7 @@ test('throws exception when category not in allowed list', function () {
     );
 
     $result = $this->processor->handle($this->document, $config, $context);
-    
+
     expect($result->success)->toBeFalse()
         ->and($result->error)->toContain('not in allowed categories');
 });
@@ -332,7 +330,7 @@ test('handles malformed json response', function () {
     );
 
     $result = $this->processor->handle($this->document, $config, $context);
-    
+
     expect($result->success)->toBeFalse()
         ->and($result->error)->toContain('Failed to parse OpenAI response as JSON');
 });
@@ -370,7 +368,7 @@ test('handles missing required fields in response', function () {
     );
 
     $result = $this->processor->handle($this->document, $config, $context);
-    
+
     expect($result->success)->toBeFalse()
         ->and($result->error)->toContain('Missing required field');
 });

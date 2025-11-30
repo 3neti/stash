@@ -11,7 +11,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Get Document Status Action
- * 
+ *
  * Retrieves document details with processing status and job information.
  */
 class GetDocumentStatus
@@ -20,9 +20,9 @@ class GetDocumentStatus
 
     /**
      * Handle getting document status.
-     * 
+     *
      * @param  Document  $document  The document to retrieve
-     * @return Document  The document with loaded relationships
+     * @return Document The document with loaded relationships
      */
     public function handle(Document $document): Document
     {
@@ -40,10 +40,10 @@ class GetDocumentStatus
     {
         // Find document by UUID
         $document = Document::where('uuid', $uuid)->firstOrFail();
-        
+
         // Load relationships and get status
         $document = $this->handle($document);
-        
+
         return response()->json(
             DocumentData::fromModel($document)->toArray()
         );

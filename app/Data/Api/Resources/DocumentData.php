@@ -14,7 +14,7 @@ use Spatie\LaravelData\Transformers\EnumTransformer;
 
 /**
  * Document API Resource DTO
- * 
+ *
  * Represents a document in API responses with proper enum handling.
  */
 class DocumentData extends Data
@@ -24,11 +24,11 @@ class DocumentData extends Data
         public string $uuid,
         public string $campaign_id,
         public string $original_filename,
-        
+
         #[WithCast(EnumCast::class, DocumentMimeType::class)]
         #[WithTransformer(EnumTransformer::class)]
         public DocumentMimeType $mime_type,
-        
+
         public int $size_bytes,
         public string $status,
         public ?string $storage_path = null,
@@ -37,7 +37,7 @@ class DocumentData extends Data
         public ?string $created_at = null,
         public ?string $processed_at = null,
     ) {}
-    
+
     /**
      * Create from Document model.
      */
@@ -52,8 +52,8 @@ class DocumentData extends Data
             size_bytes: $document->size_bytes,
             status: $document->state::$name ?? 'pending',
             storage_path: $document->storage_path,
-            job: $document->relationLoaded('documentJob') && $document->documentJob 
-                ? DocumentJobData::fromModel($document->documentJob) 
+            job: $document->relationLoaded('documentJob') && $document->documentJob
+                ? DocumentJobData::fromModel($document->documentJob)
                 : null,
             metadata: $document->metadata,
             created_at: $document->created_at?->toIso8601String(),

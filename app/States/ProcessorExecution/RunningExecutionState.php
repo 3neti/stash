@@ -7,6 +7,7 @@ use App\Models\ProcessorExecution;
 class RunningExecutionState extends ProcessorExecutionState
 {
     public static $name = 'running';
+
     public function color(): string
     {
         return 'yellow';
@@ -21,7 +22,7 @@ class RunningExecutionState extends ProcessorExecutionState
     {
         parent::__construct($execution);
 
-        if (!$execution->started_at) {
+        if (! $execution->started_at) {
             $execution->started_at = now();
             $execution->saveQuietly();
         }

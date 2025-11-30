@@ -21,8 +21,7 @@ class DocumentProcessingFailed
         public Campaign $campaign,
         public Document $document,
         public DocumentJob $documentJob
-    ) {
-    }
+    ) {}
 
     /**
      * Get event payload for webhooks.

@@ -5,6 +5,7 @@ namespace App\States\DocumentJob;
 class QueuedJobState extends DocumentJobState
 {
     public static $name = 'queued';
+
     public function color(): string
     {
         return 'blue';

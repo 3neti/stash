@@ -11,7 +11,7 @@ use App\Processors\ExtractionProcessor;
 uses()->group('integration', 'processors', 'extraction');
 
 beforeEach(function () {
-    $this->processor = new ExtractionProcessor();
+    $this->processor = new ExtractionProcessor;
 
     $this->campaign = Campaign::factory()->create([
         'name' => 'Test Extraction Campaign',

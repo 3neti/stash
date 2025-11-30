@@ -25,6 +25,7 @@ class TenantListCommand extends Command
 
         if ($tenants->isEmpty()) {
             $this->warn('No tenants found');
+
             return self::SUCCESS;
         }
 

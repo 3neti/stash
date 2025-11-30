@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * UsageEvent Model
- * 
+ *
  * Append-only metering and billing events.
  */
 class UsageEvent extends Model

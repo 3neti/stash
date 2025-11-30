@@ -11,7 +11,7 @@ use App\Models\Document;
 
 /**
  * Processor Interface
- * 
+ *
  * Contract that all document processors must implement.
  */
 interface ProcessorInterface

@@ -15,7 +15,7 @@ use Tests\TestCase;
 
 /**
  * Phase 1.2: Custom Multi-Database Tenancy Integration Tests
- * 
+ *
  * Tests the complete tenancy system without requiring live PostgreSQL databases.
  */
 class Phase12IntegrationTest extends TestCase
@@ -25,7 +25,7 @@ class Phase12IntegrationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Use central database for these tests
         DB::setDefaultConnection('pgsql');
     }
@@ -47,7 +47,7 @@ class Phase12IntegrationTest extends TestCase
         $this->assertNotNull($tenant->id);
         $this->assertEquals(26, strlen($tenant->id));
         $this->assertMatchesRegularExpression('/^[0-9A-HJKMNP-TV-Z]{26}$/', $tenant->id);
-        
+
         // Verify attributes
         $this->assertEquals('Acme Corporation', $tenant->name);
         $this->assertEquals('acme-corp', $tenant->slug);
@@ -82,7 +82,7 @@ class Phase12IntegrationTest extends TestCase
         // Verify relationship
         $this->assertCount(2, $tenant->domains);
         $this->assertInstanceOf(Domain::class, $tenant->domains->first());
-        
+
         // Verify primary domain
         $primaryDomain = $tenant->domains()->where('is_primary', true)->first();
         $this->assertEquals('beta.example.com', $primaryDomain->domain);
@@ -302,6 +302,7 @@ class Phase12IntegrationTest extends TestCase
 
         $result = TenantContext::run($tenant, function () use (&$executedTenantId) {
             $executedTenantId = TenantContext::current()?->id;
+
             return 'test-result';
         });
 

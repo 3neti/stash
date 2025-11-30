@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace LBHurtado\ModelChannel\Tests\Models;
 
-use LBHurtado\ModelChannel\Database\Factories\UserFactory;
-use LBHurtado\ModelChannel\Contracts\ChannelsInterface;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use LBHurtado\ModelChannel\Traits\HasChannels;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use LBHurtado\ModelChannel\Contracts\ChannelsInterface;
+use LBHurtado\ModelChannel\Database\Factories\UserFactory;
+use LBHurtado\ModelChannel\Traits\HasChannels;
 
 /**
  * Class User.
  *
- * @property int        $id
- * @property string     $name
- * @property string     $email
- * @property Merchant   $merchant
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property Merchant $merchant
  *
  * @method int getKey()
  */
@@ -36,7 +36,7 @@ class User extends Authenticatable implements ChannelsInterface
         'name',
         'email',
         'password',
-        'mobile'
+        'mobile',
     ];
 
     /**

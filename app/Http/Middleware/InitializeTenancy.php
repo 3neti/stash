@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Middleware to initialize tenancy for HTTP requests.
- * 
+ *
  * Identifies the tenant from the request domain and initializes the tenant context.
  */
 class InitializeTenancy
@@ -24,11 +24,11 @@ class InitializeTenancy
     {
         $tenant = $this->identifyTenant($request);
 
-        if (!$tenant) {
+        if (! $tenant) {
             abort(404, 'Tenant not found');
         }
 
-        if (!$tenant->isActive()) {
+        if (! $tenant->isActive()) {
             abort(403, 'Tenant is not active');
         }
 

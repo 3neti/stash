@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Pipeline;
 
-use App\Data\Pipeline\{PipelineConfigData, ProcessorConfigData};
-use App\Data\Processors\{ProcessorContextData, ProcessorResultData};
+use App\Data\Pipeline\PipelineConfigData;
+use App\Data\Pipeline\ProcessorConfigData;
+use App\Data\Processors\ProcessorContextData;
+use App\Data\Processors\ProcessorResultData;
 use App\Exceptions\ProcessorException;
-use App\Models\{Document, DocumentJob, Processor, ProcessorExecution};
-use Illuminate\Support\Facades\DB;
+use App\Models\Document;
+use App\Models\DocumentJob;
+use App\Models\Processor;
+use App\Models\ProcessorExecution;
 
 /**
  * Orchestrates the execution of document processing pipelines.
@@ -22,8 +26,8 @@ final readonly class PipelineOrchestrator
     /**
      * Process a document through its pipeline (creates DocumentJob and executes).
      *
-     * @param Document $document
      * @return DocumentJob The executed job
+     *
      * @throws ProcessorException
      */
     public function processDocument(Document $document): DocumentJob
@@ -58,8 +62,8 @@ final readonly class PipelineOrchestrator
     /**
      * Execute a complete pipeline for a DocumentJob.
      *
-     * @param DocumentJob $documentJob
      * @return bool True if all processors succeeded
+     *
      * @throws ProcessorException
      */
     public function executePipeline(DocumentJob $documentJob): bool
@@ -89,9 +93,9 @@ final readonly class PipelineOrchestrator
             $documentJob->current_processor_index = $index;
             $documentJob->save();
 
-            if (!$result->success) {
+            if (! $result->success) {
                 $allSuccessful = false;
-                
+
                 // Stop pipeline on failure (unless we implement branching/conditional logic later)
                 break;
             }
@@ -103,12 +107,8 @@ final readonly class PipelineOrchestrator
     /**
      * Execute a single processor in the pipeline.
      *
-     * @param Document $document
-     * @param DocumentJob $documentJob
-     * @param ProcessorConfigData $processorConfig
-     * @param int $processorIndex
-     * @param array<string, mixed> $previousOutputs
-     * @return ProcessorResultData
+     * @param  array<string, mixed>  $previousOutputs
+     *
      * @throws ProcessorException
      */
     private function executeProcessor(
@@ -122,7 +122,7 @@ final readonly class PipelineOrchestrator
         $processor = $this->registry->get($processorConfig->id);
 
         // Check if processor can handle this document
-        if (!$processor->canProcess($document)) {
+        if (! $processor->canProcess($document)) {
             throw ProcessorException::documentNotSupported(
                 $processorConfig->id,
                 $document->id
@@ -155,11 +155,6 @@ final readonly class PipelineOrchestrator
 
     /**
      * Create a ProcessorExecution record.
-     *
-     * @param DocumentJob $documentJob
-     * @param ProcessorConfigData $processorConfig
-     * @param int $processorIndex
-     * @return ProcessorExecution
      */
     private function createExecution(
         DocumentJob $documentJob,
@@ -189,11 +184,6 @@ final readonly class PipelineOrchestrator
 
     /**
      * Update a ProcessorExecution record with results.
-     *
-     * @param ProcessorExecution $execution
-     * @param ProcessorResultData $result
-     * @param int $duration
-     * @return void
      */
     private function updateExecution(
         ProcessorExecution $execution,
@@ -219,18 +209,13 @@ final readonly class PipelineOrchestrator
 
     /**
      * Update document metadata with processor output.
-     *
-     * @param Document $document
-     * @param ProcessorConfigData $processorConfig
-     * @param ProcessorResultData $result
-     * @return void
      */
     private function updateDocumentMetadata(
         Document $document,
         ProcessorConfigData $processorConfig,
         ProcessorResultData $result
     ): void {
-        if (!$result->success) {
+        if (! $result->success) {
             return;
         }
 

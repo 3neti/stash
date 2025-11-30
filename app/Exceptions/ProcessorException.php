@@ -8,7 +8,7 @@ use Exception;
 
 /**
  * Processor Exception
- * 
+ *
  * Thrown when a processor encounters an error during execution.
  */
 class ProcessorException extends Exception

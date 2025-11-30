@@ -10,7 +10,7 @@ use Spatie\LaravelData\DataCollection;
 
 /**
  * DocumentJob API Resource DTO
- * 
+ *
  * Represents a document processing job in API responses.
  */
 class DocumentJobData extends Data
@@ -27,7 +27,7 @@ class DocumentJobData extends Data
         public ?string $started_at = null,
         public ?string $completed_at = null,
     ) {}
-    
+
     /**
      * Create from DocumentJob model.
      */

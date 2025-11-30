@@ -12,7 +12,7 @@ enum Channel: string
     public function rules(): array
     {
         // Dynamically retrieve rules from the configuration file
-        $rules = Config::get('model-channel.rules.' . $this->value);
+        $rules = Config::get('model-channel.rules.'.$this->value);
 
         // Throw an exception if no rule is defined for the channel
         if (is_null($rules)) {

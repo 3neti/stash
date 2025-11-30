@@ -1,9 +1,12 @@
 <?php
 
-use App\Jobs\Pipeline\ProcessDocumentJob;
-use App\Models\{Campaign, Document, DocumentJob, ProcessorExecution};
-use App\Processors\AbstractProcessor;
 use App\Data\Pipeline\ProcessorConfigData;
+use App\Jobs\Pipeline\ProcessDocumentJob;
+use App\Models\Campaign;
+use App\Models\Document;
+use App\Models\DocumentJob;
+use App\Models\ProcessorExecution;
+use App\Processors\AbstractProcessor;
 use App\Services\Pipeline\ProcessorRegistry;
 use Illuminate\Support\Facades\Queue;
 
@@ -13,11 +16,14 @@ describe('Process Document Job', function () {
         Queue::fake();
 
         // Register test processor
-        $testProcessor = new class extends AbstractProcessor {
+        $testProcessor = new class extends AbstractProcessor
+        {
             protected string $name = 'TestProcessor';
+
             protected string $category = 'test';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return ['status' => 'processed', 'test' => true];
             }
         };
@@ -63,15 +69,18 @@ describe('Process Document Job', function () {
 
     test('job executes pipeline successfully', function () {
         // Register test processor and bind to container
-        $testProcessor = new class extends AbstractProcessor {
+        $testProcessor = new class extends AbstractProcessor
+        {
             protected string $name = 'TestProcessor';
+
             protected string $category = 'test';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return ['status' => 'processed', 'test' => true];
             }
         };
-        
+
         $registry = app(ProcessorRegistry::class);
         $registry->register('test_processor', get_class($testProcessor));
         $this->app->instance(ProcessorRegistry::class, $registry);
@@ -116,10 +125,12 @@ describe('Process Document Job', function () {
 
     test('job handles processor failure with retry', function () {
         // Register a failing processor
-        $failingProcessor = new class extends AbstractProcessor {
+        $failingProcessor = new class extends AbstractProcessor
+        {
             protected string $name = 'FailingProcessor';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 throw new \Exception('Processor failed intentionally');
             }
         };
@@ -148,7 +159,7 @@ describe('Process Document Job', function () {
 
         // Execute job and expect it to throw
         $job = new ProcessDocumentJob($documentJob->id);
-        
+
         try {
             $job->handle(app(\App\Services\Pipeline\PipelineOrchestrator::class));
         } catch (\Exception $e) {
@@ -165,10 +176,12 @@ describe('Process Document Job', function () {
 
     test('job marks as failed after exhausting retries', function () {
         // Register a failing processor
-        $failingProcessor = new class extends AbstractProcessor {
+        $failingProcessor = new class extends AbstractProcessor
+        {
             protected string $name = 'FailingProcessor';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 throw new \Exception('Processor failed intentionally');
             }
         };
@@ -198,7 +211,7 @@ describe('Process Document Job', function () {
 
         // Execute job (final attempt)
         $job = new ProcessDocumentJob($documentJob->id);
-        
+
         try {
             $job->handle(app(\App\Services\Pipeline\PipelineOrchestrator::class));
         } catch (\Exception $e) {
@@ -218,18 +231,22 @@ describe('Process Document Job', function () {
 
     test('job processes multiple processors in sequence', function () {
         // Register multiple test processors
-        $processor1 = new class extends AbstractProcessor {
+        $processor1 = new class extends AbstractProcessor
+        {
             protected string $name = 'Processor1';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return ['step' => 1, 'data' => 'first'];
             }
         };
 
-        $processor2 = new class extends AbstractProcessor {
+        $processor2 = new class extends AbstractProcessor
+        {
             protected string $name = 'Processor2';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return ['step' => 2, 'data' => 'second'];
             }
         };
@@ -273,15 +290,18 @@ describe('Process Document Job', function () {
 
     test('job is tenant-aware', function () {
         // Register test processor and bind to container
-        $testProcessor = new class extends AbstractProcessor {
+        $testProcessor = new class extends AbstractProcessor
+        {
             protected string $name = 'TestProcessor';
+
             protected string $category = 'test';
 
-            protected function process(Document $document, ProcessorConfigData $config): array {
+            protected function process(Document $document, ProcessorConfigData $config): array
+            {
                 return ['status' => 'processed', 'test' => true];
             }
         };
-        
+
         $registry = app(ProcessorRegistry::class);
         $registry->register('test_processor', get_class($testProcessor));
         $this->app->instance(ProcessorRegistry::class, $registry);

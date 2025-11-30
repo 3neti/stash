@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * Processor Context Data Transfer Object
- * 
+ *
  * Contains runtime context for processor execution.
  */
 class ProcessorContextData extends Data

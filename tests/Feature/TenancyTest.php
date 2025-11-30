@@ -101,6 +101,7 @@ class TenancyTest extends TestCase
 
         $result = TenantContext::run($tenant, function () {
             $this->assertEquals('tenant', DB::getDefaultConnection());
+
             return 'test-result';
         });
 

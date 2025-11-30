@@ -20,7 +20,7 @@ class CredentialFactory extends Factory
             'credentialable_type' => null,  // System-level by default
             'credentialable_id' => null,
             'key' => fake()->randomElement(['openai_api_key', 'anthropic_api_key', 'aws_access_key', 'smtp_password']),
-            'value' => 'test-credential-' . fake()->uuid(),
+            'value' => 'test-credential-'.fake()->uuid(),
             'provider' => fake()->randomElement(['openai', 'anthropic', 'aws', 'smtp']),
             'metadata' => [
                 'description' => fake()->sentence(),
