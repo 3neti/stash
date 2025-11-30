@@ -13,6 +13,8 @@ interface Props {
 
 const props = defineProps<Props>();
 
+const campaignTypes = ['template', 'custom', 'meta'];
+
 const form = useForm({
     name: props.campaign.name,
     description: props.campaign.description || '',
@@ -74,12 +76,17 @@ const breadcrumbs: BreadcrumbItem[] = [
 
                         <div class="space-y-2">
                             <Label for="type">Type</Label>
-                            <Input
+                            <select
                                 id="type"
                                 v-model="form.type"
-                                placeholder="Enter campaign type"
                                 required
-                            />
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                            >
+                                <option value="">Select campaign type</option>
+                                <option v-for="campaignType in campaignTypes" :key="campaignType" :value="campaignType">
+                                    {{ campaignType.charAt(0).toUpperCase() + campaignType.slice(1) }}
+                                </option>
+                            </select>
                             <p v-if="form.errors.type" class="text-sm text-destructive">
                                 {{ form.errors.type }}
                             </p>

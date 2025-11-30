@@ -24,6 +24,10 @@ uses(Tests\DeadDropTestCase::class)
 uses(Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature/Auth', 'Feature/Settings');
 
+// Campaign Feature Tests - use DeadDropTestCase for tenant-aware testing
+uses(Tests\DeadDropTestCase::class)
+    ->in('Feature/Campaign');
+
 // API tests - use DeadDropTestCase for tenant-aware testing
 uses(Tests\DeadDropTestCase::class)
     ->in('Feature/Api');
