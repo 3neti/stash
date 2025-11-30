@@ -14,6 +14,7 @@ class TenantConnectionManager
 {
     /**
      * Switch the application to use a tenant's database connection.
+     * Auto-creates the database if it doesn't exist (useful for testing).
      */
     public function switchToTenant(Tenant $tenant): void
     {
@@ -38,6 +39,13 @@ class TenantConnectionManager
         // Purge any existing tenant connection to force reconnection
         DB::purge('tenant');
 
+        // Create tenant database if it doesn't exist (e.g., in tests)
+        if (! $this->tenantDatabaseExists($tenant)) {
+            $this->createTenantDatabase($tenant);
+            // Run tenant migrations
+            $this->runTenantMigrations($tenantDb);
+        }
+
         // Set tenant as default connection
         DB::setDefaultConnection('tenant');
     }
@@ -52,15 +60,22 @@ class TenantConnectionManager
 
     /**
      * Create a new database for the tenant.
+     * Must be run outside of a transaction (PostgreSQL limitation).
      */
     public function createTenantDatabase(Tenant $tenant): void
     {
         $dbName = $this->getTenantDatabaseName($tenant);
 
-        // Use central connection to create database
-        DB::connection('pgsql')->statement(
-            sprintf('CREATE DATABASE "%s"', $dbName)
-        );
+        // PostgreSQL requires CREATE DATABASE to run outside a transaction
+        $pdo = DB::connection('pgsql')->getPdo();
+        
+        // Check if we're in a transaction and commit it first
+        if ($pdo->inTransaction()) {
+            $pdo->commit();
+        }
+        
+        // Now safely execute CREATE DATABASE outside transaction
+        $pdo->exec(sprintf('CREATE DATABASE "%s"', $dbName));
     }
 
     /**
@@ -102,6 +117,18 @@ class TenantConnectionManager
         );
 
         return ! empty($result);
+    }
+
+    /**
+     * Run tenant migrations on the given database.
+     */
+    private function runTenantMigrations(string $databaseName): void
+    {
+        \Illuminate\Support\Facades\Artisan::call('migrate', [
+            '--database' => 'tenant',
+            '--path' => 'database/migrations/tenant',
+            '--force' => true,
+        ]);
     }
 
     /**
