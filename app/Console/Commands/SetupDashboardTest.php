@@ -211,15 +211,31 @@ class SetupDashboardTest extends Command
                 $existingUser->tenant_id = $tenant->id;
                 $existingUser->role = 'owner';
                 $existingUser->email_verified_at = now();
-                $existingUser->save();
+                $updated = $existingUser->save();
+
+                if (! $updated) {
+                    $this->error('Failed to update user');
+
+                    return;
+                }
+
+                // Verify the update worked
+                $existingUser->refresh();
+                if ($existingUser->tenant_id !== $tenant->id) {
+                    $this->error('User update verification failed - tenant_id not set');
+
+                    return;
+                }
 
                 $this->info('✓ Test user updated');
+                $this->line('  Tenant ID: '.$existingUser->tenant_id);
+                $this->line('  Role: '.$existingUser->role);
 
                 return;
             }
 
             // Create new user in central database linked to tenant
-            \App\Models\User::on('pgsql')->create([
+            $user = \App\Models\User::on('pgsql')->create([
                 'tenant_id' => $tenant->id,
                 'name' => 'Test User',
                 'email' => 'test@example.com',
@@ -228,9 +244,19 @@ class SetupDashboardTest extends Command
                 'role' => 'owner',
             ]);
 
+            // Verify the user was created correctly
+            if ($user->tenant_id !== $tenant->id) {
+                $this->error('User creation verification failed - tenant_id not set');
+
+                return;
+            }
+
             $this->info('✓ Test user created');
+            $this->line('  Tenant ID: '.$user->tenant_id);
+            $this->line('  Role: '.$user->role);
         } catch (\Exception $e) {
             $this->error("Failed to create test user: {$e->getMessage()}");
+            $this->error($e->getTraceAsString());
         }
     }
 
