@@ -425,6 +425,46 @@ This updates version-aware documentation for:
 - Vue (v3)
 - And other ecosystem packages
 
+## TDD Workflow for Multi-Tenant Database Debugging
+
+When you encounter database connection errors in live browser features (e.g., "SQLSTATE[42P01]: Undefined table"), follow the proven 4-Phase TDD Workflow documented in `.ai/guidelines/stash/tdd-tenancy-workflow.md`.
+
+Key Principle: Always start with failing tests. Never modify production code without first reproducing the bug in a test.
+
+### Quick Reference
+
+- Phase 1: Write failing Feature tests in `tests/Feature/DeadDrop/` with `DeadDropTestCase`
+- Phase 2: Debug using checklist to identify root cause category
+- Phase 3: Implement fix (minimal change or auto-provision approach) + verify no regressions
+- Phase 4: Enable Dusk browser test to verify end-to-end fix
+
+### Best Practices for Multi-Tenant Testing
+
+Do this:
+- Create tests in `tests/Feature/DeadDrop/` directory (not generic Feature directory)
+- Extend `DeadDropTestCase` as base class
+- Use `TenantContext::run($tenant, function () { /* test code */ })`
+- Run full test suite after each phase: `php artisan test`
+- Write 3+ tests covering different scenarios
+
+Avoid this:
+- Modifying production code without a failing test first
+- Debugging randomly without Phase 2 investigation
+- Committing fixes that break existing tests
+- Assuming PostgreSQL allows CREATE DATABASE inside transactions
+- Using generic `TestCase` for tenant-related tests
+
+### Common Multi-Tenant Issues & Quick Fixes
+
+| Error | Root Cause | Fix |
+|-------|-----------|-----|
+| "Undefined table" | Model using 'tenant' connection when not initialized | Ensure `TenantContext::run()` wraps test code |
+| "database ... does not exist" | Individual tenant DB missing in tests | Auto-create databases in `TenantConnectionManager` |
+| "cannot run inside transaction" | PostgreSQL DDL in active transaction | Commit transaction before `CREATE DATABASE` |
+| Connection not switching | Middleware not running or tenant not initialized | Check `InitializeTenantFromUser` middleware order |
+
+For detailed troubleshooting, see `.ai/guidelines/stash/tdd-tenancy-workflow.md`.
+
 ## Project Conventions
 
 ### File Structure
