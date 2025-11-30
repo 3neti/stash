@@ -4,20 +4,18 @@ declare(strict_types=1);
 
 use App\Models\Campaign;
 use App\Models\Document;
-use App\Models\Tenant;
-use App\Models\User;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\UploadedFile;
+use Tests\Support\UsesDashboardSetup;
 
-uses()->group('feature', 'document', 'campaign', 'web', 'tenant');
+uses(UsesDashboardSetup::class)
+    ->group('feature', 'document', 'campaign', 'web', 'tenant');
 
 test('authenticated user can upload document to campaign', function () {
-    // Setup: Create user with tenant
-    $user = User::factory()->create(['email_verified_at' => now()]);
-    $tenant = Tenant::factory()->create();
-    $user->update(['tenant_id' => $tenant->id]);
+    // Setup: Create tenant with database, migrations, and test user
+    [$tenant, $user] = $this->setupDashboardTestTenant();
 
-    // Setup: Initialize tenant context and create campaign
+    // Create campaign in tenant context
     TenantContext::run($tenant, function () use ($user) {
         $campaign = Campaign::factory()->create([
             'name' => 'Test Campaign for Upload',
@@ -40,12 +38,10 @@ test('authenticated user can upload document to campaign', function () {
 });
 
 test('authenticated user can retrieve uploaded documents for campaign', function () {
-    // Setup: Create user with tenant
-    $user = User::factory()->create(['email_verified_at' => now()]);
-    $tenant = Tenant::factory()->create();
-    $user->update(['tenant_id' => $tenant->id]);
+    // Setup: Create tenant with database, migrations, and test user
+    [$tenant, $user] = $this->setupDashboardTestTenant();
 
-    // Setup: Initialize tenant context and create campaign + document
+    // Create campaign + document in tenant context
     TenantContext::run($tenant, function () use ($user) {
         $campaign = Campaign::factory()->create([
             'name' => 'Test Campaign for Documents List',
@@ -56,7 +52,7 @@ test('authenticated user can retrieve uploaded documents for campaign', function
         $document = Document::factory()->create([
             'campaign_id' => $campaign->id,
             'user_id' => $user->id,
-            'status' => 'completed',
+            'state' => 'completed',
         ]);
 
         // Test: Retrieve documents for campaign
@@ -69,12 +65,10 @@ test('authenticated user can retrieve uploaded documents for campaign', function
 });
 
 test('authenticated user can access document detail page', function () {
-    // Setup: Create user with tenant
-    $user = User::factory()->create(['email_verified_at' => now()]);
-    $tenant = Tenant::factory()->create();
-    $user->update(['tenant_id' => $tenant->id]);
+    // Setup: Create tenant with database, migrations, and test user
+    [$tenant, $user] = $this->setupDashboardTestTenant();
 
-    // Setup: Initialize tenant context and create campaign + document
+    // Create campaign + document in tenant context
     TenantContext::run($tenant, function () use ($user) {
         $campaign = Campaign::factory()->create([
             'name' => 'Test Campaign for Document Detail',
@@ -85,7 +79,7 @@ test('authenticated user can access document detail page', function () {
         $document = Document::factory()->create([
             'campaign_id' => $campaign->id,
             'user_id' => $user->id,
-            'status' => 'processing',
+            'state' => 'processing',
         ]);
 
         // Test: Access document detail page
