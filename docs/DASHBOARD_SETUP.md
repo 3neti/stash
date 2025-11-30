@@ -71,7 +71,11 @@ Each tenant has a separate database containing:
 # Standard setup (reuses existing tenant/user if present)
 php artisan dashboard:setup-test
 
-# Fresh setup (drops all tables and recreates)
+# After migrate:fresh (command handles user linkage automatically)
+php artisan migrate:fresh
+php artisan dashboard:setup-test
+
+# Fresh setup (drops all tables and recreates - requires confirmation)
 php artisan dashboard:setup-test --fresh
 
 # Custom tenant name and domain
