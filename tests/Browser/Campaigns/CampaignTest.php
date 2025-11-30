@@ -40,13 +40,34 @@ test('authenticated user can access campaign create form', function () {
 })->skip('Flaky in full suite - validation tested thoroughly in Feature tests');
 
 test('authenticated user can view campaign detail page without database error', function () {
-    // Bug fix verification: SQLSTATE[42P01]: Undefined table: "campaigns"
-    // Previously, accessing /campaigns/{id} would cause a database connection error
-    // because Campaign::findOrFail() was querying the tenant DB instead of central DB.
-    // Fix: Updated CampaignController to use Campaign::on('pgsql')->findOrFail()
-    // 
-    // This test is skipped because Dusk tests use RefreshDatabase which complicates
-    // multi-database setup. The fix is verified by Feature tests in tests/Feature/Campaign/
-    // which properly test the route with correct database initialization.
-    $this->markTestSkipped('Database fix verified in Feature tests - skipping Dusk test due to complex multi-DB setup in browser tests.');
+    // Bug fix verification: TDD Phase 4
+    // This Dusk test verifies the campaign detail page loads without DB errors.
+    $user = \App\Models\User::factory()->create([
+        'email_verified_at' => now(),
+    ]);
+
+    $tenant = \App\Models\Tenant::factory()->create();
+    $user->update(['tenant_id' => $tenant->id]);
+
+    // Create campaign in tenant context
+    $campaign = null;
+    \App\Tenancy\TenantContext::run($tenant, function () use (&$campaign) {
+        $campaign = \App\Models\Campaign::factory()->create([
+            'name' => 'Dusk Test Campaign',
+            'type' => 'custom',
+            'status' => 'active',
+        ]);
+    });
+
+    expect($campaign)->not->toBeNull();
+
+    // Visit the campaign detail page
+    $this->browse(function (Browser $browser) use ($user, $campaign) {
+        $browser->loginAs($user)
+            ->visit("/campaigns/{$campaign->id}")
+            ->assertPathIs("/campaigns/{$campaign->id}")
+            // Critical: No database error (the bug we fixed)
+            ->assertDontSee('SQLSTATE')
+            ->assertDontSee('Undefined table');
+    });
 });
