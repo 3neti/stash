@@ -39,4 +39,14 @@ interface ProcessorInterface
      * Get the processor category.
      */
     public function getCategory(): string;
+
+    /**
+     * Get the output schema for validation.
+     *
+     * Returns a JSON Schema array that the processor output must conform to.
+     * Return null if no validation is needed.
+     *
+     * @return array|null JSON Schema for output validation
+     */
+    public function getOutputSchema(): ?array;
 }

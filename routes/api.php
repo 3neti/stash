@@ -10,6 +10,7 @@ use App\Actions\Campaigns\TestCampaignWebhook;
 use App\Actions\Documents\GetDocumentStatus;
 use App\Actions\Documents\ListDocuments;
 use App\Actions\Documents\UploadDocument;
+use App\Http\Controllers\API\DocumentProgressController;
 use App\Http\Middleware\InitializeTenantFromUser;
 use App\Models\Campaign;
 use Illuminate\Support\Facades\Route;
@@ -61,4 +62,14 @@ Route::middleware(['auth:sanctum', 'throttle:api', InitializeTenantFromUser::cla
 // Document status (by UUID, not scoped to campaign)
 Route::middleware(['auth:sanctum', 'throttle:api'])->get('documents/{uuid}', GetDocumentStatus::class)
     ->name('api.documents.show')
+    ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+
+// Document progress (real-time progress tracking)
+Route::middleware(['auth:sanctum', 'throttle:api'])->get('documents/{uuid}/progress', [DocumentProgressController::class, 'show'])
+    ->name('api.documents.progress.show')
+    ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+
+// Document metrics (processor execution metrics)
+Route::middleware(['auth:sanctum', 'throttle:api'])->get('documents/{uuid}/metrics', [DocumentProgressController::class, 'metrics'])
+    ->name('api.documents.metrics.index')
     ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');

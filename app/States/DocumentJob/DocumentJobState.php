@@ -21,6 +21,7 @@ abstract class DocumentJobState extends State
             ->allowTransition(QueuedJobState::class, RunningJobState::class)
             ->allowTransition(RunningJobState::class, CompletedJobState::class)
             ->allowTransition(RunningJobState::class, FailedJobState::class)
+            ->allowTransition(FailedJobState::class, FailedJobState::class) // Allow re-failing
             ->allowTransition(FailedJobState::class, QueuedJobState::class) // Retry
             ->allowTransition(PendingJobState::class, CancelledJobState::class)
             ->allowTransition(QueuedJobState::class, CancelledJobState::class)

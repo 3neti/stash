@@ -50,6 +50,16 @@ abstract class AbstractProcessor implements ProcessorInterface
     }
 
     /**
+     * Get the output schema for validation.
+     * Override this method to provide a JSON schema for output validation.
+     */
+    public function getOutputSchema(): ?array
+    {
+        // Default: no validation
+        return null;
+    }
+
+    /**
      * Main handler with error handling wrapper.
      */
     public function handle(

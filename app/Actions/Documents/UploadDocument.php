@@ -44,17 +44,6 @@ class UploadDocument
             'metadata.reference_id' => 'nullable|string|max:100',
         ];
     }
-//    public static function rules(): array
-//    {
-//        return [
-//            'file' => 'required_without:files|file|mimes:pdf,png,jpg,jpeg,tiff|max:10240',
-//            'files' => 'required_without:file|array|max:10',
-//            'files.*' => 'file|mimes:pdf,png,jpg,jpeg,tiff|max:10240',
-//            'metadata' => 'nullable|array',
-//            'metadata.description' => 'nullable|string|max:500',
-//            'metadata.reference_id' => 'nullable|string|max:100',
-//        ];
-//    }
 
     /**
      * Handle the document upload.

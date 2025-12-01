@@ -16,7 +16,8 @@ class ModelChannelServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        // Migrations are handled separately in the main application
+        // $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
         // Allow publishing the configuration files
         $this->publishes([

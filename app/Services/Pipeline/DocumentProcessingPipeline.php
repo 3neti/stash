@@ -16,6 +16,8 @@ use App\Models\Document;
 use App\Models\DocumentJob;
 use App\Models\Processor;
 use App\Models\ProcessorExecution;
+use App\Models\PipelineProgress;
+use App\Services\Validation\JsonSchemaValidator;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -32,9 +34,17 @@ use Illuminate\Support\Str;
  */
 class DocumentProcessingPipeline
 {
+    private ?ProcessorHookManager $hookManager = null;
+
     public function __construct(
         private ProcessorRegistry $registry,
     ) {}
+
+    public function setHookManager(ProcessorHookManager $manager): self
+    {
+        $this->hookManager = $manager;
+        return $this;
+    }
 
     /**
      * Process a document through the campaign's pipeline.
@@ -63,6 +73,17 @@ class DocumentProcessingPipeline
             'max_attempts' => 3,
         ]);
         Log::debug('[Pipeline] DocumentJob created', ['job_id' => $job->id, 'uuid' => $job->uuid]);
+
+        // Create PipelineProgress record
+        $stageCount = count($campaign->pipeline_config['processors'] ?? []);
+        PipelineProgress::create([
+            'job_id' => $job->id,
+            'stage_count' => $stageCount,
+            'completed_stages' => 0,
+            'percentage_complete' => 0,
+            'current_stage' => null,
+            'status' => 'pending',
+        ]);
 
         // Fire event that job was created
         event(new DocumentJobCreated($job, $document, $campaign));
@@ -95,6 +116,12 @@ class DocumentProcessingPipeline
         if ($currentIndex >= count($processors)) {
             $this->completeProcessing($job);
             return false;
+        }
+
+        // Update progress to mark as processing
+        $progress = PipelineProgress::where('job_id', $job->id)->first();
+        if ($progress && $progress->status === 'pending') {
+            $progress->update(['status' => 'processing']);
         }
 
         // Get current processor config
@@ -133,6 +160,11 @@ class DocumentProcessingPipeline
         // Fire event that execution started
         event(new ProcessorExecutionStarted($execution, $job));
 
+        // Call hooks before execution
+        if ($this->hookManager) {
+            $this->hookManager->beforeExecution($execution);
+        }
+
         // Execute processor
         try {
             $result = $processor->handle(
@@ -146,11 +178,16 @@ class DocumentProcessingPipeline
             );
 
             // Handle result
-            return $this->handleStageResult($job, $execution, $result, $processorConfig);
+            return $this->handleStageResult($job, $execution, $result, $processorConfig, $processor);
         } catch (\Throwable $e) {
+            // Call failure hook
+            if ($this->hookManager) {
+                $this->hookManager->onFailure($execution, $e);
+            }
+
             // Processor threw exception
             $result = ProcessorResult::failed('Processor exception: '.$e->getMessage());
-            return $this->handleStageResult($job, $execution, $result, $processorConfig);
+            return $this->handleStageResult($job, $execution, $result, $processorConfig, $processor);
         }
     }
 
@@ -161,9 +198,28 @@ class DocumentProcessingPipeline
      *
      * @return bool true if processing should continue, false if complete or failed
      */
-    private function handleStageResult(DocumentJob $job, ProcessorExecution $execution, ProcessorResult $result, array $processorConfig): bool
+    private function handleStageResult(DocumentJob $job, ProcessorExecution $execution, ProcessorResult $result, array $processorConfig, ?object $processor = null): bool
     {
         if ($result->isSuccess()) {
+            // Validate output if processor defines a schema
+            if ($processor && method_exists($processor, 'getOutputSchema')) {
+                $schema = $processor->getOutputSchema();
+                if ($schema) {
+                    $validator = new JsonSchemaValidator();
+                    if (!$validator->isValid($result->output, $schema)) {
+                        $validationResult = $validator->validate($result->output, $schema);
+                        $errorMessage = 'Output validation failed: ' . json_encode($validationResult['errors']);
+                        Log::error('[Pipeline] Output validation failed', [
+                            'execution_id' => $execution->id,
+                            'errors' => $validationResult['errors'],
+                        ]);
+                        // Fail the entire job on validation error
+                        $this->failProcessing($job, $errorMessage);
+                        return false;
+                    }
+                }
+            }
+
             // Update execution
             $execution->update([
                 'status' => 'completed',
@@ -176,6 +232,11 @@ class DocumentProcessingPipeline
 
             // Fire event
             event(new ProcessorExecutionCompleted($execution, $job));
+
+            // Call hooks after execution
+            if ($this->hookManager) {
+                $this->hookManager->afterExecution($execution, $result->output);
+            }
 
             // Store output in document metadata for next stages
             $metadata = $job->document->metadata ?? [];
@@ -195,6 +256,17 @@ class DocumentProcessingPipeline
             $job->advanceProcessor();
             $job->save();
 
+            // Update progress
+            $progress = PipelineProgress::where('job_id', $job->id)->first();
+            if ($progress) {
+                $nextIndex = $job->current_processor_index;
+                $totalStages = count($job->pipeline_instance['processors'] ?? []);
+                $processorName = $job->pipeline_instance['processors'][$currentIndex]['id']
+                    ?? $job->pipeline_instance['processors'][$currentIndex]['type']
+                    ?? "Stage {$currentIndex}";
+                $progress->updateProgress($nextIndex, $totalStages, $processorName, 'processing');
+            }
+
             // Continue with next stage
             return true;
         } else {
@@ -207,6 +279,11 @@ class DocumentProcessingPipeline
 
             // Fire event
             event(new ProcessorExecutionFailed($execution, $job));
+
+            // Call failure hook with synthetic exception
+            if ($this->hookManager) {
+                $this->hookManager->onFailure($execution, new \RuntimeException($result->error ?? 'Processor failed'));
+            }
 
             // Check if we can retry
             if ($job->canRetry()) {
@@ -230,6 +307,13 @@ class DocumentProcessingPipeline
      */
     public function completeProcessing(DocumentJob $job): void
     {
+        // Update progress to completed
+        $progress = PipelineProgress::where('job_id', $job->id)->first();
+        if ($progress) {
+            $totalStages = count($job->pipeline_instance['processors'] ?? []);
+            $progress->updateProgress($totalStages, $totalStages, 'Completed', 'completed');
+        }
+
         $job->complete();
         $job->document->markCompleted();
     }
@@ -241,6 +325,12 @@ class DocumentProcessingPipeline
      */
     public function failProcessing(DocumentJob $job, string $error): void
     {
+        // Update progress to failed
+        $progress = PipelineProgress::where('job_id', $job->id)->first();
+        if ($progress) {
+            $progress->update(['status' => 'failed']);
+        }
+
         $job->fail($error);
         $job->document->markFailed($error);
     }
