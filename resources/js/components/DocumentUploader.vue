@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useForm } from '@inertiajs/vue3';
 import { Upload, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
@@ -20,39 +20,60 @@ const emit = defineEmits<{
 
 const fileInput = ref<HTMLInputElement | null>(null);
 const selectedFiles = ref<File[]>([]);
-
-const form = useForm({
-    documents: [] as File[],
-});
+const uploading = ref(false);
+const error = ref<string | null>(null);
 
 const canAddMore = computed(() => selectedFiles.value.length < props.maxFiles);
 
 const handleFileSelect = (event: Event) => {
     const target = event.target as HTMLInputElement;
     const files = Array.from(target.files || []);
-    
+
     const remaining = props.maxFiles - selectedFiles.value.length;
     const filesToAdd = files.slice(0, remaining);
-    
+
     selectedFiles.value.push(...filesToAdd);
+    error.value = null;
 };
 
 const removeFile = (index: number) => {
     selectedFiles.value.splice(index, 1);
 };
 
-const uploadDocuments = () => {
-    form.documents = selectedFiles.value;
-    
-    form.post(`/api/campaigns/${props.campaignId}/documents`, {
-        onSuccess: () => {
-            selectedFiles.value = [];
-            if (fileInput.value) {
-                fileInput.value.value = '';
+const uploadDocuments = async () => {
+    if (selectedFiles.value.length === 0 || uploading.value) return;
+
+    uploading.value = true;
+    error.value = null;
+
+    try {
+        const formData = new FormData();
+        selectedFiles.value.forEach((file) => {
+            // Backend accepts both `documents[]` and `files[]`; prefer `documents[]`
+            formData.append('documents[]', file);
+        });
+
+        await axios.post(
+            `/api/campaigns/${props.campaignId}/documents`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
             }
-            emit('uploaded');
-        },
-    });
+        );
+
+        selectedFiles.value = [];
+        if (fileInput.value) {
+            fileInput.value.value = '';
+        }
+        emit('uploaded');
+    } catch (err: any) {
+        error.value = err?.response?.data?.message || 'Upload failed. Please try again.';
+        console.error('Upload error:', err);
+    } finally {
+        uploading.value = false;
+    }
 };
 
 const formatFileSize = (bytes: number): string => {
@@ -122,17 +143,17 @@ const formatFileSize = (bytes: number): string => {
                 </div>
             </div>
 
-            <div v-if="form.errors.documents" class="text-sm text-destructive">
-                {{ form.errors.documents }}
+            <div v-if="error" class="text-sm text-destructive">
+                {{ error }}
             </div>
 
             <Button
                 data-testid="upload-button"
-                :disabled="selectedFiles.length === 0 || form.processing"
+                :disabled="selectedFiles.length === 0 || uploading"
                 @click="uploadDocuments"
                 class="w-full"
             >
-                {{ form.processing ? 'Uploading...' : 'Upload Documents' }}
+                {{ uploading ? 'Uploading...' : 'Upload Documents' }}
             </Button>
         </CardContent>
     </Card>

@@ -10,6 +10,7 @@ use App\Actions\Campaigns\TestCampaignWebhook;
 use App\Actions\Documents\GetDocumentStatus;
 use App\Actions\Documents\ListDocuments;
 use App\Actions\Documents\UploadDocument;
+use App\Http\Middleware\InitializeTenantFromUser;
 use App\Models\Campaign;
 use Illuminate\Support\Facades\Route;
 
@@ -46,7 +47,7 @@ Route::middleware('auth:sanctum')->prefix('campaigns/{campaign}')->group(functio
 });
 
 // Document Ingestion API (requires API token)
-Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('campaigns/{campaign}')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api', InitializeTenantFromUser::class])->prefix('campaigns/{campaign}')->group(function () {
     // Upload document to campaign
     Route::post('documents', UploadDocument::class)
         ->middleware('throttle:api-uploads')

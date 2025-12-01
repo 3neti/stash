@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Processor;
+use App\Models\Tenant;
+use App\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
 
 class ProcessorSeeder extends Seeder
@@ -12,11 +14,30 @@ class ProcessorSeeder extends Seeder
      */
     public function run(): void
     {
+        // If running in tenant context, seed processors
+        if (TenantContext::isInitialized()) {
+            $this->seedProcessors();
+        } else {
+            // Otherwise, seed for all tenants
+            $tenants = Tenant::on('pgsql')->get();
+            foreach ($tenants as $tenant) {
+                TenantContext::run($tenant, function () {
+                    $this->seedProcessors();
+                });
+            }
+        }
+    }
+
+    /**
+     * Seed processors for current tenant context.
+     */
+    private function seedProcessors(): void
+    {
         $processors = [
             [
                 'name' => 'Tesseract OCR',
                 'slug' => 'tesseract-ocr',
-                'class_name' => 'App\\Processors\\TesseractOcrProcessor',
+                'class_name' => 'App\\Processors\\OcrProcessor',
                 'category' => 'ocr',
                 'description' => 'Extract text from images and scanned documents using Tesseract OCR engine',
                 'config_schema' => [
@@ -52,7 +73,7 @@ class ProcessorSeeder extends Seeder
             [
                 'name' => 'Document Classifier',
                 'slug' => 'document-classifier',
-                'class_name' => 'App\\Processors\\DocumentClassifierProcessor',
+                'class_name' => 'App\\Processors\\ClassificationProcessor',
                 'category' => 'classification',
                 'description' => 'Classify documents by type (invoice, receipt, contract, etc.)',
                 'config_schema' => [
@@ -67,9 +88,9 @@ class ProcessorSeeder extends Seeder
                 'author' => 'DeadDrop Team',
             ],
             [
-                'name' => 'Entity Extractor',
-                'slug' => 'entity-extractor',
-                'class_name' => 'App\\Processors\\EntityExtractorProcessor',
+                'name' => 'Data Extractor',
+                'slug' => 'data-extractor',
+                'class_name' => 'App\\Processors\\ExtractionProcessor',
                 'category' => 'extraction',
                 'description' => 'Extract structured data entities (dates, amounts, names, etc.)',
                 'config_schema' => [

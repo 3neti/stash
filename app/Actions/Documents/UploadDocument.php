@@ -9,8 +9,10 @@ use App\Models\Campaign;
 use App\Models\Document;
 use App\Services\Pipeline\DocumentProcessingPipeline;
 use App\Tenancy\TenantContext;
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\ActionRequest;
@@ -32,14 +34,27 @@ class UploadDocument
     public static function rules(): array
     {
         return [
-            'file' => 'required_without:files|file|mimes:pdf,png,jpg,jpeg,tiff|max:10240',
-            'files' => 'required_without:file|array|max:10',
+            'file' => 'required_without_all:files,documents|file|mimes:pdf,png,jpg,jpeg,tiff|max:10240',
+            'files' => 'required_without_all:file,documents|array|max:10',
             'files.*' => 'file|mimes:pdf,png,jpg,jpeg,tiff|max:10240',
+            'documents' => 'required_without_all:file,files|array|max:10',
+            'documents.*' => 'file|mimes:pdf,png,jpg,jpeg,tiff|max:10240',
             'metadata' => 'nullable|array',
             'metadata.description' => 'nullable|string|max:500',
             'metadata.reference_id' => 'nullable|string|max:100',
         ];
     }
+//    public static function rules(): array
+//    {
+//        return [
+//            'file' => 'required_without:files|file|mimes:pdf,png,jpg,jpeg,tiff|max:10240',
+//            'files' => 'required_without:file|array|max:10',
+//            'files.*' => 'file|mimes:pdf,png,jpg,jpeg,tiff|max:10240',
+//            'metadata' => 'nullable|array',
+//            'metadata.description' => 'nullable|string|max:500',
+//            'metadata.reference_id' => 'nullable|string|max:100',
+//        ];
+//    }
 
     /**
      * Handle the document upload.
@@ -54,6 +69,13 @@ class UploadDocument
         UploadedFile $file,
         ?array $metadata = null
     ): Document {
+        Log::debug('[UploadDocument] Handling document upload', [
+            'campaign_id' => $campaign->id,
+            'filename' => $file->getClientOriginalName(),
+            'tenant_context' => TenantContext::current()?->id,
+            'connection' => app('db')->getDefaultConnection(),
+        ]);
+
         // 1. Generate unique document ID
         $documentId = (string) new Ulid;
 
@@ -62,6 +84,7 @@ class UploadDocument
 
         // 3. Generate storage path
         $storagePath = $this->getTenantStoragePath($campaign, $documentId, $file);
+        Log::debug('[UploadDocument] Generated storage path', ['path' => $storagePath]);
 
         // 4. Store file to tenant disk
         $file->storeAs(
@@ -69,8 +92,10 @@ class UploadDocument
             basename($storagePath),
             'tenant'
         );
+        Log::debug('[UploadDocument] File stored');
 
         // 5. Create Document record
+        Log::debug('[UploadDocument] Creating document record', ['document_id' => $documentId]);
         $document = Document::create([
             'id' => $documentId,
             'uuid' => (string) Str::uuid(),
@@ -83,10 +108,13 @@ class UploadDocument
             'hash' => $hash,
             'metadata' => $metadata ?? [],
         ]);
+        Log::debug('[UploadDocument] Document record created');
 
         // 6. Start pipeline processing via DocumentProcessingPipeline
+        Log::debug('[UploadDocument] Starting pipeline processing');
         $pipeline = app(DocumentProcessingPipeline::class);
         $pipeline->process($document, $campaign);
+        Log::debug('[UploadDocument] Pipeline processing started');
 
         return $document;
     }
@@ -94,19 +122,33 @@ class UploadDocument
     /**
      * Run as HTTP controller.
      */
-    public function asController(ActionRequest $request, Campaign $campaign): JsonResponse
+    public function asController(ActionRequest $request, string $campaign): JsonResponse
     {
+        // Manually retrieve the campaign instead of using route model binding
+        $campaignModel = Campaign::findOrFail($campaign);
+
         $validatedData = $request->validated();
 
-        // Check if batch upload
-        if (isset($validatedData['files'])) {
-            return $this->handleBatchUpload($campaign, $validatedData['files'], $validatedData['metadata'] ?? null);
+        // Normalize files array to support both 'documents' and 'files'
+        $files = $validatedData['documents'] ?? $validatedData['files'] ?? null;
+
+        // Batch upload if an array of files is present
+        if (is_array($files)) {
+            return $this->handleBatchUpload($campaignModel, $files, $validatedData['metadata'] ?? null);
         }
 
         // Single file upload
+        $file = $validatedData['file'] ?? null;
+        if (! $file) {
+            return response()->json([
+                'message' => 'No file provided.',
+                'errors' => ['file' => ['A file is required when no files/documents array is provided.']],
+            ], 422);
+        }
+
         $document = $this->handle(
-            $campaign,
-            $validatedData['file'],
+            $campaignModel,
+            $file,
             $validatedData['metadata'] ?? null
         );
 

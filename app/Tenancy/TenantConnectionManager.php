@@ -123,18 +123,38 @@ class TenantConnectionManager
 
     /**
      * Check if tenant schema is initialized (has required tables).
-     * Query information_schema via the central connection for the specific tenant DB.
+     * Query the tenant database directly to check if migrations have run.
      */
     public function tenantSchemaInitialized(Tenant $tenant): bool
     {
         try {
+            // Switch to tenant connection to check tables directly
             $dbName = $this->getTenantDatabaseName($tenant);
-
-            // Check if 'campaigns' table exists inside the tenant database
-            $result = DB::connection('pgsql')->select(
+            
+            // Ensure tenant connection is configured
+            config([
+                'database.connections.tenant' => [
+                    'driver' => 'pgsql',
+                    'host' => config('database.connections.pgsql.host'),
+                    'port' => config('database.connections.pgsql.port'),
+                    'database' => $dbName,
+                    'username' => config('database.connections.pgsql.username'),
+                    'password' => config('database.connections.pgsql.password'),
+                    'charset' => config('database.connections.pgsql.charset'),
+                    'prefix' => '',
+                    'prefix_indexes' => true,
+                    'search_path' => 'public',
+                    'sslmode' => 'prefer',
+                ],
+            ]);
+            
+            // Purge and reconnect to tenant DB
+            DB::purge('tenant');
+            
+            // Check if campaigns table exists by querying tenant DB directly
+            $result = DB::connection('tenant')->select(
                 "SELECT 1 FROM information_schema.tables
-                 WHERE table_catalog = ? AND table_schema = 'public' AND table_name = 'campaigns'",
-                [$dbName]
+                 WHERE table_schema = 'public' AND table_name = 'campaigns'"
             );
 
             return ! empty($result);
@@ -151,30 +171,56 @@ class TenantConnectionManager
      */
     private function runTenantMigrations(string $databaseName): void
     {
+        \Illuminate\Support\Facades\Log::debug('[TenantConnectionManager] Running tenant migrations', [
+            'database' => $databaseName,
+        ]);
+
         // Check if migrations table exists in the tenant database
-        $queryResult = DB::connection('pgsql')->select(
-            "SELECT 1 FROM information_schema.tables
-             WHERE table_catalog = ? AND table_schema = 'public' AND table_name = 'migrations'",
-            [$databaseName]
-        );
-        $migrationTableExists = ! empty($queryResult);
+        // We need to connect to tenant DB first to check
+        try {
+            // Try to connect to tenant and check for migrations table
+            $result = DB::connection('tenant')->select(
+                "SELECT 1 FROM information_schema.tables
+                 WHERE table_schema = 'public' AND table_name = 'migrations'"
+            );
+            $migrationTableExists = ! empty($result);
+            \Illuminate\Support\Facades\Log::debug('[TenantConnectionManager] Migrations table exists', [
+                'exists' => $migrationTableExists,
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('[TenantConnectionManager] Could not check migrations table', [
+                'error' => $e->getMessage(),
+            ]);
+            $migrationTableExists = false;
+        }
         
         if ($migrationTableExists) {
             // Migrations table exists, do normal migrate
-            \Illuminate\Support\Facades\Artisan::call('migrate', [
+            \Illuminate\Support\Facades\Log::info('[TenantConnectionManager] Running migrate command');
+            $exitCode = \Illuminate\Support\Facades\Artisan::call('migrate', [
                 '--database' => 'tenant',
                 '--path' => 'database/migrations/tenant',
                 '--force' => true,
             ]);
+            \Illuminate\Support\Facades\Log::info('[TenantConnectionManager] Migrate completed', ['exit_code' => $exitCode]);
         } else {
             // Migrations table doesn't exist - this means migrations were never run on this DB
-            // Use refresh to create migrations table and run all migrations
-            \Illuminate\Support\Facades\Artisan::call('migrate:refresh', [
+            // Use install+migrate instead of refresh to avoid dropping tables
+            \Illuminate\Support\Facades\Log::info('[TenantConnectionManager] Running migrate:install and migrate commands');
+            
+            // First, ensure migrations table is created
+            $installExitCode = \Illuminate\Support\Facades\Artisan::call('migrate:install', [
+                '--database' => 'tenant',
+            ]);
+            \Illuminate\Support\Facades\Log::info('[TenantConnectionManager] Migrate:install completed', ['exit_code' => $installExitCode]);
+            
+            // Then run migrations
+            $migrateExitCode = \Illuminate\Support\Facades\Artisan::call('migrate', [
                 '--database' => 'tenant',
                 '--path' => 'database/migrations/tenant',
                 '--force' => true,
-                '--seed' => false,
             ]);
+            \Illuminate\Support\Facades\Log::info('[TenantConnectionManager] Migrate completed', ['exit_code' => $migrateExitCode]);
         }
     }
 

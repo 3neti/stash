@@ -191,14 +191,8 @@ class SetupDashboardTest extends Command
             if ($manager->tenantSchemaInitialized($tenant)) {
                 $this->info('✓ Tenant schema is properly initialized');
             } else {
-                $this->warn('⚠️  Tenant schema not initialized - attempting repair...');
-                $this->runTenantMigrations($tenant);
-                
-                if ($manager->tenantSchemaInitialized($tenant)) {
-                    $this->info('✓ Schema repair successful');
-                } else {
-                    $this->error('✗ Schema repair failed - tables may be missing');
-                }
+                $this->error('✗ Tenant schema not properly initialized after migrations');
+                $this->error('  This may indicate a database connection issue.');
             }
         } catch (\Exception $e) {
             $this->warn("Schema verification failed (non-critical): {$e->getMessage()}");

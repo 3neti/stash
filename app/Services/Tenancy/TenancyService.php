@@ -9,6 +9,7 @@ use App\Events\TenantInitialized;
 use App\Models\Tenant;
 use App\Tenancy\TenantConnectionManager;
 use App\Tenancy\TenantContext;
+use Illuminate\Support\Facades\Log;
 
 /**
  * TenancyService manages tenant lifecycle and database initialization.
@@ -32,11 +33,14 @@ class TenancyService
      */
     public function initializeTenant(Tenant $tenant): void
     {
+        Log::debug('[TenancyService] Initializing tenant', ['tenant_id' => $tenant->id, 'tenant_name' => $tenant->name]);
         // Prepare tenant database (create if needed, run migrations)
         $this->prepareTenantDatabase($tenant);
+        Log::debug('[TenancyService] Database prepared');
 
         // Initialize context (switch connection, fire events)
         TenantContext::initialize($tenant);
+        Log::debug('[TenancyService] Context initialized');
     }
 
     /**
@@ -50,18 +54,24 @@ class TenancyService
     public function prepareTenantDatabase(Tenant $tenant): void
     {
         $dbName = $this->connectionManager->getTenantDatabaseName($tenant);
+        Log::debug('[TenancyService] Preparing tenant database', ['database' => $dbName]);
 
         // Create database if it doesn't exist
         if (! $this->connectionManager->tenantDatabaseExists($tenant)) {
+            Log::info('[TenancyService] Creating tenant database', ['database' => $dbName]);
             $this->connectionManager->createTenantDatabase($tenant);
         }
 
         // Switch to tenant connection to enable schema checks
+        Log::debug('[TenancyService] Switching to tenant connection');
         $this->connectionManager->switchToTenant($tenant);
 
         // Verify and repair schema if needed
         if (! $this->verifyTenantSchema($tenant)) {
+            Log::warning('[TenancyService] Schema not initialized, attempting repair');
             $this->repairTenantSchema($tenant);
+        } else {
+            Log::debug('[TenancyService] Schema verified');
         }
 
         // Fire event after successful preparation

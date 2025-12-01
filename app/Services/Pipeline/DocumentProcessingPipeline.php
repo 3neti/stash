@@ -14,7 +14,10 @@ use App\Jobs\Pipeline\ProcessDocumentJob;
 use App\Models\Campaign;
 use App\Models\Document;
 use App\Models\DocumentJob;
+use App\Models\Processor;
 use App\Models\ProcessorExecution;
+use App\Tenancy\TenantContext;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -43,6 +46,11 @@ class DocumentProcessingPipeline
      */
     public function process(Document $document, Campaign $campaign): DocumentJob
     {
+        Log::debug('[Pipeline] Processing document', [
+            'document_id' => $document->id,
+            'campaign_id' => $campaign->id,
+        ]);
+
         // Create DocumentJob with snapshot of pipeline configuration
         $job = DocumentJob::create([
             'uuid' => (string) Str::uuid(),
@@ -54,12 +62,17 @@ class DocumentProcessingPipeline
             'attempts' => 0,
             'max_attempts' => 3,
         ]);
+        Log::debug('[Pipeline] DocumentJob created', ['job_id' => $job->id, 'uuid' => $job->uuid]);
 
         // Fire event that job was created
         event(new DocumentJobCreated($job, $document, $campaign));
 
         // Dispatch job to queue for processing
-        ProcessDocumentJob::dispatch($job);
+        Log::debug('[Pipeline] Dispatching job to queue');
+        // Include tenant ID in job payload for middleware to use during bootstrap
+        $tenantId = TenantContext::current()?->id;
+        Log::debug('[Pipeline] Job will be dispatched with tenantId', ['tenant_id' => $tenantId]);
+        ProcessDocumentJob::dispatch($job->id, $tenantId);
 
         return $job;
     }
@@ -93,7 +106,7 @@ class DocumentProcessingPipeline
             return false;
         }
 
-        // Get the processor
+        // Get the processor implementation from registry
         try {
             $processor = $this->registry->get($processorId);
         } catch (\RuntimeException $e) {
@@ -101,10 +114,17 @@ class DocumentProcessingPipeline
             return false;
         }
 
-        // Create ProcessorExecution record
+        // Look up the Processor model record (database)
+        $processorModel = Processor::where('category', $processorId)->first();
+        if (!$processorModel) {
+            $this->failProcessing($job, "Processor '{$processorId}' not found in database");
+            return false;
+        }
+
+        // Create ProcessorExecution record with actual Processor model ID
         $execution = ProcessorExecution::create([
             'job_id' => $job->id,
-            'processor_id' => $processorId,
+            'processor_id' => $processorModel->id,  // Use Processor model ULID, not type string
             'input_data' => $job->document->metadata ?? [],
             'config' => $processorConfig['config'] ?? [],
             'status' => 'pending',

@@ -6,6 +6,7 @@ namespace App\Tenancy;
 
 use App\Events\TenantInitialized;
 use App\Models\Tenant;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Manages the current tenant context throughout the application lifecycle.
@@ -21,13 +22,16 @@ class TenantContext
      */
     public static function initialize(Tenant $tenant): void
     {
+        Log::debug('[TenantContext] Initializing', ['tenant_id' => $tenant->id]);
         self::$currentTenant = $tenant;
 
         // Switch database connection
+        Log::debug('[TenantContext] Switching database connection');
         app(TenantConnectionManager::class)->switchToTenant($tenant);
 
         // Fire event for other services to bootstrap (cache, filesystem, etc.)
         event(new TenantInitialized($tenant));
+        Log::debug('[TenantContext] Initialization complete');
     }
 
     /**
@@ -51,6 +55,7 @@ class TenantContext
      */
     public static function forgetCurrent(): void
     {
+        Log::debug('[TenantContext] Forgetting current tenant');
         self::$currentTenant = null;
         app(TenantConnectionManager::class)->switchToCentral();
     }
@@ -62,6 +67,7 @@ class TenantContext
      */
     public static function run(Tenant $tenant, callable $callback): mixed
     {
+        Log::debug('[TenantContext] Running callback for tenant', ['tenant_id' => $tenant->id]);
         $previousTenant = self::$currentTenant;
 
         try {
@@ -69,6 +75,7 @@ class TenantContext
 
             return $callback();
         } finally {
+            Log::debug('[TenantContext] Callback complete, restoring context');
             if ($previousTenant) {
                 self::initialize($previousTenant);
             } else {

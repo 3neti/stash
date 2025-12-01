@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Jobs\Middleware;
 
+use App\Models\Campaign;
 use App\Models\DocumentJob;
+use App\Tenancy\TenantConnectionManager;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -28,31 +30,55 @@ class SetTenantContext
      */
     public function handle(object $job, Closure $next): void
     {
-        // Load the DocumentJob from central database to get tenant info
-        // Note: DocumentJob is on tenant connection, but we need to load it first
-        // to determine which tenant to connect to
-
         try {
-            // Load from tenant connection (assumes tenant is already set by queue worker)
-            $documentJob = DocumentJob::on('tenant')->findOrFail($this->documentJobId);
-
-            // Verify tenant connection is active
-            if (! DB::connection('tenant')->getDatabaseName()) {
-                throw new \RuntimeException('Tenant connection not initialized');
-            }
-
-            Log::debug('Tenant context set for job', [
+            Log::debug('[JobMiddleware] Starting tenant context setup', [
                 'document_job_id' => $this->documentJobId,
-                'tenant_db' => DB::connection('tenant')->getDatabaseName(),
+                'tenant_id' => $job->tenantId ?? 'not_provided',
+                'current_connection' => DB::getDefaultConnection(),
             ]);
 
-            // Execute the job
+            // If job has tenantId (provided at dispatch time), use it directly
+            if ($job->tenantId) {
+                Log::debug('[JobMiddleware] Using tenantId from job payload');
+                $tenant = \App\Models\Tenant::on('pgsql')->findOrFail($job->tenantId);
+                Log::debug('[JobMiddleware] Tenant loaded', ['tenant_id' => $tenant->id, 'tenant_name' => $tenant->name]);
+            } else {
+                // Fall back to loading via DocumentJob → Campaign → Tenant chain
+                Log::debug('[JobMiddleware] tenantId not in job, loading DocumentJob from central database');
+                $documentJob = DocumentJob::on('pgsql')->findOrFail($this->documentJobId);
+                Log::debug('[JobMiddleware] DocumentJob loaded', ['campaign_id' => $documentJob->campaign_id]);
+
+                // Step 2: Load Campaign to get tenant_id
+                Log::debug('[JobMiddleware] Loading Campaign from central database');
+                $campaign = Campaign::on('pgsql')->findOrFail($documentJob->campaign_id);
+                Log::debug('[JobMiddleware] Campaign loaded', ['tenant_id' => $campaign->tenant_id]);
+
+                // Step 3: Load Tenant
+                Log::debug('[JobMiddleware] Loading Tenant from central database');
+                $tenant = \App\Models\Tenant::on('pgsql')->findOrFail($campaign->tenant_id);
+                Log::debug('[JobMiddleware] Tenant loaded', ['tenant_id' => $tenant->id, 'tenant_name' => $tenant->name]);
+            }
+
+            // Step 4: Initialize tenant context (switches to tenant connection)
+            Log::debug('[JobMiddleware] Initializing tenant connection');
+            $tenancyService = app(\App\Services\Tenancy\TenancyService::class);
+            $tenancyService->initializeTenant($tenant);
+            Log::debug('[JobMiddleware] Tenant connection initialized');
+
+            // Verify tenant connection is active
+            $tenantDb = DB::connection('tenant')->getDatabaseName();
+            Log::debug('[JobMiddleware] Verified tenant database connection', ['database' => $tenantDb]);
+
+            // Step 5: Execute the job with tenant context active
+            Log::debug('[JobMiddleware] Executing job with tenant context');
             $next($job);
+            Log::debug('[JobMiddleware] Job execution complete');
 
         } catch (\Throwable $e) {
-            Log::error('Failed to set tenant context for job', [
+            Log::error('[JobMiddleware] Failed to set tenant context for job', [
                 'document_job_id' => $this->documentJobId,
                 'error' => $e->getMessage(),
+                'trace' => substr($e->getTraceAsString(), 0, 500), // Limit trace length
             ]);
 
             throw $e;

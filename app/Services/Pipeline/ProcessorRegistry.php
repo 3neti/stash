@@ -93,8 +93,10 @@ class ProcessorRegistry
                 is_subclass_of($className, ProcessorInterface::class) &&
                 ! str_contains($className, 'Abstract')
             ) {
-                // Use class basename as default ID (e.g., OcrProcessor)
-                $id = class_basename($className);
+                // Convert class name to lowercase ID: OcrProcessor -> ocr
+                $baseName = class_basename($className);
+                // Remove "Processor" suffix and convert to lowercase
+                $id = strtolower(str_replace('Processor', '', $baseName));
                 $this->register($id, $className);
             }
         }

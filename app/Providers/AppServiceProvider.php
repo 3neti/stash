@@ -24,6 +24,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Auto-discover and register processors
+        $registry = $this->app->make(ProcessorRegistry::class);
+        $registry->discover();
+
         $this->configureRateLimiting();
     }
 

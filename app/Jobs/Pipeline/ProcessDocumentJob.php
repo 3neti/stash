@@ -41,9 +41,13 @@ class ProcessDocumentJob implements ShouldBeUnique, ShouldQueue
 
     /**
      * Create a new job instance.
+     *
+     * @param string $documentJobId The ID of the DocumentJob to process
+     * @param string|null $tenantId Optional: tenant ID for middleware bootstrap (avoids central DB query)
      */
     public function __construct(
-        public readonly string $documentJobId
+        public readonly string $documentJobId,
+        public readonly ?string $tenantId = null
     ) {
         $this->uniqueId = $documentJobId;
     }

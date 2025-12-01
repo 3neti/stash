@@ -15,6 +15,16 @@ This is a **Laravel 12 + Inertia.js v2 + Vue 3 + Tailwind CSS v4** starter kit w
 - **Build Tools**: Vite, Wayfinder (TypeScript route generation)
 - **Dev Tools**: Laravel Boost (AI assistance), Laravel Pail (log tailing), Laravel Sail (Docker)
 
+## Local Development Setup
+
+### Hostname Configuration
+The application uses `stash.test` as the local hostname. Ensure it's in your `/etc/hosts`:
+```
+127.0.0.1 stash.test
+```
+
+Then access the application at: `http://stash.test:8000`
+
 ## Common Development Commands
 
 ### Initial Setup
