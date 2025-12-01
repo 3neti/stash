@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Actions\Documents;
 
 use App\Data\Api\Resources\DocumentData;
-use App\Jobs\Pipeline\ProcessDocumentJob;
 use App\Models\Campaign;
 use App\Models\Document;
+use App\Services\Pipeline\DocumentProcessingPipeline;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\UploadedFile;
@@ -84,8 +84,9 @@ class UploadDocument
             'metadata' => $metadata ?? [],
         ]);
 
-        // 6. Dispatch pipeline processing job
-        ProcessDocumentJob::dispatch($document);
+        // 6. Start pipeline processing via DocumentProcessingPipeline
+        $pipeline = app(DocumentProcessingPipeline::class);
+        $pipeline->process($document, $campaign);
 
         return $document;
     }

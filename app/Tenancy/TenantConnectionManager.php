@@ -123,35 +123,59 @@ class TenantConnectionManager
 
     /**
      * Check if tenant schema is initialized (has required tables).
-     * Uses information_schema to avoid connection errors if tables don't exist.
+     * Query information_schema via the central connection for the specific tenant DB.
      */
     public function tenantSchemaInitialized(Tenant $tenant): bool
     {
         try {
-            // Check if at least one tenant-specific table exists
-            // We check for 'campaigns' table which is created in the first migration
-            $result = DB::connection('tenant')->select(
-                "SELECT 1 FROM information_schema.tables 
-                 WHERE table_schema = 'public' AND table_name = 'campaigns'"
+            $dbName = $this->getTenantDatabaseName($tenant);
+
+            // Check if 'campaigns' table exists inside the tenant database
+            $result = DB::connection('pgsql')->select(
+                "SELECT 1 FROM information_schema.tables
+                 WHERE table_catalog = ? AND table_schema = 'public' AND table_name = 'campaigns'",
+                [$dbName]
             );
 
             return ! empty($result);
         } catch (\Exception $e) {
-            // If we can't query, schema likely isn't initialized
+            // If we can't query, assume schema isn't initialized
             return false;
         }
     }
 
     /**
      * Run tenant migrations on the given database.
+     * Automatically refreshes if migrations table doesn't exist in tenant database
+     * (handles migration tracking being in central DB instead of tenant DB).
      */
     private function runTenantMigrations(string $databaseName): void
     {
-        \Illuminate\Support\Facades\Artisan::call('migrate', [
-            '--database' => 'tenant',
-            '--path' => 'database/migrations/tenant',
-            '--force' => true,
-        ]);
+        // Check if migrations table exists in the tenant database
+        $queryResult = DB::connection('pgsql')->select(
+            "SELECT 1 FROM information_schema.tables
+             WHERE table_catalog = ? AND table_schema = 'public' AND table_name = 'migrations'",
+            [$databaseName]
+        );
+        $migrationTableExists = ! empty($queryResult);
+        
+        if ($migrationTableExists) {
+            // Migrations table exists, do normal migrate
+            \Illuminate\Support\Facades\Artisan::call('migrate', [
+                '--database' => 'tenant',
+                '--path' => 'database/migrations/tenant',
+                '--force' => true,
+            ]);
+        } else {
+            // Migrations table doesn't exist - this means migrations were never run on this DB
+            // Use refresh to create migrations table and run all migrations
+            \Illuminate\Support\Facades\Artisan::call('migrate:refresh', [
+                '--database' => 'tenant',
+                '--path' => 'database/migrations/tenant',
+                '--force' => true,
+                '--seed' => false,
+            ]);
+        }
     }
 
     /**

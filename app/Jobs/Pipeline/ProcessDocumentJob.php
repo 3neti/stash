@@ -6,7 +6,7 @@ namespace App\Jobs\Pipeline;
 
 use App\Jobs\Middleware\SetTenantContext;
 use App\Models\DocumentJob;
-use App\Services\Pipeline\PipelineOrchestrator;
+use App\Services\Pipeline\DocumentProcessingPipeline;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -71,7 +71,7 @@ class ProcessDocumentJob implements ShouldBeUnique, ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(PipelineOrchestrator $orchestrator): void
+    public function handle(DocumentProcessingPipeline $pipeline): void
     {
         Log::info('ProcessDocumentJob started', [
             'document_job_id' => $this->documentJobId,
@@ -91,23 +91,23 @@ class ProcessDocumentJob implements ShouldBeUnique, ShouldQueue
         }
 
         try {
-            // Execute the pipeline
-            $success = $orchestrator->executePipeline($documentJob);
+            // Execute the next stage of the pipeline
+            $continueProcessing = $pipeline->executeNextStage($documentJob);
 
-            if ($success) {
-                // Mark as completed
-                $documentJob->complete();
+            if ($continueProcessing) {
+                // More stages to process - re-dispatch job
+                ProcessDocumentJob::dispatch($documentJob);
 
-                // Update document state
-                $document = $documentJob->document;
-                $document->markCompleted();
-
-                Log::info('ProcessDocumentJob completed successfully', [
+                Log::info('ProcessDocumentJob advancing to next stage', [
                     'document_job_id' => $this->documentJobId,
+                    'stage' => $documentJob->current_processor_index,
                 ]);
             } else {
-                // Pipeline failed but didn't throw exception
-                $this->handleFailure($documentJob, 'Pipeline execution returned failure');
+                // All stages complete or failed
+                Log::info('ProcessDocumentJob pipeline completed', [
+                    'document_job_id' => $this->documentJobId,
+                    'success' => $documentJob->isCompleted(),
+                ]);
             }
         } catch (\Throwable $e) {
             $shouldRetry = $this->handleFailure($documentJob, $e->getMessage(), $e);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Models\Tenant;
+use App\Services\Tenancy\TenancyService;
 use App\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ class InitializeTenantFromUser
      * Handle an incoming request.
      *
      * Initialize tenant context from authenticated user's tenant_id.
+     * Ensures tenant database and schema exist before routing to controller.
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -25,7 +27,10 @@ class InitializeTenantFromUser
             $tenant = Tenant::on('pgsql')->find($user->tenant_id);
 
             if ($tenant) {
-                TenantContext::initialize($tenant);
+                // Use TenancyService to initialize tenant
+                // This ensures database and schema exist before any queries
+                $tenancyService = app(TenancyService::class);
+                $tenancyService->initializeTenant($tenant);
             }
         }
 
