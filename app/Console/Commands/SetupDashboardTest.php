@@ -154,8 +154,39 @@ class SetupDashboardTest extends Command
             });
 
             $this->info('✓ Tenant database migrated');
+            
+            // Verify schema was actually initialized
+            $this->verifyTenantSchema($tenantModel);
         } catch (\Exception $e) {
             $this->error("Failed to run tenant migrations: {$e->getMessage()}");
+        }
+    }
+    
+    /**
+     * Verify tenant schema is properly initialized.
+     * This guards against cases where migrations were skipped or partially applied.
+     */
+    private function verifyTenantSchema(object $tenant): void
+    {
+        $this->info('🔍 Verifying tenant schema...');
+        
+        try {
+            $manager = app(\App\Tenancy\TenantConnectionManager::class);
+            
+            if ($manager->tenantSchemaInitialized($tenant)) {
+                $this->info('✓ Tenant schema is properly initialized');
+            } else {
+                $this->warn('⚠️  Tenant schema not initialized - attempting repair...');
+                $this->runTenantMigrations($tenant);
+                
+                if ($manager->tenantSchemaInitialized($tenant)) {
+                    $this->info('✓ Schema repair successful');
+                } else {
+                    $this->error('✗ Schema repair failed - tables may be missing');
+                }
+            }
+        } catch (\Exception $e) {
+            $this->warn("Schema verification failed (non-critical): {$e->getMessage()}");
         }
     }
 
