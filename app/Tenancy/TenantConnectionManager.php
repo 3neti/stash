@@ -14,7 +14,7 @@ class TenantConnectionManager
 {
     /**
      * Switch the application to use a tenant's database connection.
-     * Auto-creates the database if it doesn't exist (useful for testing).
+     * Ensures database and schema exist (auto-create if needed).
      */
     public function switchToTenant(Tenant $tenant): void
     {
@@ -44,15 +44,17 @@ class TenantConnectionManager
             $this->createTenantDatabase($tenant);
             // Run tenant migrations
             $this->runTenantMigrations($tenantDb);
+        } else {
+            // Database exists - verify schema is initialized
+            // This handles: migrate:fresh, restored backups, or any case where DB exists but tables don't
+            if (! $this->tenantSchemaInitialized($tenant)) {
+                $this->runTenantMigrations($tenantDb);
+            }
         }
 
         // Set tenant as default connection
         DB::setDefaultConnection('tenant');
     }
-
-    /**
-     * Switch back to the central database connection.
-     */
     public function switchToCentral(): void
     {
         DB::setDefaultConnection('pgsql');
@@ -117,6 +119,27 @@ class TenantConnectionManager
         );
 
         return ! empty($result);
+    }
+
+    /**
+     * Check if tenant schema is initialized (has required tables).
+     * Uses information_schema to avoid connection errors if tables don't exist.
+     */
+    public function tenantSchemaInitialized(Tenant $tenant): bool
+    {
+        try {
+            // Check if at least one tenant-specific table exists
+            // We check for 'campaigns' table which is created in the first migration
+            $result = DB::connection('tenant')->select(
+                "SELECT 1 FROM information_schema.tables 
+                 WHERE table_schema = 'public' AND table_name = 'campaigns'"
+            );
+
+            return ! empty($result);
+        } catch (\Exception $e) {
+            // If we can't query, schema likely isn't initialized
+            return false;
+        }
     }
 
     /**
