@@ -27,41 +27,27 @@ test('debug: trace database connections during middleware flow', function () {
     });
 
     // Simulate middleware flow
-    ray("=== MIDDLEWARE FLOW DEBUG ===");
-    
-    ray("Step 1: Middleware retrieves user");
     $retrievedUser = User::find($user->id);
-    ray("User found: {$retrievedUser->id}, tenant_id: {$retrievedUser->tenant_id}");
+    expect($retrievedUser->tenant_id)->toBe($tenant->id);
 
-    ray("Step 2: Middleware retrieves tenant");
     $retrievedTenant = Tenant::on('pgsql')->find($retrievedUser->tenant_id);
-    ray("Tenant found: {$retrievedTenant->id}");
-
-    ray("Step 3: Before TenantContext::initialize()");
-    ray("  Current connection: " . DB::getDefaultConnection());
-    ray("  pgsql database: " . config('database.connections.pgsql.database'));
-    ray("  tenant database (before): " . config('database.connections.tenant.database'));
+    expect($retrievedTenant->id)->toBe($tenant->id);
 
     // This is what middleware does
     TenantContext::initialize($retrievedTenant);
 
-    ray("Step 4: After TenantContext::initialize()");
-    ray("  Current connection: " . DB::getDefaultConnection());
-    ray("  tenant database (after): " . config('database.connections.tenant.database'));
-
     // Check schema guard
     $manager = app(TenantConnectionManager::class);
-    ray("Step 5: Schema guard check");
-    ray("  Database exists: " . ($manager->tenantDatabaseExists($retrievedTenant) ? 'YES' : 'NO'));
-    ray("  Schema initialized: " . ($manager->tenantSchemaInitialized($retrievedTenant) ? 'YES' : 'NO'));
+    $databaseExists = $manager->tenantDatabaseExists($retrievedTenant);
+    $schemaInitialized = $manager->tenantSchemaInitialized($retrievedTenant);
 
-    ray("Step 6: Try to query campaigns");
+    expect($databaseExists)->toBeTrue('Tenant database should exist');
+    expect($schemaInitialized)->toBeTrue('Tenant schema should be initialized');
+
+    // Try to query campaigns
     try {
         $count = Campaign::count();
-        ray("  SUCCESS: Found $count campaigns");
-    } catch (\Exception $e) {
-        ray("  ERROR: " . $e->getMessage());
-        throw $e;
+        expect($count)->toBeGreaterThanOrEqual(1);
     } finally {
         TenantContext::forgetCurrent();
     }
@@ -73,23 +59,21 @@ test('debug: check if tenant database actually exists in production setup', func
     $manager = app(TenantConnectionManager::class);
     
     $dbName = $manager->getTenantDatabaseName($tenant);
-    ray("Tenant ID: {$tenant->id}");
-    ray("Expected DB name: $dbName");
+    expect($dbName)->toBeTruthy();
     
-    $exists = $manager->tenantDatabaseExists($tenant);
-    ray("Database '$dbName' exists in pg_database: " . ($exists ? 'YES' : 'NO'));
+    // BEFORE TenantContext::initialize() - database should NOT exist yet
+    $existsBeforeInit = $manager->tenantDatabaseExists($tenant);
     
-    // Try to switch to it
+    // AFTER TenantContext::initialize() - database and schema should be created automatically
+    TenantContext::initialize($tenant);
+    $existsAfterInit = $manager->tenantDatabaseExists($tenant);
+    
+    expect($existsAfterInit)->toBeTrue('Tenant database should exist after TenantContext::initialize()');
+    
+    // Try to query campaigns table
     try {
-        TenantContext::initialize($tenant);
-        ray("TenantContext::initialize() succeeded");
-        ray("Configured tenant connection to: " . config('database.connections.tenant.database'));
-        
-        // Try to query
         $campaignsTable = DB::connection('tenant')->select("SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='campaigns'");
-        ray("Campaigns table exists: " . (count($campaignsTable) > 0 ? 'YES' : 'NO'));
-    } catch (\Exception $e) {
-        ray("ERROR: " . $e->getMessage());
+        expect(count($campaignsTable))->toBeGreaterThan(0, 'Campaigns table should exist after schema initialized');
     } finally {
         TenantContext::forgetCurrent();
     }
