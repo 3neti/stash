@@ -99,11 +99,26 @@ class SetupDashboardTest extends Command
                 if ($this->confirm('Use existing tenant?', true)) {
                     $this->info('✓ Using existing tenant');
 
-                    // Check if tenant database exists
+                    // CRITICAL: Always ensure tenant database and schema are properly initialized
                     $tenant = \App\Models\Tenant::on('pgsql')->find($existingTenant->id);
+                    
+                    // Create database if it doesn't exist
                     if (! $manager->tenantDatabaseExists($tenant)) {
                         $this->info('Creating missing tenant database...');
                         $manager->createTenantDatabase($tenant);
+                    }
+                    
+                    // CRITICAL: Always verify and repair schema
+                    // This ensures migrations ran properly even if they failed silently before
+                    if (! $manager->tenantSchemaInitialized($tenant)) {
+                        $this->warn('⚠️  Tenant schema not initialized - running migrations...');
+                        TenantContext::run($tenant, function () {
+                            Artisan::call('migrate', [
+                                '--database' => 'tenant',
+                                '--path' => 'database/migrations/tenant',
+                                '--force' => true,
+                            ]);
+                        });
                     }
 
                     return $existingTenant;
