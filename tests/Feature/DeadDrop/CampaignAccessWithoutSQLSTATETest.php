@@ -21,7 +21,6 @@ test('campaign page loads without SQLSTATE error after fresh setup', function ()
     TenantContext::run($tenant, function () use (&$campaign) {
         $campaign = Campaign::factory()->create([
             'name' => 'Test Campaign',
-            'status' => 'active',
         ]);
     });
 
@@ -50,7 +49,6 @@ test('campaign detail page loads successfully', function () {
         $campaign = Campaign::factory()->create([
             'name' => 'Invoices Processing',
             'description' => 'Process invoice documents',
-            'status' => 'active',
         ]);
     });
 
@@ -65,7 +63,7 @@ test('campaign list page loads for authenticated user', function () {
     $user = User::factory()->create(['tenant_id' => $tenant->id]);
 
     TenantContext::run($tenant, function () {
-        Campaign::factory()->count(3)->create(['status' => 'active']);
+        Campaign::factory()->count(3)->create();
     });
 
     $response = $this->actingAs($user)->get('/campaigns');

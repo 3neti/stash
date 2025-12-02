@@ -10,10 +10,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
+use Spatie\ModelStatus\HasStatuses;
 
 class Tenant extends Model
 {
-    use HasFactory, HasUlids, SoftDeletes;
+    use HasFactory, HasStatuses, HasUlids, SoftDeletes;
 
     protected $connection = 'central';
 

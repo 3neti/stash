@@ -55,7 +55,6 @@ test('authenticated user can view campaign detail page without database error', 
         $campaign = \App\Models\Campaign::factory()->create([
             'name' => 'Dusk Test Campaign',
             'type' => 'custom',
-            'status' => 'active',
         ]);
     });
 

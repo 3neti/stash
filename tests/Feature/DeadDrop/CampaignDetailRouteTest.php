@@ -20,7 +20,6 @@ test('authenticated user can view campaign detail page', function () {
         $campaign = Campaign::factory()->create([
             'name' => 'Test Campaign Detail',
             'type' => 'custom',
-            'status' => 'active',
         ]);
 
         // Test: Access campaign detail page
@@ -44,7 +43,6 @@ test('authenticated user can view campaign edit page', function () {
         $campaign = Campaign::factory()->create([
             'name' => 'Test Campaign Edit',
             'type' => 'template',
-            'status' => 'draft',
         ]);
 
         // Test: Access campaign edit page
@@ -67,7 +65,6 @@ test('authenticated user can delete campaign', function () {
         $campaign = Campaign::factory()->create([
             'name' => 'Test Campaign Delete',
             'type' => 'meta',
-            'status' => 'draft',
         ]);
 
         // Test: Delete campaign
