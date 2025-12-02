@@ -25,6 +25,7 @@ class Processor extends Model
         'category',
         'description',
         'config_schema',
+        'output_schema',
         'is_system',
         'is_active',
         'version',
@@ -35,6 +36,7 @@ class Processor extends Model
 
     protected $casts = [
         'config_schema' => 'array',
+        'output_schema' => 'array',
         'is_system' => 'boolean',
         'is_active' => 'boolean',
     ];

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import ProcessingStatusBadge from '@/components/ProcessingStatusBadge.vue';
+import ProgressTracker from '@/components/ProgressTracker.vue';
+import ProcessingMetrics from '@/components/ProcessingMetrics.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, Document } from '@/types';
@@ -48,6 +50,12 @@ const breadcrumbs: BreadcrumbItem[] = [
                     </div>
                 </div>
                 <ProcessingStatusBadge :status="document.status" />
+            </div>
+
+            <!-- Progress and Metrics Section -->
+            <div class="space-y-4">
+                <ProgressTracker :document-uuid="document.uuid" />
+                <ProcessingMetrics :document-id="document.uuid" />
             </div>
 
             <div class="grid gap-4 md:grid-cols-2">

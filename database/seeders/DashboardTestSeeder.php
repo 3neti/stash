@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Models\Campaign;
 use App\Models\Document;
+use App\Models\Processor;
 use Illuminate\Database\Seeder;
 
 /**
@@ -25,6 +26,9 @@ class DashboardTestSeeder extends Seeder
         // Note: User will be created in central DB by setup command
         // Here we only seed tenant-specific data (campaigns, documents)
 
+        // Seed processors first (required for campaigns)
+        $this->call(ProcessorSeeder::class);
+
         $campaigns = $this->createCampaigns();
         $this->command->info("✓ Created {$campaigns->count()} campaigns");
 
@@ -39,6 +43,9 @@ class DashboardTestSeeder extends Seeder
      */
     private function createCampaigns(): \Illuminate\Support\Collection
     {
+        // Get processor IDs for pipeline configuration
+        $processors = Processor::pluck('id', 'slug')->toArray();
+
         $campaigns = collect();
 
         $campaigns = $campaigns->merge(
@@ -48,10 +55,10 @@ class DashboardTestSeeder extends Seeder
                 'description' => 'Active campaign for testing',
                 'pipeline_config' => [
                     'processors' => [
-                        ['type' => 'ocr', 'name' => 'OCR Processor'],
-                        ['type' => 'classification', 'name' => 'Document Classifier'],
-                        ['type' => 'extraction', 'name' => 'Data Extractor'],
-                        ['type' => 'validation', 'name' => 'Validator'],
+                        ['id' => $processors['tesseract-ocr'] ?? null, 'config' => ['language' => 'eng']],
+                        ['id' => $processors['document-classifier'] ?? null, 'config' => ['categories' => ['general']]],
+                        ['id' => $processors['data-extractor'] ?? null, 'config' => ['entity_types' => []]],
+                        ['id' => $processors['schema-validator'] ?? null, 'config' => ['strict' => false]],
                     ],
                 ],
             ])
@@ -62,6 +69,11 @@ class DashboardTestSeeder extends Seeder
                 'status' => 'paused',
                 'type' => 'custom',
                 'description' => 'Paused campaign for testing',
+                'pipeline_config' => [
+                    'processors' => [
+                        ['id' => $processors['tesseract-ocr'] ?? null, 'config' => ['language' => 'eng']],
+                    ],
+                ],
             ])
         );
 
@@ -71,6 +83,13 @@ class DashboardTestSeeder extends Seeder
                 'type' => 'template',
                 'name' => 'Invoice Processing',
                 'description' => 'Template for invoice processing workflows',
+                'pipeline_config' => [
+                    'processors' => [
+                        ['id' => $processors['tesseract-ocr'] ?? null, 'config' => ['language' => 'eng']],
+                        ['id' => $processors['document-classifier'] ?? null, 'config' => ['categories' => ['invoice']]],
+                        ['id' => $processors['data-extractor'] ?? null, 'config' => ['entity_types' => ['total', 'date', 'vendor']]],
+                    ],
+                ],
             ])
         );
 

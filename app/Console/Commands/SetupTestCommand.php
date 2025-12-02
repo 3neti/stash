@@ -38,6 +38,21 @@ class SetupTestCommand extends Command
             ]);
             $this->info('✓ Migrations completed');
 
+            // Create a test tenant if none exist
+            $this->info('Checking tenants...');
+            $tenantCount = \App\Models\Tenant::count();
+            if ($tenantCount === 0) {
+                $this->info('Creating test tenant...');
+                Artisan::call('tenant:create', [
+                    'name' => 'Test Company',
+                    '--email' => 'test@company.test',
+                    '--no-interaction' => true,
+                ]);
+                $this->info('✓ Test tenant created');
+            } else {
+                $this->info("✓ Found {$tenantCount} existing tenant(s)");
+            }
+
             // Seed the test database
             $this->info('Seeding test database...');
             Artisan::call('db:seed', [

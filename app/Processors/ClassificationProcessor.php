@@ -296,4 +296,17 @@ PROMPT;
     {
         $this->openai = $client;
     }
+
+    public function getOutputSchema(): ?array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'category' => ['type' => 'string'],
+                'confidence' => ['type' => 'number'],
+                'categories' => ['type' => 'array', 'items' => ['type' => 'string']],
+            ],
+            'required' => ['category', 'confidence'],
+        ];
+    }
 }

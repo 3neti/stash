@@ -20,9 +20,13 @@ class SetTenantContext
 {
     /**
      * Create a new middleware instance.
+     *
+     * @param string $documentJobId The DocumentJob ID (ULID)
+     * @param string|null $tenantId Optional: Tenant ID for direct lookup (avoids central DB query)
      */
     public function __construct(
-        private readonly string $documentJobId
+        private readonly string $documentJobId,
+        private readonly ?string $tenantId = null
     ) {}
 
     /**
@@ -33,27 +37,28 @@ class SetTenantContext
         try {
             Log::debug('[JobMiddleware] Starting tenant context setup', [
                 'document_job_id' => $this->documentJobId,
-                'tenant_id' => $job->tenantId ?? 'not_provided',
+                'tenant_id_provided' => $this->tenantId ?? 'not_provided',
                 'current_connection' => DB::getDefaultConnection(),
             ]);
 
-            // If job has tenantId (provided at dispatch time), use it directly
-            if ($job->tenantId) {
-                Log::debug('[JobMiddleware] Using tenantId from job payload');
-                $tenant = \App\Models\Tenant::on('pgsql')->findOrFail($job->tenantId);
+            // If tenantId was provided at dispatch time, use it directly (fast path)
+            if ($this->tenantId) {
+                Log::debug('[JobMiddleware] Using tenantId from middleware constructor');
+                $tenant = \App\Models\Tenant::on('pgsql')->findOrFail($this->tenantId);
                 Log::debug('[JobMiddleware] Tenant loaded', ['tenant_id' => $tenant->id, 'tenant_name' => $tenant->name]);
             } else {
-                // Fall back to loading via DocumentJob → Campaign → Tenant chain
-                Log::debug('[JobMiddleware] tenantId not in job, loading DocumentJob from central database');
+                // Fall back to loading via Campaign → Tenant chain using DocumentJob's campaign_id
+                // This requires querying the central DB for Campaign to get tenant_id
+                Log::debug('[JobMiddleware] tenantId not provided, loading Campaign from central database');
                 $documentJob = DocumentJob::on('pgsql')->findOrFail($this->documentJobId);
                 Log::debug('[JobMiddleware] DocumentJob loaded', ['campaign_id' => $documentJob->campaign_id]);
 
-                // Step 2: Load Campaign to get tenant_id
+                // Load Campaign to get tenant_id
                 Log::debug('[JobMiddleware] Loading Campaign from central database');
                 $campaign = Campaign::on('pgsql')->findOrFail($documentJob->campaign_id);
                 Log::debug('[JobMiddleware] Campaign loaded', ['tenant_id' => $campaign->tenant_id]);
 
-                // Step 3: Load Tenant
+                // Load Tenant
                 Log::debug('[JobMiddleware] Loading Tenant from central database');
                 $tenant = \App\Models\Tenant::on('pgsql')->findOrFail($campaign->tenant_id);
                 Log::debug('[JobMiddleware] Tenant loaded', ['tenant_id' => $tenant->id, 'tenant_name' => $tenant->name]);

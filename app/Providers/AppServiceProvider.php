@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Services\Pipeline\ProcessorRegistry;
+use App\Services\Pipeline\ProcessorHookManager;
+use App\Services\Pipeline\Hooks\TimeTrackingHook;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -17,6 +19,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register ProcessorRegistry as singleton
         $this->app->singleton(ProcessorRegistry::class);
+
+        // Register ProcessorHookManager as singleton
+        $this->app->singleton(ProcessorHookManager::class);
     }
 
     /**
@@ -27,6 +32,10 @@ class AppServiceProvider extends ServiceProvider
         // Auto-discover and register processors
         $registry = $this->app->make(ProcessorRegistry::class);
         $registry->discover();
+
+        // Register processor hooks
+        $hookManager = $this->app->make(ProcessorHookManager::class);
+        $hookManager->register(new TimeTrackingHook());
 
         $this->configureRateLimiting();
     }

@@ -65,11 +65,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->get('documents/{uuid}', Get
     ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
 // Document progress (real-time progress tracking)
-Route::middleware(['auth:sanctum', 'throttle:api'])->get('documents/{uuid}/progress', [DocumentProgressController::class, 'show'])
+Route::middleware(['auth:sanctum', 'throttle:api', InitializeTenantFromUser::class])->get('documents/{uuid}/progress', [DocumentProgressController::class, 'show'])
     ->name('api.documents.progress.show')
     ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
 // Document metrics (processor execution metrics)
-Route::middleware(['auth:sanctum', 'throttle:api'])->get('documents/{uuid}/metrics', [DocumentProgressController::class, 'metrics'])
+Route::middleware(['auth:sanctum', 'throttle:api', InitializeTenantFromUser::class])->get('documents/{uuid}/metrics', [DocumentProgressController::class, 'metrics'])
     ->name('api.documents.metrics.index')
     ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');

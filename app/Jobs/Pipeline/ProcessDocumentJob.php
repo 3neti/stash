@@ -60,7 +60,7 @@ class ProcessDocumentJob implements ShouldBeUnique, ShouldQueue
     public function middleware(): array
     {
         return [
-            new SetTenantContext($this->documentJobId),
+            new SetTenantContext($this->documentJobId, $this->tenantId),
         ];
     }
 
@@ -99,8 +99,8 @@ class ProcessDocumentJob implements ShouldBeUnique, ShouldQueue
             $continueProcessing = $pipeline->executeNextStage($documentJob);
 
             if ($continueProcessing) {
-                // More stages to process - re-dispatch job
-                ProcessDocumentJob::dispatch($documentJob);
+                // More stages to process - re-dispatch job with same tenantId
+                ProcessDocumentJob::dispatch($documentJob->id, $this->tenantId);
 
                 Log::info('ProcessDocumentJob advancing to next stage', [
                     'document_job_id' => $this->documentJobId,

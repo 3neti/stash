@@ -140,4 +140,17 @@ class OcrProcessor extends AbstractProcessor
 
         return round($average / 100, 4); // Convert 0-100 to 0-1
     }
+
+    public function getOutputSchema(): ?array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'text' => ['type' => 'string'],
+                'confidence' => ['type' => ['number', 'null']],
+                'pages' => ['type' => 'array', 'items' => ['type' => 'object']],
+            ],
+            'required' => ['text'],
+        ];
+    }
 }

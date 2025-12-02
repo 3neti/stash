@@ -51,16 +51,35 @@ class ProcessorRegistry
 
     /**
      * Get a processor instance by ID.
+     *
+     * First checks the in-memory registry (for discovered implementations).
+     * If not found, attempts to look up the processor in the database by ULID
+     * and instantiate it using its class_name.
      */
     public function get(string $id): ProcessorInterface
     {
-        if (! $this->has($id)) {
-            throw ProcessorException::processingFailed($id, 'Processor not registered');
+        // Check in-memory registry first (for short IDs like "ocr", "classification")
+        if ($this->has($id)) {
+            $className = $this->processors[$id];
+            return $this->container->make($className);
         }
 
-        $className = $this->processors[$id];
+        // If ID looks like a ULID (26 chars), try database lookup
+        if (strlen($id) === 26) {
+            try {
+                $processorModel = \App\Models\Processor::find($id);
+                if ($processorModel && $processorModel->class_name) {
+                    $className = $processorModel->class_name;
+                    if (class_exists($className) && is_subclass_of($className, ProcessorInterface::class)) {
+                        return $this->container->make($className);
+                    }
+                }
+            } catch (\Exception $e) {
+                // Database lookup failed, fall through to throw error
+            }
+        }
 
-        return $this->container->make($className);
+        throw ProcessorException::processingFailed($id, 'Processor not registered');
     }
 
     /**

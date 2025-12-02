@@ -126,10 +126,11 @@ class DocumentProcessingPipeline
 
         // Get current processor config
         $processorConfig = $processors[$currentIndex];
-        $processorId = $processorConfig['id'] ?? $processorConfig['type'] ?? null;
+        // Support both 'id' (ULID) and 'slug'/'type' (string identifier)
+        $processorId = $processorConfig['id'] ?? $processorConfig['slug'] ?? $processorConfig['type'] ?? null;
 
         if (! $processorId) {
-            $this->failProcessing($job, 'Invalid processor configuration: missing id/type');
+            $this->failProcessing($job, 'Invalid processor configuration: missing id/slug/type');
             return false;
         }
 
@@ -142,7 +143,15 @@ class DocumentProcessingPipeline
         }
 
         // Look up the Processor model record (database)
-        $processorModel = Processor::where('category', $processorId)->first();
+        // If processorId is a ULID, look it up by ID; otherwise by slug
+        if (strlen($processorId) === 26) {
+            // Likely a ULID (26 chars)
+            $processorModel = Processor::find($processorId);
+        } else {
+            // Lookup by slug
+            $processorModel = Processor::where('slug', $processorId)->first();
+        }
+        
         if (!$processorModel) {
             $this->failProcessing($job, "Processor '{$processorId}' not found in database");
             return false;
