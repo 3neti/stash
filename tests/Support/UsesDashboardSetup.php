@@ -25,17 +25,22 @@ trait UsesDashboardSetup
         ], $overrides));
 
         // Create or update test user on central DB and link to tenant
-        $user = User::on('pgsql')->firstOrCreate(
+        $user = User::on('central')->firstOrCreate(
             ['email' => 'test@example.com'],
             [
                 'name' => 'Test User',
                 'password' => bcrypt('password'),
                 'email_verified_at' => now(),
                 'role' => 'owner',
+                'tenant_id' => $tenant->id,
             ]
         );
-        $user->tenant_id = $tenant->id;
-        $user->save();
+        
+        // If user already existed, update tenant_id
+        if (!$user->wasRecentlyCreated && $user->tenant_id !== $tenant->id) {
+            $user->tenant_id = $tenant->id;
+            $user->save();
+        }
 
         return [$tenant, $user];
     }
