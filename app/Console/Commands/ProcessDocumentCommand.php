@@ -8,6 +8,7 @@ use App\Actions\Documents\UploadDocument;
 use App\Models\Campaign;
 use App\Models\Document;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Tenancy\TenantContext;
 use Illuminate\Console\Command;
 use Illuminate\Http\UploadedFile;
@@ -15,129 +16,268 @@ use Illuminate\Http\UploadedFile;
 class ProcessDocumentCommand extends Command
 {
     protected $signature = 'document:process 
-                            {file : Path to the document file}
-                            {--tenant= : Tenant slug (defaults to first active tenant)}
-                            {--campaign= : Campaign slug (defaults to first active campaign)}
-                            {--wait : Wait and show processing status}';
+                            {documents* : Paths to document files}
+                            {--user= : User email (defaults to admin user)}
+                            {--tenant= : Tenant slug}
+                            {--campaign= : Campaign slug}
+                            {--wait : Wait and show real-time progress}
+                            {--show-output : Display full processor outputs}';
 
-    protected $description = 'Upload and process a document through the pipeline';
+    protected $description = 'Upload and process one or more documents through the pipeline';
 
     public function handle(): int
     {
-        $filePath = $this->argument('file');
+        $documentPaths = $this->argument('documents');
 
-        // Validate file exists
-        if (! file_exists($filePath)) {
-            $this->error("File not found: {$filePath}");
-
-            return self::FAILURE;
+        // Validate all files exist before processing
+        $missingFiles = [];
+        foreach ($documentPaths as $path) {
+            if (! file_exists($path)) {
+                $missingFiles[] = $path;
+            }
         }
 
-        $this->info("Processing document: {$filePath}");
-        $this->newLine();
+        if (! empty($missingFiles)) {
+            $this->error('The following files were not found:');
+            foreach ($missingFiles as $file) {
+                $this->line("  - {$file}");
+            }
 
-        // 1. Find or use specified tenant
-        $tenantSlug = $this->option('tenant');
-        if ($tenantSlug) {
-            $tenant = Tenant::on('central')->where('slug', $tenantSlug)->first();
-            if (! $tenant) {
-                $this->error("Tenant not found: {$tenantSlug}");
+            return 2; // Validation error
+        }
+
+        // 1. Determine user context
+        $userEmail = $this->option('user');
+        $user = null;
+        $tenant = null;
+
+        if ($userEmail) {
+            $user = User::on('central')->where('email', $userEmail)->first();
+            if (! $user) {
+                $this->error("User not found: {$userEmail}");
 
                 return self::FAILURE;
             }
-        } else {
-            $tenant = Tenant::on('central')->where('status', 'active')->first();
+
+            // Get tenant from user
+            $tenant = $user->tenants()->first();
             if (! $tenant) {
-                $this->error('No active tenants found');
+                $this->error("User {$userEmail} is not associated with any tenant");
 
                 return self::FAILURE;
+            }
+
+            $this->info("✓ Processing as user: {$user->name} ({$user->email})");
+        }
+
+        // 2. Find or use specified tenant (if not from user)
+        if (! $tenant) {
+            $tenantSlug = $this->option('tenant');
+            if ($tenantSlug) {
+                $tenant = Tenant::on('central')->where('slug', $tenantSlug)->first();
+                if (! $tenant) {
+                    $this->error("Tenant not found: {$tenantSlug}");
+
+                    return self::FAILURE;
+                }
+            } else {
+                $tenant = Tenant::on('central')->where('status', 'active')->first();
+                if (! $tenant) {
+                    $this->error('No active tenants found');
+
+                    return self::FAILURE;
+                }
             }
         }
 
         $this->info("✓ Using tenant: {$tenant->name} ({$tenant->slug})");
+        $this->newLine();
 
-        // 2. Initialize tenant context and find campaign
+        // 3. Process each document
+        $results = [];
+        $totalCount = count($documentPaths);
+
+        foreach ($documentPaths as $index => $filePath) {
+            $documentNumber = $index + 1;
+
+            if ($totalCount > 1) {
+                $this->info("Processing document {$documentNumber} of {$totalCount}:");
+            }
+
+            $result = $this->processDocument($filePath, $tenant);
+            $results[] = $result;
+
+            if ($totalCount > 1) {
+                $this->newLine();
+            }
+        }
+
+        // 4. Display batch summary if multiple documents
+        if ($totalCount > 1) {
+            $this->displayBatchSummary($results);
+        }
+
+        // 5. Determine exit code
+        $successCount = count(array_filter($results, fn ($r) => $r['success']));
+        $failureCount = $totalCount - $successCount;
+
+        if ($failureCount === 0) {
+            return self::SUCCESS;
+        } elseif ($successCount === 0) {
+            return 2; // All failed
+        } else {
+            return 1; // Some failed
+        }
+    }
+
+    /**
+     * Process a single document.
+     */
+    private function processDocument(string $filePath, Tenant $tenant): array
+    {
+        $startTime = microtime(true);
         $document = null;
         $documentJob = null;
         $campaign = null;
+        $success = false;
+        $error = null;
 
-        TenantContext::run($tenant, function () use ($filePath, &$document, &$documentJob, &$campaign) {
-            // Find campaign
-            $campaignSlug = $this->option('campaign');
-            if ($campaignSlug) {
-                $campaign = Campaign::where('slug', $campaignSlug)->first();
-                if (! $campaign) {
-                    $this->error("Campaign not found: {$campaignSlug}");
+        try {
+            TenantContext::run($tenant, function () use ($filePath, &$document, &$documentJob, &$campaign, &$error) {
+                // Find campaign
+                $campaignSlug = $this->option('campaign');
+                if ($campaignSlug) {
+                    $campaign = Campaign::where('slug', $campaignSlug)->first();
+                    if (! $campaign) {
+                        $error = "Campaign not found: {$campaignSlug}";
+                        $this->error($error);
 
-                    return;
+                        return;
+                    }
+                } else {
+                    $campaign = Campaign::whereNotNull('published_at')->first();
+                    if (! $campaign) {
+                        $error = 'No published campaigns found';
+                        $this->error($error);
+
+                        return;
+                    }
                 }
-            } else {
-                $campaign = Campaign::whereNotNull('published_at')->first();
-                if (! $campaign) {
-                    $this->error('No published campaigns found');
 
-                    return;
+                $this->info("✓ Using campaign: {$campaign->name} ({$campaign->slug})");
+
+                // Create UploadedFile instance from file path
+                $uploadedFile = new UploadedFile(
+                    $filePath,
+                    basename($filePath),
+                    mime_content_type($filePath),
+                    null,
+                    true // test mode
+                );
+
+                // Upload document using UploadDocument action
+                $this->info("Uploading {$uploadedFile->getClientOriginalName()}...");
+                $uploadAction = app(UploadDocument::class);
+                $document = $uploadAction->handle($campaign, $uploadedFile);
+
+                $this->info("✓ Document uploaded: {$document->uuid}");
+                $this->info("  - Size: {$document->formatted_size}");
+
+                // Get document job
+                $documentJob = $document->documentJob()->first();
+                if ($documentJob) {
+                    $this->info("✓ Job created: {$documentJob->uuid}");
+
+                    // Wait for processing if requested
+                    if ($this->option('wait')) {
+                        $this->waitForProcessing($documentJob);
+                    }
+                } else {
+                    $this->warn('No job was created for this document');
+                }
+            });
+
+            if ($document && ! $error) {
+                $success = true;
+                
+                // Show single document summary if not in batch mode
+                if (count($this->argument('documents')) === 1 && ! $this->option('wait')) {
+                    $this->newLine();
+                    $this->info('✅ Document processing initiated successfully!');
+                    $this->newLine();
+
+                    $this->table(
+                        ['Property', 'Value'],
+                        [
+                            ['Document UUID', $document->uuid],
+                            ['Campaign', $campaign->name ?? 'N/A'],
+                            ['Filename', $document->original_filename],
+                            ['Status', $document->state ?? 'N/A'],
+                            ['Storage Path', $document->storage_path],
+                        ]
+                    );
                 }
             }
-
-            $this->info("✓ Using campaign: {$campaign->name} ({$campaign->slug})");
-            $this->newLine();
-
-            // 3. Create UploadedFile instance from file path
-            $uploadedFile = new UploadedFile(
-                $filePath,
-                basename($filePath),
-                mime_content_type($filePath),
-                null,
-                true // test mode
-            );
-
-            // 4. Upload document using UploadDocument action
-            $this->info('Uploading document...');
-            $uploadAction = app(UploadDocument::class);
-            $document = $uploadAction->handle($campaign, $uploadedFile);
-
-            $this->info("✓ Document uploaded: {$document->uuid}");
-            $this->info("  - Filename: {$document->original_filename}");
-            $this->info("  - Size: {$document->formatted_size}");
-            $this->info("  - Hash: {$document->hash}");
-            $this->newLine();
-
-            // 5. Get document job
-            $documentJob = $document->documentJob()->first();
-            if ($documentJob) {
-                $this->info("✓ Document job created: {$documentJob->uuid}");
-                $this->info("  - Status: {$documentJob->state}");
-                $this->newLine();
-            }
-
-            // 6. Wait for processing if requested
-            if ($this->option('wait') && $documentJob) {
-                $this->info('Waiting for processing to complete...');
-                $this->waitForProcessing($documentJob);
-            }
-        });
-
-        if (! $document) {
-            return self::FAILURE;
+        } catch (\Throwable $e) {
+            $error = $e->getMessage();
+            $this->error("Failed to process document: {$error}");
         }
 
-        $this->info('✅ Document processing initiated successfully!');
+        $duration = microtime(true) - $startTime;
+
+        return [
+            'filename' => basename($filePath),
+            'document_uuid' => $document?->uuid,
+            'job_uuid' => $documentJob?->uuid,
+            'campaign' => $campaign?->name,
+            'status' => (string) ($documentJob?->state ?? ($success ? 'uploaded' : 'failed')),
+            'duration' => $duration,
+            'success' => $success,
+            'error' => $error,
+        ];
+    }
+
+    /**
+     * Display batch processing summary.
+     */
+    private function displayBatchSummary(array $results): void
+    {
+        $this->newLine();
+        $this->info('Batch Processing Summary:');
         $this->newLine();
 
-        // Display document info
+        $rows = [];
+        foreach ($results as $result) {
+            $statusIcon = $result['success'] ? '<fg=green>✓</>' : '<fg=red>✗</>';
+            $status = $statusIcon . ' ' . ucfirst($result['status']);
+            $duration = number_format($result['duration'], 2) . 's';
+            $jobId = $result['job_uuid'] ? substr($result['job_uuid'], 0, 8) . '...' : 'N/A';
+            $docId = $result['document_uuid'] ? substr($result['document_uuid'], 0, 8) . '...' : 'N/A';
+
+            $rows[] = [
+                $result['filename'],
+                $status,
+                $duration,
+                $jobId,
+                $docId,
+            ];
+        }
+
         $this->table(
-            ['Property', 'Value'],
-            [
-                ['Document UUID', $document->uuid],
-                ['Campaign', $campaign->name ?? 'N/A'],
-                ['Filename', $document->original_filename],
-                ['Status', $document->state ?? 'N/A'],
-                ['Storage Path', $document->storage_path],
-            ]
+            ['File', 'Status', 'Duration', 'Job ID', 'Doc ID'],
+            $rows
         );
 
-        return self::SUCCESS;
+        $successCount = count(array_filter($results, fn ($r) => $r['success']));
+        $totalCount = count($results);
+
+        $this->newLine();
+        if ($successCount === $totalCount) {
+            $this->info("✅ All {$totalCount} document(s) processed successfully!");
+        } else {
+            $failCount = $totalCount - $successCount;
+            $this->warn("⚠ {$successCount} succeeded, {$failCount} failed");
+        }
     }
 
     /**
@@ -169,8 +309,8 @@ class ProcessDocumentCommand extends Command
                     if ($execution->isCompleted()) {
                         $this->line("  <fg=green>✓</> {$processorName} <fg=gray>({$duration})</>");
                         
-                        // Show JSON output for this stage
-                        if ($execution->output_data) {
+                        // Show JSON output for this stage if --show-output flag is set
+                        if ($this->option('show-output') && $execution->output_data) {
                             $this->newLine();
                             $this->line("    <fg=yellow>Output:</>");
                             $json = json_encode($execution->output_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -265,13 +405,15 @@ class ProcessDocumentCommand extends Command
                 $rows
             );
 
-            // Display output data for each processor
-            foreach ($documentJob->processorExecutions as $execution) {
-                if ($execution->isCompleted() && $execution->output_data) {
-                    $this->newLine();
-                    $processorName = $execution->processor?->name ?? 'Unknown';
-                    $this->line("<fg=cyan>Results from {$processorName}:</>");
-                    $this->displayOutputData($execution->output_data);
+            // Display output data for each processor (only if --show-output flag is set)
+            if ($this->option('show-output')) {
+                foreach ($documentJob->processorExecutions as $execution) {
+                    if ($execution->isCompleted() && $execution->output_data) {
+                        $this->newLine();
+                        $processorName = $execution->processor?->name ?? 'Unknown';
+                        $this->line("<fg=cyan>Results from {$processorName}:</>");
+                        $this->displayOutputData($execution->output_data);
+                    }
                 }
             }
         }
