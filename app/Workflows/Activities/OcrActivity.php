@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Workflows\Activities;
 
+use App\Data\Pipeline\ProcessorConfigData;
+use App\Data\Processors\ProcessorContextData;
 use App\Models\DocumentJob;
+use App\Models\ProcessorExecution;
 use App\Models\Tenant;
 use App\Services\Pipeline\ProcessorRegistry;
 use App\Services\Tenancy\TenancyService;
-use App\Data\Pipeline\ProcessorConfigData;
-use App\Data\Processors\ProcessorContextData;
 use Workflow\Activity;
 use Workflow\Exceptions\NonRetryableException;
 
@@ -36,11 +37,12 @@ class OcrActivity extends Activity
      * Timeout in seconds (5 minutes for OCR processing).
      */
     public $timeout = 300;
+
     /**
      * Execute OCR processing for a document.
      *
-     * @param string $documentJobId The DocumentJob ULID
-     * @param string $tenantId The Tenant ULID
+     * @param  string  $documentJobId  The DocumentJob ULID
+     * @param  string  $tenantId  The Tenant ULID
      * @return array OCR results (text, confidence, etc.)
      */
     public function execute(string $documentJobId, string $tenantId): array
@@ -54,22 +56,38 @@ class OcrActivity extends Activity
         $documentJob = DocumentJob::findOrFail($documentJobId);
         $document = $documentJob->document;
 
-        // Step 3: Get processor from registry (existing infrastructure)
-        $registry = app(ProcessorRegistry::class);
-        $processor = $registry->get('ocr');
+        // Step 3: Get first processor from pipeline (OCR is typically first)
+        $processorConfigs = $documentJob->pipeline_instance['processors'] ?? [];
 
-        // Step 4: Get processor config from pipeline instance
-        $processorConfig = collect($documentJob->pipeline_instance['processors'] ?? [])
-            ->firstWhere('id', 'ocr')
-            ?? collect($documentJob->pipeline_instance['processors'] ?? [])
-                ->firstWhere('type', 'ocr');
-
-        if (!$processorConfig) {
-            // NonRetryableException prevents automatic retries for configuration errors
-            // Use this for errors that won't be fixed by retrying (e.g., missing config, invalid data)
-            throw new NonRetryableException('OCR processor not found in pipeline config');
+        if (empty($processorConfigs)) {
+            throw new NonRetryableException('No processors configured in pipeline');
         }
 
+        // Get first processor config (OCR is first in pipeline)
+        $processorConfig = $processorConfigs[0];
+        $processorId = $processorConfig['id'] ?? null;
+
+        if (! $processorId) {
+            throw new NonRetryableException('Processor ID missing in pipeline config');
+        }
+
+        // Step 4: Load Processor model and get from registry
+        $processorModel = \App\Models\Processor::find($processorId);
+        if (! $processorModel) {
+            throw new NonRetryableException("Processor not found: {$processorId}");
+        }
+
+        // Get processor implementation from registry using slug
+        $registry = app(ProcessorRegistry::class);
+
+        // Register processor if not already registered
+        if (! $registry->has($processorModel->slug) && $processorModel->class_name) {
+            $registry->register($processorModel->slug, $processorModel->class_name);
+        }
+
+        $processor = $registry->get($processorModel->slug);
+
+        // Create ProcessorConfigData from processor config
         $config = ProcessorConfigData::from($processorConfig);
 
         // Step 5: Create context
@@ -79,26 +97,53 @@ class OcrActivity extends Activity
             previousOutputs: []
         );
 
-        // Step 6: Execute processor (existing implementation, no changes)
-        $result = $processor->handle($document, $config, $context);
+        // Step 6: Create ProcessorExecution record for tracking
+        $execution = ProcessorExecution::create([
+            'job_id' => $documentJob->id,
+            'processor_id' => $processorModel->id,
+            'input_data' => ['document_id' => $document->id],
+            'config' => $config->toArray(),
+        ]);
+        $execution->start();
 
-        if (!$result->success) {
-            // Check if this is a permanent failure (e.g., unsupported file format)
-            // vs temporary (e.g., API timeout) - throw appropriate exception
-            $error = $result->error ?? 'OCR processing failed';
-            
-            if (str_contains($error, 'unsupported') || str_contains($error, 'invalid file')) {
-                // Don't retry for unsupported files
-                throw new NonRetryableException($error);
+        // Step 7: Execute processor (existing implementation, no changes)
+        try {
+            $result = $processor->handle($document, $config, $context);
+
+            if (! $result->success) {
+                $error = $result->error ?? 'OCR processing failed';
+                $execution->fail($error);
+
+                // Check if this is a permanent failure (e.g., unsupported file format)
+                // vs temporary (e.g., API timeout) - throw appropriate exception
+                if (str_contains($error, 'unsupported') || str_contains($error, 'invalid file')) {
+                    // Don't retry for unsupported files
+                    throw new NonRetryableException($error);
+                }
+
+                // Temporary failures get retried automatically (up to $tries limit)
+                throw new \RuntimeException($error);
             }
-            
-            // Temporary failures get retried automatically (up to $tries limit)
-            throw new \RuntimeException($error);
+
+            // Mark execution as completed
+            $execution->complete(
+                output: $result->output,
+                tokensUsed: (int) ($result->output['tokens_used'] ?? 0),
+                costCredits: (int) ($result->output['cost_credits'] ?? 0)
+            );
+        } catch (\Throwable $e) {
+            // Avoid invalid state transition if "complete()" partially succeeded
+            if (! $execution->isCompleted()) {
+                $execution->fail($e->getMessage());
+            }
+            throw $e;
         }
 
-        // Step 7: Update document metadata (optional - could be done in separate activity)
+        // Step 8: Update document metadata (optional - could be done in separate activity)
         $metadata = $document->metadata ?? [];
         $metadata['ocr_output'] = $result->output;
+        // Store extracted text for downstream processors
+        $metadata['extracted_text'] = $result->output['text'] ?? '';
         $document->update(['metadata' => $metadata]);
 
         // Return results for next activity

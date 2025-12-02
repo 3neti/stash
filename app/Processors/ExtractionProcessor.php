@@ -162,8 +162,13 @@ class ExtractionProcessor extends AbstractProcessor
     {
         $schemas = $config->config['schema'] ?? [];
 
-        // Return schema for this category, or empty array
-        return $schemas[$category] ?? [];
+        // Return schema for this category
+        if (isset($schemas[$category])) {
+            return $schemas[$category];
+        }
+
+        // Fallback: generic schema for unknown categories
+        return ['document_type', 'date', 'description', 'key_information'];
     }
 
     /**

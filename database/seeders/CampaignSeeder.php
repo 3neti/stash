@@ -29,10 +29,10 @@ class CampaignSeeder extends Seeder
                 'state' => \App\States\Campaign\ActiveCampaignState::class,
                 'pipeline_config' => [
                     'processors' => [
-                        ['id' => $processors['tesseract-ocr'] ?? null, 'config' => ['language' => 'eng']],
-                        ['id' => $processors['document-classifier'] ?? null, 'config' => ['categories' => ['invoice']]],
-                        ['id' => $processors['data-extractor'] ?? null, 'config' => ['entity_types' => ['total', 'date', 'vendor']]],
-                        ['id' => $processors['schema-validator'] ?? null, 'config' => ['strict' => true]],
+                        ['id' => $processors['tesseract-ocr'] ?? null, 'type' => 'ocr', 'config' => ['language' => 'eng']],
+                        ['id' => $processors['document-classifier'] ?? null, 'type' => 'classification', 'config' => ['categories' => ['invoice']]],
+                        ['id' => $processors['data-extractor'] ?? null, 'type' => 'extraction', 'config' => ['entity_types' => ['total', 'date', 'vendor']]],
+                        ['id' => $processors['schema-validator'] ?? null, 'type' => 'validation', 'config' => ['strict' => true]],
                     ],
                 ],
                 'checklist_template' => [
@@ -56,8 +56,8 @@ class CampaignSeeder extends Seeder
                 'state' => \App\States\Campaign\ActiveCampaignState::class,
                 'pipeline_config' => [
                     'processors' => [
-                        ['id' => $processors['openai-vision'] ?? null, 'config' => ['model' => 'gpt-4-vision-preview']],
-                        ['id' => $processors['data-extractor'] ?? null, 'config' => ['entity_types' => ['merchant', 'total', 'date', 'items']]],
+                        ['id' => $processors['openai-vision-ocr'] ?? null, 'type' => 'ocr', 'config' => ['model' => 'gpt-4-vision-preview']],
+                        ['id' => $processors['data-extractor'] ?? null, 'type' => 'extraction', 'config' => ['entity_types' => ['merchant', 'total', 'date', 'items']]],
                     ],
                 ],
                 'checklist_template' => [
@@ -80,9 +80,9 @@ class CampaignSeeder extends Seeder
                 'state' => \App\States\Campaign\DraftCampaignState::class,
                 'pipeline_config' => [
                     'processors' => [
-                        ['id' => $processors['tesseract-ocr'] ?? null, 'config' => ['language' => 'eng', 'dpi' => 600]],
-                        ['id' => $processors['data-extractor'] ?? null, 'config' => ['entity_types' => ['parties', 'dates', 'terms', 'amounts']]],
-                        ['id' => $processors['data-enricher'] ?? null, 'config' => ['enrichment_sources' => ['legal_db']]],
+                        ['id' => $processors['tesseract-ocr'] ?? null, 'type' => 'ocr', 'config' => ['language' => 'eng', 'dpi' => 600]],
+                        ['id' => $processors['data-extractor'] ?? null, 'type' => 'extraction', 'config' => ['entity_types' => ['parties', 'dates', 'terms', 'amounts']]],
+                        ['id' => $processors['data-enricher'] ?? null, 'type' => 'enrichment', 'config' => ['enrichment_sources' => ['legal_db']]],
                     ],
                 ],
                 'settings' => [

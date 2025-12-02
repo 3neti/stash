@@ -9,6 +9,7 @@ use App\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Spatie\ModelStates\HasStates;
 
 /**
@@ -91,29 +92,40 @@ class ProcessorExecution extends Model
 
     public function complete(array $output, int $tokensUsed = 0, int $costCredits = 0): void
     {
-        $startedAt = $this->started_at ?? now();
-        $durationMs = now()->diffInMilliseconds($startedAt);
+        $startedAt = $this->started_at ?? $this->created_at ?? now();
+        $durationMs = (int) abs(now()->diffInMilliseconds($startedAt));
 
-        $this->state->transitionTo('completed');
-        $this->update([
-            'output_data' => $output,
-            'duration_ms' => $durationMs,
-            'tokens_used' => $tokensUsed,
-            'cost_credits' => $costCredits,
-            'completed_at' => now(),
-        ]);
+        DB::transaction(function () use ($output, $durationMs, $tokensUsed, $costCredits) {
+            $this->update([
+                'output_data' => $output,
+                'duration_ms' => $durationMs,
+                'tokens_used' => $tokensUsed,
+                'cost_credits' => $costCredits,
+                'completed_at' => now(),
+            ]);
+
+            $this->state->transitionTo('completed');
+        });
     }
 
     public function fail(string $error): void
     {
-        $startedAt = $this->started_at ?? now();
-        $durationMs = now()->diffInMilliseconds($startedAt);
+        // If already completed, do not attempt to transition to failed
+        if ($this->isCompleted()) {
+            return;
+        }
 
-        $this->state->transitionTo('failed');
-        $this->update([
-            'error_message' => $error,
-            'duration_ms' => $durationMs,
-            'completed_at' => now(),
-        ]);
+        $startedAt = $this->started_at ?? $this->created_at ?? now();
+        $durationMs = (int) abs(now()->diffInMilliseconds($startedAt));
+
+        DB::transaction(function () use ($error, $durationMs) {
+            $this->update([
+                'error_message' => $error,
+                'duration_ms' => $durationMs,
+                'completed_at' => now(),
+            ]);
+
+            $this->state->transitionTo('failed');
+        });
     }
 }

@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Workflows\Activities;
 
+use App\Data\Pipeline\ProcessorConfigData;
+use App\Data\Processors\ProcessorContextData;
 use App\Models\DocumentJob;
+use App\Models\ProcessorExecution;
 use App\Models\Tenant;
 use App\Services\Pipeline\ProcessorRegistry;
 use App\Services\Tenancy\TenancyService;
-use App\Data\Pipeline\ProcessorConfigData;
-use App\Data\Processors\ProcessorContextData;
 use Workflow\Activity;
 
 /**
@@ -28,13 +29,14 @@ class ExtractionActivity extends Activity
      * Timeout in seconds (3 minutes for extraction).
      */
     public $timeout = 180;
+
     /**
      * Execute extraction processing for a document.
      *
-     * @param string $documentJobId The DocumentJob ULID
-     * @param array $ocrResult OCR results from previous activity
-     * @param array $classificationResult Classification results from previous activity
-     * @param string $tenantId The Tenant ULID
+     * @param  string  $documentJobId  The DocumentJob ULID
+     * @param  array  $ocrResult  OCR results from previous activity
+     * @param  array  $classificationResult  Classification results from previous activity
+     * @param  string  $tenantId  The Tenant ULID
      * @return array Extraction results (extracted fields, etc.)
      */
     public function execute(
@@ -51,20 +53,38 @@ class ExtractionActivity extends Activity
         $documentJob = DocumentJob::findOrFail($documentJobId);
         $document = $documentJob->document;
 
-        // Step 3: Get processor from registry
-        $registry = app(ProcessorRegistry::class);
-        $processor = $registry->get('extraction');
+        // Step 3: Get third processor from pipeline (Extraction is typically third)
+        $processorConfigs = $documentJob->pipeline_instance['processors'] ?? [];
 
-        // Step 4: Get processor config from pipeline instance
-        $processorConfig = collect($documentJob->pipeline_instance['processors'] ?? [])
-            ->firstWhere('id', 'extraction')
-            ?? collect($documentJob->pipeline_instance['processors'] ?? [])
-                ->firstWhere('type', 'extraction');
-
-        if (!$processorConfig) {
-            throw new \RuntimeException('Extraction processor not found in pipeline config');
+        if (count($processorConfigs) < 3) {
+            throw new \RuntimeException('Extraction processor not configured in pipeline');
         }
 
+        // Get third processor config (Extraction is third in pipeline)
+        $processorConfig = $processorConfigs[2];
+        $processorId = $processorConfig['id'] ?? null;
+
+        if (! $processorId) {
+            throw new \RuntimeException('Processor ID missing in pipeline config');
+        }
+
+        // Step 4: Load Processor model and get from registry
+        $processorModel = \App\Models\Processor::find($processorId);
+        if (! $processorModel) {
+            throw new \RuntimeException("Processor not found: {$processorId}");
+        }
+
+        // Get processor implementation from registry using slug
+        $registry = app(ProcessorRegistry::class);
+
+        // Register processor if not already registered
+        if (! $registry->has($processorModel->slug) && $processorModel->class_name) {
+            $registry->register($processorModel->slug, $processorModel->class_name);
+        }
+
+        $processor = $registry->get($processorModel->slug);
+
+        // Create ProcessorConfigData from processor config
         $config = ProcessorConfigData::from($processorConfig);
 
         // Step 5: Create context with previous outputs
@@ -77,14 +97,42 @@ class ExtractionActivity extends Activity
             ]
         );
 
-        // Step 6: Execute processor
-        $result = $processor->handle($document, $config, $context);
+        // Step 6: Create ProcessorExecution record for tracking
+        $execution = ProcessorExecution::create([
+            'job_id' => $documentJob->id,
+            'processor_id' => $processorModel->id,
+            'input_data' => [
+                'ocr_result' => $ocrResult,
+                'classification_result' => $classificationResult,
+            ],
+            'config' => $config->toArray(),
+        ]);
+        $execution->start();
 
-        if (!$result->success) {
-            throw new \RuntimeException($result->error ?? 'Extraction processing failed');
+        // Step 7: Execute processor
+        try {
+            $result = $processor->handle($document, $config, $context);
+
+            if (! $result->success) {
+                $error = $result->error ?? 'Extraction processing failed';
+                $execution->fail($error);
+                throw new \RuntimeException($error);
+            }
+
+            // Mark execution as completed
+            $execution->complete(
+                output: $result->output,
+                tokensUsed: (int) ($result->output['tokens_used'] ?? 0),
+                costCredits: (int) ($result->output['cost_credits'] ?? 0)
+            );
+        } catch (\Throwable $e) {
+            if (! $execution->isCompleted()) {
+                $execution->fail($e->getMessage());
+            }
+            throw $e;
         }
 
-        // Step 7: Update document metadata
+        // Step 8: Update document metadata
         $metadata = $document->metadata ?? [];
         $metadata['extraction_output'] = $result->output;
         $document->update(['metadata' => $metadata]);

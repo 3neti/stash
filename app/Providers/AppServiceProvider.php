@@ -4,9 +4,9 @@ namespace App\Providers;
 
 use App\Listeners\WorkflowCompletedListener;
 use App\Listeners\WorkflowFailedListener;
-use App\Services\Pipeline\ProcessorRegistry;
-use App\Services\Pipeline\ProcessorHookManager;
 use App\Services\Pipeline\Hooks\TimeTrackingHook;
+use App\Services\Pipeline\ProcessorHookManager;
+use App\Services\Pipeline\ProcessorRegistry;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
@@ -34,13 +34,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Auto-discover and register processors
+        // Auto-discover and register processors from filesystem
         $registry = $this->app->make(ProcessorRegistry::class);
         $registry->discover();
 
+        // Also register processors from database (tenant-aware)
+        // This runs after discover() so database slugs take precedence
+        $registry->registerFromDatabase();
+
         // Register processor hooks
         $hookManager = $this->app->make(ProcessorHookManager::class);
-        $hookManager->register(new TimeTrackingHook());
+        $hookManager->register(new TimeTrackingHook);
 
         // Register workflow event listeners
         Event::listen(WorkflowCompleted::class, WorkflowCompletedListener::class);

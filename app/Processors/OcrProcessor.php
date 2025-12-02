@@ -88,39 +88,115 @@ class OcrProcessor extends AbstractProcessor
      */
     private function extractText(string $filePath, array $config): array
     {
-        $ocr = new TesseractOCR($filePath);
-
-        // Configure language (default: English)
         $language = $config['language'] ?? 'eng';
-        $ocr->lang($language);
+        $psm = $config['psm'] ?? 3; // 3 = automatic page segmentation
+        $oem = $config['oem'] ?? 3; // 3 = default engine mode
+        $dpi = $config['dpi'] ?? 300;
 
-        // Configure page segmentation mode (PSM)
-        // 3 = Fully automatic page segmentation, but no OSD (default)
-        // 6 = Assume a single uniform block of text
-        $psm = $config['psm'] ?? 3;
-        $ocr->psm($psm);
+        $imagePaths = [];
+        $cleanup = function () use (&$imagePaths): void {
+            foreach ($imagePaths as $img) {
+                if (is_string($img) && file_exists($img)) {
+                    @unlink($img);
+                }
+            }
+        };
 
-        // Set OCR Engine Mode (OEM)
-        // 3 = Default, based on what is available (LSTM, Legacy, or both)
-        $oem = $config['oem'] ?? 3;
-        $ocr->oem($oem);
+        try {
+            // If input is a PDF, rasterize to images first (Imagick -> pdftoppm fallback)
+            if (str_ends_with(strtolower($filePath), '.pdf')) {
+                $imagePaths = $this->convertPdfToImages($filePath, $dpi);
+            } else {
+                $imagePaths = [$filePath];
+            }
 
-        // Execute OCR
-        $text = $ocr->run();
+            $texts = [];
+            foreach ($imagePaths as $index => $imgPath) {
+                $ocr = new TesseractOCR($imgPath);
+                $ocr->lang($language)->psm($psm)->oem($oem);
+                $texts[] = $ocr->run();
+            }
 
-        // Note: Confidence detection requires hocr output which needs a separate Tesseract call
-        // Skipping for performance - can be added later if needed
-        $confidence = null;
+            $text = trim(implode("\n\n", $texts));
+            $confidence = null; // optional, requires hOCR pass
 
-        return [
-            'text' => $text,
-            'language' => $language,
-            'confidence' => $confidence,
-            'char_count' => mb_strlen($text),
-            'word_count' => str_word_count($text),
-            'psm' => $psm,
-            'oem' => $oem,
-        ];
+            return [
+                'text' => $text,
+                'language' => $language,
+                'confidence' => $confidence,
+                'char_count' => mb_strlen($text),
+                'word_count' => str_word_count($text),
+                'psm' => $psm,
+                'oem' => $oem,
+                'pages' => count($imagePaths),
+            ];
+        } finally {
+            $cleanup();
+        }
+    }
+
+    /**
+     * Convert a PDF file to a set of PNG images (one per page).
+     * Prefers Imagick; falls back to `pdftoppm` if available.
+     *
+     * @return array<int,string> Absolute paths to generated PNGs
+     */
+    private function convertPdfToImages(string $pdfPath, int $dpi = 300): array
+    {
+        $generated = [];
+
+        // Prefer Imagick if available
+        if (class_exists('Imagick')) {
+            try {
+                $imagick = new \Imagick();
+                $imagick->setResolution($dpi, $dpi);
+                // Read all pages
+                $imagick->readImage($pdfPath);
+                $imagick->setImageFormat('png');
+
+                foreach ($imagick as $page) {
+                    $tmp = tempnam(sys_get_temp_dir(), 'ocr_');
+                    $pngPath = $tmp . '.png';
+                    $page->writeImage($pngPath);
+                    $generated[] = $pngPath;
+                }
+
+                $imagick->clear();
+                $imagick->destroy();
+
+                if (! empty($generated)) {
+                    return $generated;
+                }
+            } catch (\Throwable $e) {
+                // Fall through to pdftoppm
+            }
+        }
+
+        // Fallback to pdftoppm if available
+        $outBase = sys_get_temp_dir() . '/ocr_' . uniqid();
+        $cmd = sprintf(
+            'pdftoppm -png -r %d %s %s 2>&1',
+            $dpi,
+            escapeshellarg($pdfPath),
+            escapeshellarg($outBase)
+        );
+        $output = [];
+        $code = 0;
+        @exec($cmd, $output, $code);
+
+        if ($code === 0) {
+            $files = glob($outBase . '-*.png') ?: [];
+            if (! empty($files)) {
+                // Ensure absolute paths
+                foreach ($files as $f) {
+                    $generated[] = realpath($f) ?: $f;
+                }
+                return $generated;
+            }
+        }
+
+        // If we reach here, no conversion path succeeded
+        throw new \RuntimeException('PDF to image conversion failed. Ensure Imagick (PHP extension) or pdftoppm is installed.');
     }
 
     /**

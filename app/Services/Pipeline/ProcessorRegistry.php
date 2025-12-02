@@ -61,6 +61,7 @@ class ProcessorRegistry
         // Check in-memory registry first (for short IDs like "ocr", "classification")
         if ($this->has($id)) {
             $className = $this->processors[$id];
+
             return $this->container->make($className);
         }
 
@@ -118,6 +119,25 @@ class ProcessorRegistry
                 $id = strtolower(str_replace('Processor', '', $baseName));
                 $this->register($id, $className);
             }
+        }
+    }
+
+    /**
+     * Register processors from database models.
+     * Maps database slugs to processor class names.
+     */
+    public function registerFromDatabase(): void
+    {
+        try {
+            $processors = \App\Models\Processor::all();
+
+            foreach ($processors as $processor) {
+                if ($processor->class_name && class_exists($processor->class_name)) {
+                    $this->register($processor->slug, $processor->class_name);
+                }
+            }
+        } catch (\Exception $e) {
+            // Silently fail if database not ready (e.g., during migrations)
         }
     }
 
