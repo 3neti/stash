@@ -838,16 +838,76 @@ class StoredWorkflow extends BaseStoredWorkflow
 | Workflow History | Automatic event sourcing |
 | Resume After Crash | Resumes from last checkpoint |
 
-### Monitoring (Optional)
+### Monitoring Tools
 
-Install Waterline UI for workflow visualization:
+The application includes two monitoring dashboards for observing workflow execution and queue processing in real-time.
 
-```bash
-composer require laravel-workflow/waterline
-php artisan vendor:publish --provider="Waterline\WaterlineServiceProvider"
+#### Waterline (Workflow Monitoring)
+
+Waterline provides visual monitoring for Laravel Workflow executions:
+
+**Features**:
+- Workflow execution history and status
+- Activity-level progress tracking
+- Checkpoint visualization
+- Retry attempts and failures
+- Execution timeline and duration
+- Workflow output inspection
+
+**Access**:
+```
+http://stash.test:8000/waterline
 ```
 
-Access at: `http://stash.test:8000/waterline/dashboard`
+**Requirements**:
+- Must be authenticated (protected by `auth` middleware)
+- Workflows stored in central database
+
+**Configuration**: `config/waterline.php`
+
+#### Horizon (Queue Monitoring)
+
+Horizon provides monitoring and management for Redis queues:
+
+**Features**:
+- Real-time queue metrics (throughput, runtime, failures)
+- Job monitoring and retry management
+- Worker supervision and load balancing
+- Failed job tracking and manual retry
+- Queue prioritization
+- Metrics dashboard (jobs per minute, wait times)
+
+**Access**:
+```
+http://stash.test:8000/horizon
+```
+
+**Requirements**:
+- Redis connection (`QUEUE_CONNECTION=redis`)
+- Authenticated users in local environment
+- Gate authorization for production (see `HorizonServiceProvider`)
+
+**Starting Horizon**:
+```bash
+php artisan horizon        # Production
+composer run dev           # Development (includes horizon)
+```
+
+**Configuration**: `config/horizon.php`
+
+#### Usage Tips
+
+**Debugging Workflow Issues**:
+1. Check Waterline for workflow status and checkpoint progress
+2. Check Horizon for queue job failures
+3. Review activity-specific errors in workflow logs
+4. Use `php artisan pail` for real-time log streaming
+
+**Performance Monitoring**:
+- Monitor queue wait times in Horizon
+- Track workflow execution duration in Waterline
+- Identify bottleneck activities via timeline visualization
+- Optimize retry strategies based on failure patterns
 
 ### Reference
 
