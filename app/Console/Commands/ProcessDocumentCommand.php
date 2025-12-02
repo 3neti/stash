@@ -168,8 +168,24 @@ class ProcessDocumentCommand extends Command
                     
                     if ($execution->isCompleted()) {
                         $this->line("  <fg=green>✓</> {$processorName} <fg=gray>({$duration})</>");
+                        
+                        // Show JSON output for this stage
+                        if ($execution->output_data) {
+                            $this->newLine();
+                            $this->line("    <fg=yellow>Output:</>");
+                            $json = json_encode($execution->output_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+                            foreach (explode("\n", $json) as $line) {
+                                $this->line("    <fg=gray>{$line}</>");
+                            }
+                            $this->newLine();
+                        }
                     } elseif ($execution->isFailed()) {
                         $this->line("  <fg=red>✗</> {$processorName} <fg=gray>({$duration})</>");
+                        
+                        // Show error message
+                        if ($execution->error_message) {
+                            $this->line("    <fg=red>Error: {$execution->error_message}</>");
+                        }
                     }
                 }
                 $lastActivityCount = $executions->count();
