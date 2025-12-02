@@ -77,7 +77,7 @@ it('can create deleted event using factory state', function () {
 });
 
 it('casts old_values to array', function () {
-    $oldValues = ['status' => 'draft', 'name' => 'Old Name'];
+    $oldValues = ['state' => \App\States\Campaign\DraftCampaignState::class, 'name' => 'Old Name'];
 
     $log = AuditLog::factory()->create([
         'old_values' => $oldValues,
@@ -230,7 +230,7 @@ it('creates audit log using static log method', function () {
         auditableType: Campaign::class,
         auditableId: $campaign->id,
         event: 'published',
-        oldValues: ['status' => 'draft'],
+        oldValues: ['state' => \App\States\Campaign\DraftCampaignState::class],
         newValues: ['status' => 'active'],
         userId: $user->id,
         tags: ['campaign', 'publish']
