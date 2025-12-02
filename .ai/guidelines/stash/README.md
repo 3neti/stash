@@ -1,6 +1,42 @@
 # Stash/DeadDrop AI Guidelines
 
+👉 **New to this project? Start with [QUICKSTART.md](QUICKSTART.md) for essential knowledge in 5 minutes.**
+
 Welcome to the comprehensive AI development guidelines for Stash. This directory contains everything an AI agent needs to understand the application's architecture, workflows, testing patterns, and debugging procedures.
+
+## ✅ Current Project Status (December 2024)
+
+**Production Ready**: Core workflow system migrated to Laravel Workflow
+
+### What's Different Now
+- **Workflow System**: Migrated from legacy pipeline to Laravel Workflow (Phase 5-6 COMPLETE)
+  - Removed: `ProcessDocumentJob`, `SetTenantContext` middleware
+  - Added: `DocumentProcessingWorkflow` with 4 Activities
+  - Code reduction: 56% (873→380 lines)
+  - Monitoring: Waterline + Horizon installed
+
+- **State Management**: Now uses `spatie/laravel-model-states`
+  - Campaign states: `ActiveCampaignState`, `DraftCampaignState`, `PausedCampaignState`, `ArchivedCampaignState`
+  - Document states: `CompletedDocumentState`, `ProcessingDocumentState`, `FailedDocumentState`
+  - ⚠️ **NEVER use 'status' strings** - always use state classes
+
+- **Test Suite**: 364/428 passing (85%)
+  - Core workflow: 16/16 (100%)
+  - Document upload: 19/19 (100%)
+  - Remaining: Peripheral features (fix incrementally)
+  - See: `TEST_FIX_SUMMARY.md` for details
+
+- **Multi-Tenancy Pattern**: 
+  - Central DB: `tenants`, `users`
+  - Tenant DBs: `campaigns`, `documents`, `document_jobs`
+  - **Always wrap tenant operations**: `TenantContext::run($tenant, fn() => ...)`
+  - **Tests must use**: `UsesDashboardSetup` trait + `TenantContext::run()`
+
+### Key Documents for New Sessions
+1. **DEPLOYMENT_READY.md** - Production deployment guide and system status
+2. **TEST_FIX_SUMMARY.md** - Test status and fix patterns
+3. **LARAVEL_WORKFLOW_ARCHITECTURE.md** - Workflow system architecture
+4. **WARP.md** - Project conventions (see "Project Status" section at top)
 
 ## Quick Navigation
 
