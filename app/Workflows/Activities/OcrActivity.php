@@ -6,6 +6,7 @@ namespace App\Workflows\Activities;
 
 use App\Data\Pipeline\ProcessorConfigData;
 use App\Data\Processors\ProcessorContextData;
+use App\Events\ProcessorExecutionCompleted;
 use App\Models\DocumentJob;
 use App\Models\ProcessorExecution;
 use App\Models\Tenant;
@@ -131,6 +132,9 @@ class OcrActivity extends Activity
                 tokensUsed: (int) ($result->output['tokens_used'] ?? 0),
                 costCredits: (int) ($result->output['cost_credits'] ?? 0)
             );
+
+            // Fire event for real-time monitoring
+            event(new ProcessorExecutionCompleted($execution, $documentJob));
         } catch (\Throwable $e) {
             // Avoid invalid state transition if "complete()" partially succeeded
             if (! $execution->isCompleted()) {
