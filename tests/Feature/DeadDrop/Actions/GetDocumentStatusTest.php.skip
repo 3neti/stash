@@ -6,23 +6,34 @@ use App\Models\Document;
 use App\Models\DocumentJob;
 use App\Models\Processor;
 use App\Models\ProcessorExecution;
+use App\Tenancy\TenantContext;
+use Tests\Support\UsesDashboardSetup;
+
+uses(UsesDashboardSetup::class)
+    ->group('feature', 'document', 'action', 'tenant');
 
 describe('GetDocumentStatus Action', function () {
     beforeEach(function () {
-        $this->campaign = Campaign::factory()->create();
+        // Setup tenant with database
+        [$tenant, $user] = $this->setupDashboardTestTenant();
+        $this->tenant = $tenant;
+        $this->user = $user;
     });
 
     test('retrieves document with relationships loaded', function () {
-        $document = Document::factory()
-            ->for($this->campaign)
-            ->create();
+        TenantContext::run($this->tenant, function () {
+            $campaign = Campaign::factory()->create();
+            $document = Document::factory()
+                ->for($campaign)
+                ->create();
 
-        $action = new GetDocumentStatus;
-        $result = $action->handle($document);
+            $action = new GetDocumentStatus;
+            $result = $action->handle($document);
 
-        expect($result)->toBeInstanceOf(Document::class)
-            ->and($result->id)->toBe($document->id)
-            ->and($result->relationLoaded('campaign'))->toBeTrue();
+            expect($result)->toBeInstanceOf(Document::class)
+                ->and($result->id)->toBe($document->id)
+                ->and($result->relationLoaded('campaign'))->toBeTrue();
+        });
     });
 
     test('eager loads campaign relationship', function () {
