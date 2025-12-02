@@ -27,6 +27,39 @@ class ProcessDocumentCommand extends Command
 
     protected $description = 'Upload and process one or more documents through the pipeline';
 
+    /**
+     * Check if JSON output mode is enabled.
+     */
+    private function shouldOutputJson(): bool
+    {
+        return (bool) $this->option('json');
+    }
+
+    /**
+     * Output a message conditionally (suppressed in JSON mode).
+     */
+    private function conditionalOutput(string $message, string $type = 'info'): void
+    {
+        if ($this->shouldOutputJson()) {
+            return;
+        }
+
+        match ($type) {
+            'error' => $this->error($message),
+            'warn' => $this->warn($message),
+            'line' => $this->line($message),
+            default => $this->info($message),
+        };
+    }
+
+    /**
+     * Output JSON result.
+     */
+    private function outputJson(array $data): void
+    {
+        $this->getOutput()->writeln(json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
     public function handle(): int
     {
         $documentPaths = $this->argument('documents');
@@ -69,7 +102,7 @@ class ProcessDocumentCommand extends Command
                 return self::FAILURE;
             }
 
-            $this->info("✓ Processing as user: {$user->name} ({$user->email})");
+            $this->conditionalOutput("✓ Processing as user: {$user->name} ({$user->email})");
         }
 
         // 2. Find or use specified tenant (if not from user)
@@ -92,8 +125,10 @@ class ProcessDocumentCommand extends Command
             }
         }
 
-        $this->info("✓ Using tenant: {$tenant->name} ({$tenant->slug})");
-        $this->newLine();
+        $this->conditionalOutput("✓ Using tenant: {$tenant->name} ({$tenant->slug})");
+        if (! $this->shouldOutputJson()) {
+            $this->newLine();
+        }
 
         // 3. Process each document
         $results = [];
@@ -102,7 +137,7 @@ class ProcessDocumentCommand extends Command
         foreach ($documentPaths as $index => $filePath) {
             $documentNumber = $index + 1;
 
-            if ($totalCount > 1) {
+            if ($totalCount > 1 && ! $this->shouldOutputJson()) {
                 $this->info("Processing document {$documentNumber} of {$totalCount}:");
             }
 
@@ -114,9 +149,33 @@ class ProcessDocumentCommand extends Command
             }
         }
 
-        // 4. Display batch summary if multiple documents
-        if ($totalCount > 1) {
-            $this->displayBatchSummary($results);
+        // 4. Output results
+        if ($this->shouldOutputJson()) {
+            // JSON output mode
+            $successCount = count(array_filter($results, fn ($r) => $r['success']));
+            $this->outputJson([
+                'success' => $successCount === $totalCount,
+                'processed' => $totalCount,
+                'successful' => $successCount,
+                'failed' => $totalCount - $successCount,
+                'documents' => array_map(function ($result) {
+                    return [
+                        'file' => $result['filename'],
+                        'document_id' => $result['document_uuid'],
+                        'job_id' => $result['job_uuid'],
+                        'campaign' => $result['campaign'],
+                        'status' => $result['status'],
+                        'duration_ms' => (int) ($result['duration'] * 1000),
+                        'outputs' => $result['outputs'] ?? null,
+                        'error' => $result['error'],
+                    ];
+                }, $results),
+            ]);
+        } else {
+            // Standard output mode
+            if ($totalCount > 1) {
+                $this->displayBatchSummary($results);
+            }
         }
 
         // 5. Determine exit code
@@ -166,7 +225,7 @@ class ProcessDocumentCommand extends Command
                     }
                 }
 
-                $this->info("✓ Using campaign: {$campaign->name} ({$campaign->slug})");
+                $this->conditionalOutput("✓ Using campaign: {$campaign->name} ({$campaign->slug})");
 
                 // Create UploadedFile instance from file path
                 $uploadedFile = new UploadedFile(
@@ -178,32 +237,32 @@ class ProcessDocumentCommand extends Command
                 );
 
                 // Upload document using UploadDocument action
-                $this->info("Uploading {$uploadedFile->getClientOriginalName()}...");
+                $this->conditionalOutput("Uploading {$uploadedFile->getClientOriginalName()}...");
                 $uploadAction = app(UploadDocument::class);
                 $document = $uploadAction->handle($campaign, $uploadedFile);
 
-                $this->info("✓ Document uploaded: {$document->uuid}");
-                $this->info("  - Size: {$document->formatted_size}");
+                $this->conditionalOutput("✓ Document uploaded: {$document->uuid}");
+                $this->conditionalOutput("  - Size: {$document->formatted_size}");
 
                 // Get document job
                 $documentJob = $document->documentJob()->first();
                 if ($documentJob) {
-                    $this->info("✓ Job created: {$documentJob->uuid}");
+                    $this->conditionalOutput("✓ Job created: {$documentJob->uuid}");
 
                     // Wait for processing if requested
                     if ($this->option('wait')) {
                         $this->waitForProcessing($documentJob);
                     }
                 } else {
-                    $this->warn('No job was created for this document');
+                    $this->conditionalOutput('No job was created for this document', 'warn');
                 }
             });
 
             if ($document && ! $error) {
                 $success = true;
                 
-                // Show single document summary if not in batch mode
-                if (count($this->argument('documents')) === 1 && ! $this->option('wait')) {
+                // Show single document summary if not in batch mode and not JSON mode
+                if (! $this->shouldOutputJson() && count($this->argument('documents')) === 1 && ! $this->option('wait')) {
                     $this->newLine();
                     $this->info('✅ Document processing initiated successfully!');
                     $this->newLine();
@@ -227,6 +286,19 @@ class ProcessDocumentCommand extends Command
 
         $duration = microtime(true) - $startTime;
 
+        // Collect processor outputs if JSON mode and outputs requested
+        $outputs = null;
+        if ($this->shouldOutputJson() && $this->option('show-output') && $documentJob) {
+            $documentJob->load('processorExecutions.processor');
+            $outputs = [];
+            foreach ($documentJob->processorExecutions as $execution) {
+                if ($execution->isCompleted() && $execution->output_data) {
+                    $processorSlug = $execution->processor->slug ?? 'unknown';
+                    $outputs[$processorSlug] = $execution->output_data;
+                }
+            }
+        }
+
         return [
             'filename' => basename($filePath),
             'document_uuid' => $document?->uuid,
@@ -236,6 +308,7 @@ class ProcessDocumentCommand extends Command
             'duration' => $duration,
             'success' => $success,
             'error' => $error,
+            'outputs' => $outputs,
         ];
     }
 
