@@ -18,7 +18,7 @@ use Spatie\ModelStates\HasStates;
  */
 class ProcessorExecution extends Model
 {
-    use BelongsToTenant, HasFactory, HasUlids;
+    use BelongsToTenant, HasFactory, HasStates, HasUlids;
 
     protected $connection = 'tenant';
 

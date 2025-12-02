@@ -26,7 +26,7 @@ use Spatie\ModelStates\HasStates;
  */
 class Document extends Model
 {
-    use BelongsToTenant, HasFactory, HasUlids, SoftDeletes;
+    use BelongsToTenant, HasFactory, HasStates, HasUlids, SoftDeletes;
 
     protected $connection = 'tenant';
 
