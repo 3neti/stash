@@ -19,7 +19,7 @@ const form = useForm({
     name: props.campaign.name,
     description: props.campaign.description || '',
     type: props.campaign.type,
-    status: props.campaign.status,
+    state: props.campaign.state,
 });
 
 const submit = () => {
@@ -93,12 +93,12 @@ const breadcrumbs: BreadcrumbItem[] = [
                         </div>
 
                         <div class="space-y-2">
-                            <Label>Status</Label>
+                            <Label>State</Label>
                             <div class="grid grid-cols-2 gap-2">
                                 <label class="flex items-center gap-2">
                                     <input
                                         type="radio"
-                                        v-model="form.status"
+                                        v-model="form.state"
                                         value="draft"
                                         class="h-4 w-4"
                                     />
@@ -107,7 +107,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 <label class="flex items-center gap-2">
                                     <input
                                         type="radio"
-                                        v-model="form.status"
+                                        v-model="form.state"
                                         value="active"
                                         class="h-4 w-4"
                                     />
@@ -116,7 +116,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 <label class="flex items-center gap-2">
                                     <input
                                         type="radio"
-                                        v-model="form.status"
+                                        v-model="form.state"
                                         value="paused"
                                         class="h-4 w-4"
                                     />
@@ -125,15 +125,15 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 <label class="flex items-center gap-2">
                                     <input
                                         type="radio"
-                                        v-model="form.status"
+                                        v-model="form.state"
                                         value="archived"
                                         class="h-4 w-4"
                                     />
                                     <span>Archived</span>
                                 </label>
                             </div>
-                            <p v-if="form.errors.status" class="text-sm text-destructive">
-                                {{ form.errors.status }}
+                            <p v-if="form.errors.state" class="text-sm text-destructive">
+                                {{ form.errors.state }}
                             </p>
                         </div>
 

@@ -28,8 +28,8 @@ defineProps<Props>();
                     <FolderOpen class="h-5 w-5 text-muted-foreground" />
                     <CardTitle data-testid="campaign-name">{{ campaign.name }}</CardTitle>
                 </div>
-                <Badge data-testid="campaign-status" :variant="campaign.status === 'active' ? 'default' : 'secondary'">
-                    {{ campaign.status }}
+                <Badge data-testid="campaign-status" :variant="campaign.state === 'active' ? 'default' : 'secondary'">
+                    {{ campaign.state }}
                 </Badge>
             </div>
             <CardDescription v-if="campaign.description" data-testid="campaign-description">

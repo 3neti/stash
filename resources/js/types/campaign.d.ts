@@ -3,7 +3,7 @@ export interface Campaign {
     name: string;
     slug: string;
     description: string | null;
-    status: 'draft' | 'active' | 'paused' | 'archived';
+    state: 'draft' | 'active' | 'paused' | 'archived';
     type: 'template' | 'custom' | 'meta';
     pipeline_config: Record<string, unknown> | null;
     settings: Record<string, unknown> | null;
@@ -13,6 +13,6 @@ export interface Campaign {
 }
 
 export interface CampaignFilters {
-    status?: string;
+    state?: string;
     search?: string;
 }

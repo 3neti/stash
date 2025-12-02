@@ -44,8 +44,8 @@ const breadcrumbs: BreadcrumbItem[] = [
                 <div>
                     <div class="flex items-center gap-3">
                         <h1 class="text-2xl font-bold">{{ campaign.name }}</h1>
-                        <Badge :variant="campaign.status === 'active' ? 'default' : 'secondary'">
-                            {{ campaign.status }}
+                        <Badge :variant="campaign.state === 'active' ? 'default' : 'secondary'">
+                            {{ campaign.state }}
                         </Badge>
                     </div>
                     <p v-if="campaign.description" class="text-muted-foreground mt-1">
