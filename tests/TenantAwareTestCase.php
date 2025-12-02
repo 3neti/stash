@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Artisan;
 /**
  * TestCase for tests that need tenant-scoped tables.
  *
- * Uses DatabaseTransactions on both pgsql and tenant connections.
- * Tenant migrations must be run manually: php artisan migrate --path=database/migrations/tenant
+ * Uses DatabaseTransactions on both central and tenant connections.
+ * Supports testing multi-tenant scenarios with proper database isolation.
  */
 abstract class TenantAwareTestCase extends TestCase
 {
@@ -17,6 +17,7 @@ abstract class TenantAwareTestCase extends TestCase
 
     /**
      * The database connections that should have transactions.
+     * Both central and tenant connections need transactional support for isolation.
      */
-    protected array $connectionsToTransact = ['pgsql', 'tenant'];
+    protected array $connectionsToTransact = ['central', 'tenant'];
 }

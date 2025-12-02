@@ -18,7 +18,7 @@ return new class extends Migration
             $table->integer('completed_stages')->default(0);
             $table->float('percentage_complete')->default(0);
             $table->string('current_stage')->nullable();
-            $table->string('status')->default('pending');
+            $table->string('status');
             $table->timestamps();
 
             $table->foreign('job_id')->references('id')->on('document_jobs')->cascadeOnDelete();

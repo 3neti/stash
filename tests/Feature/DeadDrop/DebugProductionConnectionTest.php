@@ -30,7 +30,7 @@ test('debug: trace database connections during middleware flow', function () {
     $retrievedUser = User::find($user->id);
     expect($retrievedUser->tenant_id)->toBe($tenant->id);
 
-    $retrievedTenant = Tenant::on('pgsql')->find($retrievedUser->tenant_id);
+    $retrievedTenant = Tenant::find($retrievedUser->tenant_id);
     expect($retrievedTenant->id)->toBe($tenant->id);
 
     // This is what middleware does

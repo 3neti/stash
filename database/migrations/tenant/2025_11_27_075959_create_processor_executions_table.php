@@ -18,7 +18,7 @@ return new class extends Migration
             $table->json('input_data');
             $table->json('output_data')->nullable();
             $table->json('config');
-            $table->string('state')->default('pending');
+            $table->string('state');
             $table->integer('duration_ms')->nullable();
             $table->text('error_message')->nullable();
             $table->integer('tokens_used')->default(0);

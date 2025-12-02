@@ -16,7 +16,7 @@ class ProcessDocumentJobFixTest extends DeadDropTestCase
 {
     private function getTenant(): Tenant
     {
-        return Tenant::on('pgsql')->firstOrCreate(
+        return Tenant::firstOrCreate(
             ['slug' => 'test-tenant'],
             ['name' => 'Test Tenant']
         );

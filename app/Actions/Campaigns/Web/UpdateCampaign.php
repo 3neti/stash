@@ -25,7 +25,7 @@ class UpdateCampaign
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'type' => ['sometimes', 'required', 'in:template,custom,meta'],
-            'status' => ['sometimes', 'required', 'in:draft,active,paused,archived'],
+            'state' => ['sometimes', 'required', 'in:draft,active,paused,archived'],
             'pipeline_config' => ['nullable', 'array'],
             'settings' => ['nullable', 'array'],
         ];

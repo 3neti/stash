@@ -20,7 +20,7 @@ class CampaignFactory extends Factory
             'name' => fake()->catchPhrase(),
             'slug' => fake()->unique()->slug(),
             'description' => fake()->sentence(),
-            'status' => fake()->randomElement(['draft', 'active', 'paused', 'archived']),
+            'state' => fake()->randomElement(['draft', 'active', 'paused', 'archived']),
             'type' => fake()->randomElement(['template', 'custom', 'meta']),
             'pipeline_config' => [
                 'processors' => [
@@ -44,7 +44,7 @@ class CampaignFactory extends Factory
     public function active(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'active',
+            'state' => 'active',
             'published_at' => now(),
         ]);
     }
@@ -52,7 +52,7 @@ class CampaignFactory extends Factory
     public function draft(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'draft',
+            'state' => 'draft',
             'published_at' => null,
         ]);
     }

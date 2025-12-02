@@ -11,6 +11,7 @@ use App\States\Document\PendingDocumentState;
 use App\States\Document\ProcessingDocumentState;
 use App\States\Document\QueuedDocumentState;
 use App\Tenancy\Traits\BelongsToTenant;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -25,11 +26,9 @@ use Spatie\ModelStates\HasStates;
  */
 class Document extends Model
 {
-    use BelongsToTenant, HasFactory, HasStates, SoftDeletes;
+    use BelongsToTenant, HasFactory, HasUlids, SoftDeletes;
 
-    public $incrementing = false;
-
-    protected $keyType = 'string';
+    protected $connection = 'tenant';
 
     protected $fillable = [
         'uuid',
@@ -69,9 +68,6 @@ class Document extends Model
         parent::boot();
 
         static::creating(function (Document $document) {
-            if (empty($document->id)) {
-                $document->id = (string) Str::ulid();
-            }
             if (empty($document->uuid)) {
                 $document->uuid = (string) Str::uuid();
             }
@@ -87,7 +83,7 @@ class Document extends Model
     {
         // Users live on central database, not tenant database
         $instance = $this->newRelatedInstance(User::class);
-        $instance->setConnection('pgsql');
+        $instance->setConnection('central');
 
         return $this->newBelongsTo(
             $instance->newQuery(),

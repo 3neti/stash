@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\States\Campaign\ActiveCampaignState;
+use App\States\Campaign\ArchivedCampaignState;
+use App\States\Campaign\CampaignState;
+use App\States\Campaign\DraftCampaignState;
+use App\States\Campaign\PausedCampaignState;
 use App\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -15,6 +20,7 @@ use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Support\Facades\Crypt;
 use Laravel\Sanctum\HasApiTokens;
 use LBHurtado\ModelChannel\Traits\HasChannels;
+use Spatie\ModelStates\HasStates;
 
 /**
  * Campaign Model
@@ -25,7 +31,7 @@ use LBHurtado\ModelChannel\Traits\HasChannels;
  * @property string $name Campaign name
  * @property string $slug URL-friendly identifier
  * @property string|null $description Campaign description
- * @property string $status draft|active|paused|archived
+ * @property \App\States\Campaign\CampaignState $state draft|active|paused|archived
  * @property string $type template|custom|meta
  * @property array $pipeline_config Processor graph definition
  * @property array|null $checklist_template Checklist items
@@ -40,13 +46,15 @@ use LBHurtado\ModelChannel\Traits\HasChannels;
  */
 class Campaign extends Model implements AuthenticatableContract
 {
-    use Authorizable, BelongsToTenant, HasApiTokens, HasChannels, HasFactory, HasUlids, SoftDeletes;
+    use Authorizable, BelongsToTenant, HasApiTokens, HasChannels, HasFactory, HasStates, HasUlids, SoftDeletes;
+
+    protected $connection = 'tenant';
 
     protected $fillable = [
         'name',
         'slug',
         'description',
-        'status',
+        'state',
         'type',
         'pipeline_config',
         'checklist_template',
@@ -64,10 +72,10 @@ class Campaign extends Model implements AuthenticatableContract
         'max_concurrent_jobs' => 'integer',
         'retention_days' => 'integer',
         'published_at' => 'datetime',
+        'state' => CampaignState::class,
     ];
 
     protected $attributes = [
-        'status' => 'draft',
         'type' => 'custom',
         'max_concurrent_jobs' => 10,
         'retention_days' => 90,
@@ -113,7 +121,7 @@ class Campaign extends Model implements AuthenticatableContract
      */
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->whereState('state', ActiveCampaignState::class);
     }
 
     /**
@@ -129,7 +137,7 @@ class Campaign extends Model implements AuthenticatableContract
      */
     public function scopeDraft($query)
     {
-        return $query->where('status', 'draft');
+        return $query->whereState('state', DraftCampaignState::class);
     }
 
     /**
@@ -137,7 +145,7 @@ class Campaign extends Model implements AuthenticatableContract
      */
     public function isActive(): bool
     {
-        return $this->status === 'active';
+        return $this->state instanceof ActiveCampaignState;
     }
 
     /**
@@ -153,10 +161,8 @@ class Campaign extends Model implements AuthenticatableContract
      */
     public function publish(): void
     {
-        $this->update([
-            'published_at' => now(),
-            'status' => 'active',
-        ]);
+        $this->state->transitionTo(ActiveCampaignState::class);
+        $this->update(['published_at' => now()]);
     }
 
     /**
@@ -164,7 +170,8 @@ class Campaign extends Model implements AuthenticatableContract
      */
     public function pause(): void
     {
-        $this->update(['status' => 'paused']);
+        $this->state->transitionTo(PausedCampaignState::class);
+        $this->save();
     }
 
     /**
@@ -172,7 +179,8 @@ class Campaign extends Model implements AuthenticatableContract
      */
     public function archive(): void
     {
-        $this->update(['status' => 'archived']);
+        $this->state->transitionTo(ArchivedCampaignState::class);
+        $this->save();
     }
 
     /**

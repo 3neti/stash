@@ -14,11 +14,12 @@ return new class extends Migration
         Schema::create('document_jobs', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->uuid('uuid')->unique();
+            $table->char('tenant_id', 26)->index();
             $table->ulid('campaign_id');
             $table->ulid('document_id');
             $table->json('pipeline_instance');
             $table->integer('current_processor_index')->default(0);
-            $table->string('state')->default('pending');
+            $table->string('state');
             $table->string('queue_name')->nullable();
             $table->integer('attempts')->default(0);
             $table->integer('max_attempts')->default(3);

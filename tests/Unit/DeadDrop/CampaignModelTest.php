@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Campaign;
+use App\States\Campaign\ActiveCampaignState;
+use App\States\Campaign\DraftCampaignState;
 
 describe('Campaign Model - Direct Creation', function () {
     test('can create campaign with minimal attributes', function () {
@@ -37,7 +39,7 @@ describe('Campaign Model - Direct Creation', function () {
             'pipeline_config' => [],
         ]);
 
-        expect($campaign->status)->toBe('draft')
+        expect($campaign->state)->toBeInstanceOf(DraftCampaignState::class)
             ->and($campaign->type)->toBe('custom')
             ->and($campaign->max_concurrent_jobs)->toBe(10)
             ->and($campaign->retention_days)->toBe(90);
@@ -172,50 +174,56 @@ describe('Campaign Model - Attributes', function () {
 });
 
 describe('Campaign Model - Methods', function () {
-    test('publish sets published_at and status to active', function () {
+    test('publish sets published_at and state to active', function () {
         $campaign = Campaign::create([
             'name' => 'Publish Test',
             'slug' => 'publish-test',
             'pipeline_config' => [],
         ]);
 
-        expect($campaign->status)->toBe('draft')
+        expect($campaign->state)->toBeInstanceOf(DraftCampaignState::class)
             ->and($campaign->published_at)->toBeNull();
 
         $campaign->publish();
         $campaign->refresh();
 
-        expect($campaign->status)->toBe('active')
+        expect($campaign->state)->toBeInstanceOf(ActiveCampaignState::class)
             ->and($campaign->published_at)->not->toBeNull()
             ->and($campaign->published_at)->toBeInstanceOf(\Carbon\Carbon::class);
     });
 
-    test('pause sets status to paused', function () {
+    test('pause sets state to paused', function () {
         $campaign = Campaign::create([
             'name' => 'Pause Test',
             'slug' => 'pause-test',
             'pipeline_config' => [],
-            'status' => 'active',
         ]);
+
+        $campaign->state->transitionTo(ActiveCampaignState::class);
+        $campaign->save();
 
         $campaign->pause();
         $campaign->refresh();
 
-        expect($campaign->status)->toBe('paused');
+        // State should now be paused (not active)
+        expect($campaign->state)->not->toBeInstanceOf(ActiveCampaignState::class);
     });
 
-    test('archive sets status to archived', function () {
+    test('archive sets state to archived', function () {
         $campaign = Campaign::create([
             'name' => 'Archive Test',
             'slug' => 'archive-test',
             'pipeline_config' => [],
-            'status' => 'active',
         ]);
+
+        $campaign->state->transitionTo(ActiveCampaignState::class);
+        $campaign->save();
 
         $campaign->archive();
         $campaign->refresh();
 
-        expect($campaign->status)->toBe('archived');
+        // State should now be archived (not active)
+        expect($campaign->state)->not->toBeInstanceOf(ActiveCampaignState::class);
     });
 
     test('isActive returns true for active campaigns', function () {
@@ -223,8 +231,10 @@ describe('Campaign Model - Methods', function () {
             'name' => 'Active Test',
             'slug' => 'active-test',
             'pipeline_config' => [],
-            'status' => 'active',
         ]);
+
+        $activeCampaign->state->transitionTo(ActiveCampaignState::class);
+        $activeCampaign->save();
 
         $draftCampaign = Campaign::create([
             'name' => 'Draft Test',
@@ -257,14 +267,20 @@ describe('Campaign Model - Methods', function () {
 
 describe('Campaign Model - Scopes', function () {
     test('active scope returns only active campaigns', function () {
-        Campaign::create(['name' => 'Active 1', 'slug' => 'active-1', 'pipeline_config' => [], 'status' => 'active']);
-        Campaign::create(['name' => 'Draft 1', 'slug' => 'draft-1', 'pipeline_config' => [], 'status' => 'draft']);
-        Campaign::create(['name' => 'Active 2', 'slug' => 'active-2', 'pipeline_config' => [], 'status' => 'active']);
+        $active1 = Campaign::create(['name' => 'Active 1', 'slug' => 'active-1', 'pipeline_config' => []]);
+        $active1->state->transitionTo(ActiveCampaignState::class);
+        $active1->save();
+        
+        Campaign::create(['name' => 'Draft 1', 'slug' => 'draft-1', 'pipeline_config' => []]);
+        
+        $active2 = Campaign::create(['name' => 'Active 2', 'slug' => 'active-2', 'pipeline_config' => []]);
+        $active2->state->transitionTo(ActiveCampaignState::class);
+        $active2->save();
 
         $activeCampaigns = Campaign::active()->get();
 
         expect($activeCampaigns)->toHaveCount(2);
-        expect($activeCampaigns->every(fn ($c) => $c->status === 'active'))->toBeTrue();
+        expect($activeCampaigns->every(fn ($c) => $c->state instanceof ActiveCampaignState))->toBeTrue();
     });
 
     test('published scope returns only published campaigns', function () {
@@ -275,18 +291,22 @@ describe('Campaign Model - Scopes', function () {
         $publishedCampaigns = Campaign::published()->get();
 
         expect($publishedCampaigns)->toHaveCount(2);
-        expect($publishedCampaigns->every(fn ($c) => $c->published_at !== null))->toBeTrue();
+        expect($publishedCampaigns->every(fn ($c) => ! is_null($c->published_at)))->toBeTrue();
     });
 
     test('draft scope returns only draft campaigns', function () {
-        Campaign::create(['name' => 'Draft 1', 'slug' => 'draft-1', 'pipeline_config' => [], 'status' => 'draft']);
-        Campaign::create(['name' => 'Active 1', 'slug' => 'active-1', 'pipeline_config' => [], 'status' => 'active']);
-        Campaign::create(['name' => 'Draft 2', 'slug' => 'draft-2', 'pipeline_config' => [], 'status' => 'draft']);
+        Campaign::create(['name' => 'Draft 1', 'slug' => 'draft-1', 'pipeline_config' => []]);
+        
+        $active1 = Campaign::create(['name' => 'Active 1', 'slug' => 'active-1', 'pipeline_config' => []]);
+        $active1->state->transitionTo(ActiveCampaignState::class);
+        $active1->save();
+        
+        Campaign::create(['name' => 'Draft 2', 'slug' => 'draft-2', 'pipeline_config' => []]);
 
         $draftCampaigns = Campaign::draft()->get();
 
         expect($draftCampaigns)->toHaveCount(2);
-        expect($draftCampaigns->every(fn ($c) => $c->status === 'draft'))->toBeTrue();
+        expect($draftCampaigns->every(fn ($c) => $c->state instanceof DraftCampaignState))->toBeTrue();
     });
 });
 

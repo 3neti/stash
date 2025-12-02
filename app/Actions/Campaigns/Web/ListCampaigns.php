@@ -20,7 +20,7 @@ class ListCampaigns
      * List campaigns with filters and pagination.
      */
     public function handle(
-        ?string $status = null,
+        ?string $state = null,
         ?string $search = null,
         int $perPage = 12
     ): LengthAwarePaginator {
@@ -28,8 +28,8 @@ class ListCampaigns
             ->withCount('documents')
             ->latest();
 
-        if ($status) {
-            $query->where('status', $status);
+        if ($state) {
+            $query->where('state', $state);
         }
 
         if ($search) {
@@ -48,7 +48,7 @@ class ListCampaigns
     public function asController(ActionRequest $request): LengthAwarePaginator
     {
         return $this->handle(
-            $request->input('status'),
+            $request->input('state'),
             $request->input('search'),
             (int) $request->input('per_page', 12)
         );

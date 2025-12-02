@@ -18,6 +18,8 @@ class PipelineProgress extends Model
 {
     use BelongsToTenant, HasFactory, HasUlids;
 
+    protected $connection = 'tenant';
+
     protected $table = 'pipeline_progress';
 
     protected $fillable = [

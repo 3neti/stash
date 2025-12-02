@@ -25,8 +25,11 @@ class DocumentJob extends Model
 {
     use BelongsToTenant, HasFactory, HasStates, HasUlids;
 
+    protected $connection = 'tenant';
+
     protected $fillable = [
         'uuid',
+        'tenant_id',
         'campaign_id',
         'document_id',
         'pipeline_instance',

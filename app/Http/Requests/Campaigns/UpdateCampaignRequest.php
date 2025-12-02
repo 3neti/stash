@@ -25,7 +25,7 @@ class UpdateCampaignRequest extends FormRequest
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'type' => ['sometimes', 'required', 'string', 'max:100'],
-            'status' => ['sometimes', 'required', 'string', 'in:draft,active,paused,archived'],
+            'state' => ['sometimes', 'required', 'string', 'in:draft,active,paused,archived'],
             'pipeline_config' => ['nullable', 'array'],
             'settings' => ['nullable', 'array'],
         ];
@@ -40,7 +40,7 @@ class UpdateCampaignRequest extends FormRequest
             'name.required' => 'Campaign name is required.',
             'name.max' => 'Campaign name must not exceed 255 characters.',
             'type.required' => 'Campaign type is required.',
-            'status.in' => 'Status must be draft, active, paused, or archived.',
+            'state.in' => 'State must be draft, active, paused, or archived.',
         ];
     }
 }

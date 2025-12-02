@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('storage_path');
             $table->string('storage_disk')->default('s3');
             $table->string('hash', 64);
-            $table->string('state')->default('pending');
+            $table->string('state');
             $table->json('metadata')->nullable();
             $table->json('processing_history')->nullable();
             $table->text('error_message')->nullable();

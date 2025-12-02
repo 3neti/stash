@@ -5,19 +5,17 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Str;
 
 class Tenant extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasUlids, SoftDeletes;
 
-    public $incrementing = false;
-
-    protected $keyType = 'string';
+    protected $connection = 'central';
 
     protected $fillable = [
         'name',
@@ -31,17 +29,6 @@ class Tenant extends Model
         'trial_ends_at',
         'suspended_at',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (Tenant $tenant) {
-            if (empty($tenant->id)) {
-                $tenant->id = (string) Str::ulid();
-            }
-        });
-    }
 
     protected $casts = [
         'settings' => 'array',

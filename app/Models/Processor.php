@@ -18,6 +18,8 @@ class Processor extends Model
 {
     use BelongsToTenant, HasFactory, HasUlids;
 
+    protected $connection = 'tenant';
+
     protected $fillable = [
         'name',
         'slug',

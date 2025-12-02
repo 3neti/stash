@@ -44,23 +44,17 @@ class SetTenantContext
             // If tenantId was provided at dispatch time, use it directly (fast path)
             if ($this->tenantId) {
                 Log::debug('[JobMiddleware] Using tenantId from middleware constructor');
-                $tenant = \App\Models\Tenant::on('pgsql')->findOrFail($this->tenantId);
+                $tenant = \App\Models\Tenant::on('central')->findOrFail($this->tenantId);
                 Log::debug('[JobMiddleware] Tenant loaded', ['tenant_id' => $tenant->id, 'tenant_name' => $tenant->name]);
             } else {
-                // Fall back to loading via Campaign → Tenant chain using DocumentJob's campaign_id
-                // This requires querying the central DB for Campaign to get tenant_id
-                Log::debug('[JobMiddleware] tenantId not provided, loading Campaign from central database');
-                $documentJob = DocumentJob::on('pgsql')->findOrFail($this->documentJobId);
-                Log::debug('[JobMiddleware] DocumentJob loaded', ['campaign_id' => $documentJob->campaign_id]);
+                // Fall back to loading DocumentJob from tenant DB to get tenant_id
+                Log::debug('[JobMiddleware] tenantId not provided, loading DocumentJob to get tenant_id');
+                $documentJob = DocumentJob::findOrFail($this->documentJobId);
+                Log::debug('[JobMiddleware] DocumentJob loaded', ['tenant_id' => $documentJob->tenant_id]);
 
-                // Load Campaign to get tenant_id
-                Log::debug('[JobMiddleware] Loading Campaign from central database');
-                $campaign = Campaign::on('pgsql')->findOrFail($documentJob->campaign_id);
-                Log::debug('[JobMiddleware] Campaign loaded', ['tenant_id' => $campaign->tenant_id]);
-
-                // Load Tenant
+                // Load Tenant from central DB
                 Log::debug('[JobMiddleware] Loading Tenant from central database');
-                $tenant = \App\Models\Tenant::on('pgsql')->findOrFail($campaign->tenant_id);
+                $tenant = \App\Models\Tenant::on('central')->findOrFail($documentJob->tenant_id);
                 Log::debug('[JobMiddleware] Tenant loaded', ['tenant_id' => $tenant->id, 'tenant_name' => $tenant->name]);
             }
 

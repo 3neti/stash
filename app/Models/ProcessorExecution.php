@@ -18,7 +18,9 @@ use Spatie\ModelStates\HasStates;
  */
 class ProcessorExecution extends Model
 {
-    use BelongsToTenant, HasFactory, HasStates, HasUlids;
+    use BelongsToTenant, HasFactory, HasUlids;
+
+    protected $connection = 'tenant';
 
     protected $fillable = [
         'job_id',

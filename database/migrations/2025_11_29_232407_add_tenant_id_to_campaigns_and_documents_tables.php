@@ -8,12 +8,13 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     * 
+     * This migration is a placeholder. Tenant ID management is handled by the BelongsToTenant trait
+     * and tenant context initialization in middleware. No explicit tenant_id columns needed.
      */
     public function up(): void
     {
-        Schema::table('campaigns_and_documents_tables', function (Blueprint $table) {
-            //
-        });
+        // No operations needed
     }
 
     /**
@@ -21,8 +22,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('campaigns_and_documents_tables', function (Blueprint $table) {
-            //
-        });
+        // No operations to reverse
     }
 };

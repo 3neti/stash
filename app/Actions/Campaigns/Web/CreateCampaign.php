@@ -40,7 +40,6 @@ class CreateCampaign
             'slug' => Str::slug($data['name']),
             'description' => $data['description'] ?? null,
             'type' => $data['type'],
-            'status' => 'draft',
             'pipeline_config' => $data['pipeline_config'] ?? [],
             'settings' => $data['settings'] ?? [],
         ]);

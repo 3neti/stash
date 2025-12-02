@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('slug');
             $table->text('description')->nullable();
-            $table->enum('status', ['draft', 'active', 'paused', 'archived'])->default('draft');
+            $table->string('state');
             $table->enum('type', ['template', 'custom', 'meta'])->default('custom');
 
             // Pipeline and workflow configuration
@@ -43,7 +43,7 @@ return new class extends Migration
 
             // Indexes
             $table->index('slug');
-            $table->index('status');
+            $table->index('state');
             $table->index('type');
             $table->index('published_at');
         });

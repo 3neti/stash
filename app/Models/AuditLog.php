@@ -18,6 +18,8 @@ class AuditLog extends Model
 {
     use BelongsToTenant, HasFactory, HasUlids;
 
+    protected $connection = 'tenant';
+
     public $timestamps = false; // Only created_at
 
     protected $fillable = [

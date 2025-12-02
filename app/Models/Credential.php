@@ -22,6 +22,8 @@ class Credential extends Model
 {
     use BelongsToTenant, HasFactory, HasUlids, SoftDeletes;
 
+    protected $connection = 'tenant';
+
     protected $fillable = [
         'credentialable_type',
         'credentialable_id',

@@ -18,6 +18,8 @@ class UsageEvent extends Model
 {
     use BelongsToTenant, HasFactory, HasUlids;
 
+    protected $connection = 'tenant';
+
     protected $fillable = [
         'campaign_id',
         'document_id',

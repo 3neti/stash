@@ -23,7 +23,7 @@ uses()->group('production-workflow');
 test('production workflow: database access after setup', function () {
     // Step 1: Fresh migrations (simulated - test DB is already fresh)
     // In production: php artisan migrate:fresh
-    expect(DB::connection('pgsql')->table('tenants')->count())->toBeGreaterThanOrEqual(0);
+    expect(DB::connection('central')->table('tenants')->count())->toBeGreaterThanOrEqual(0);
 
     // Step 2: Setup test environment (manually instead of calling command)
     $tenant = Tenant::factory()->create([

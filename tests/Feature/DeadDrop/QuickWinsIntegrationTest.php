@@ -30,7 +30,7 @@ class QuickWinsIntegrationTest extends DeadDropTestCase
 
     private function getTenant(): \App\Models\Tenant
     {
-        return \App\Models\Tenant::on('pgsql')->firstOrCreate(
+        return \App\Models\Tenant::firstOrCreate(
             ['slug' => 'quickwins-test-tenant'],
             ['name' => 'QuickWins Test Tenant']
         );
