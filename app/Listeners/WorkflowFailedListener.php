@@ -39,9 +39,19 @@ class WorkflowFailedListener
         }
 
         // Extract job ID and tenant ID from workflow arguments
-        $arguments = json_decode($storedWorkflow->arguments, true);
-        $jobId = $arguments[0] ?? null;
-        $tenantId = $arguments[1] ?? null;
+        // Arguments are stored as serialized closures by Laravel Workflow
+        try {
+            $arguments = unserialize($storedWorkflow->arguments);
+            $argumentsData = is_callable($arguments) ? $arguments() : $arguments;
+            $jobId = $argumentsData[0] ?? null;
+            $tenantId = $argumentsData[1] ?? null;
+        } catch (\Throwable $e) {
+            Log::error('[Workflow] Failed to unserialize arguments', [
+                'workflow_id' => $storedWorkflow->id,
+                'error' => $e->getMessage(),
+            ]);
+            return;
+        }
 
         if (!$jobId || !$tenantId) {
             Log::error('[Workflow] Missing job_id or tenant_id in failed workflow', [

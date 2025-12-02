@@ -59,8 +59,9 @@ class ProcessDocumentCommand extends Command
         // 2. Initialize tenant context and find campaign
         $document = null;
         $documentJob = null;
+        $campaign = null;
 
-        TenantContext::run($tenant, function () use ($filePath, &$document, &$documentJob) {
+        TenantContext::run($tenant, function () use ($filePath, &$document, &$documentJob, &$campaign) {
             // Find campaign
             $campaignSlug = $this->option('campaign');
             if ($campaignSlug) {
