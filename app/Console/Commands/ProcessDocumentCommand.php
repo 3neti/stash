@@ -21,7 +21,9 @@ class ProcessDocumentCommand extends Command
                             {--tenant= : Tenant slug}
                             {--campaign= : Campaign slug}
                             {--wait : Wait and show real-time progress}
-                            {--show-output : Display full processor outputs}';
+                            {--show-output : Display full processor outputs}
+                            {--json : Output results as JSON}
+                            {--dry-run : Validate without processing}';
 
     protected $description = 'Upload and process one or more documents through the pipeline';
 
