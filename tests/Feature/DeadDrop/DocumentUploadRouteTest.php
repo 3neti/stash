@@ -50,7 +50,7 @@ test('authenticated user can retrieve uploaded documents for campaign', function
         $document = Document::factory()->create([
             'campaign_id' => $campaign->id,
             'user_id' => $user->id,
-            'state' => 'completed',
+            'state' => \App\States\Document\CompletedDocumentState::class,
         ]);
 
         // Test: Retrieve documents for campaign
@@ -77,7 +77,7 @@ test('authenticated user can access document detail page', function () {
         $document = Document::factory()->create([
             'campaign_id' => $campaign->id,
             'user_id' => $user->id,
-            'state' => 'processing',
+            'state' => \App\States\Document\ProcessingDocumentState::class,
         ]);
 
         // Test: Access document detail page
