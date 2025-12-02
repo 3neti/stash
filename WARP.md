@@ -540,3 +540,319 @@ Run fresh migrations in test environment:
 ```bash
 php artisan test --env=testing
 ```
+
+## Laravel Workflow for Document Processing
+
+The application uses **Laravel Workflow** (inspired by Temporal) for durable document processing pipelines. Workflows provide automatic checkpointing, retry logic, and parallel execution capabilities.
+
+### Architecture
+
+```
+DocumentProcessingPipeline
+  ↓
+DocumentProcessingWorkflow (durable, resumable)
+  ├── OcrActivity
+  ├── ClassificationActivity
+  ├── ExtractionActivity
+  └── ValidationActivity
+```
+
+### Feature Flag
+
+Workflows are enabled by default. To disable (e.g., for legacy testing):
+
+```bash
+# .env
+USE_LARAVEL_WORKFLOW=false # Disable workflows (not recommended)
+```
+
+### Starting a Workflow
+
+```php
+use App\Workflows\DocumentProcessingWorkflow;
+use Workflow\WorkflowStub;
+
+// Start workflow
+$workflow = WorkflowStub::make(DocumentProcessingWorkflow::class);
+$workflow->start($documentJobId, $tenantId);
+
+// Workflows execute asynchronously - use events to track completion
+```
+
+### Workflow Structure
+
+Workflows use PHP generators with `yield` for checkpointing:
+
+```php
+class DocumentProcessingWorkflow extends Workflow
+{
+    public function execute(string $documentJobId, string $tenantId)
+    {
+        // Each yield creates a checkpoint
+        $ocrResult = yield ActivityStub::make(
+            OcrActivity::class,
+            $documentJobId,
+            $tenantId
+        );
+
+        // If workflow crashes here, it resumes from this point
+        $classificationResult = yield ActivityStub::make(
+            ClassificationActivity::class,
+            $documentJobId,
+            $ocrResult,
+            $tenantId
+        );
+
+        return compact('ocrResult', 'classificationResult');
+    }
+}
+```
+
+### Advanced Features
+
+#### 1. Conditional Execution
+
+Use native PHP conditionals for document-type routing:
+
+```php
+// Route based on OCR result
+$documentType = $ocrResult['document_type'] ?? 'generic';
+
+if ($documentType === 'invoice') {
+    $result = yield ActivityStub::make(InvoiceExtractionActivity::class, ...);
+} elseif ($documentType === 'receipt') {
+    $result = yield ActivityStub::make(ReceiptExtractionActivity::class, ...);
+} else {
+    $result = yield ActivityStub::make(GenericExtractionActivity::class, ...);
+}
+
+// Or use match expression (PHP 8+)
+$activityClass = match ($documentType) {
+    'invoice' => InvoiceExtractionActivity::class,
+    'receipt' => ReceiptExtractionActivity::class,
+    default => GenericExtractionActivity::class,
+};
+
+$result = yield ActivityStub::make($activityClass, ...);
+```
+
+#### 2. Parallel Execution
+
+Run activities simultaneously using `ActivityStub::all()`:
+
+```php
+// Run classification and extraction in parallel
+[$classificationResult, $extractionResult] = yield ActivityStub::all([
+    ActivityStub::make(ClassificationActivity::class, $jobId, $ocrResult, $tenantId),
+    ActivityStub::make(ExtractionActivity::class, $jobId, $ocrResult, $tenantId),
+]);
+
+// Both complete before continuing
+$validationResult = yield ActivityStub::make(
+    ValidationActivity::class,
+    $jobId,
+    compact('classificationResult', 'extractionResult'),
+    $tenantId
+);
+```
+
+#### 3. Retry Configuration
+
+Configure per-activity retries and timeouts:
+
+```php
+class OcrActivity extends Activity
+{
+    public $tries = 5;      // Max retry attempts
+    public $timeout = 300;  // Timeout in seconds (5 minutes)
+
+    public function execute(...): array
+    {
+        // Activity logic here
+    }
+}
+```
+
+#### 4. Error Handling
+
+Use `NonRetryableException` for permanent failures:
+
+```php
+use Workflow\Exceptions\NonRetryableException;
+
+class OcrActivity extends Activity
+{
+    public function execute(string $jobId, string $tenantId): array
+    {
+        // ...
+
+        if (!$processorConfig) {
+            // Don't retry configuration errors
+            throw new NonRetryableException('OCR processor not found in config');
+        }
+
+        if ($temporaryError) {
+            // Retry automatically (up to $tries limit)
+            throw new \RuntimeException('Temporary OCR service error');
+        }
+
+        // Check for permanent vs temporary failures
+        if (str_contains($error, 'unsupported file')) {
+            throw new NonRetryableException($error);
+        }
+
+        throw new \RuntimeException($error); // Will retry
+    }
+}
+```
+
+### Testing Workflows
+
+Use `WorkflowStub::fake()` for synchronous testing:
+
+```php
+use Workflow\WorkflowStub;
+
+public function test_workflow_execution(): void
+{
+    WorkflowStub::fake();
+
+    // Mock activities
+    WorkflowStub::mock(OcrActivity::class, ['text' => 'Sample text']);
+    WorkflowStub::mock(ClassificationActivity::class, ['category' => 'invoice']);
+
+    // Execute workflow (synchronous in test mode)
+    $workflow = WorkflowStub::make(DocumentProcessingWorkflow::class);
+    $workflow->start($jobId, $tenantId);
+
+    // Assert
+    $result = $workflow->output();
+    $this->assertArrayHasKey('ocr', $result);
+    WorkflowStub::assertDispatched(OcrActivity::class);
+}
+```
+
+### Creating New Activities
+
+Activities wrap existing `ProcessorInterface` implementations:
+
+```php
+use Workflow\Activity;
+
+class MyActivity extends Activity
+{
+    public $tries = 3;
+    public $timeout = 120;
+
+    public function execute(string $documentJobId, string $tenantId): array
+    {
+        // 1. Initialize tenant context
+        $tenant = Tenant::on('central')->findOrFail($tenantId);
+        app(TenancyService::class)->initializeTenant($tenant);
+
+        // 2. Load DocumentJob
+        $job = DocumentJob::findOrFail($documentJobId);
+
+        // 3. Get processor from registry
+        $processor = app(ProcessorRegistry::class)->get('my-processor');
+
+        // 4. Execute processor (NO CHANGES to existing processors)
+        $result = $processor->handle($job->document, $config, $context);
+
+        // 5. Return results
+        return $result->output;
+    }
+}
+```
+
+### Workflow Events
+
+Listen for workflow lifecycle events:
+
+```php
+// app/Providers/AppServiceProvider.php
+use Workflow\Events\{WorkflowCompleted, WorkflowFailed};
+
+Event::listen(WorkflowCompleted::class, WorkflowCompletedListener::class);
+Event::listen(WorkflowFailed::class, WorkflowFailedListener::class);
+```
+
+Event structure:
+```php
+class WorkflowCompleted
+{
+    public function __construct(
+        public int|string $workflowId,
+        public string $output,        // JSON result or error message
+        public string $timestamp,     // ISO 8601 format
+    ) {}
+}
+```
+
+### Queue Requirements
+
+**IMPORTANT**: Laravel Workflow requires queue workers:
+
+```bash
+# Development (already included in composer run dev)
+php artisan queue:work
+
+# Cannot use sync driver
+QUEUE_CONNECTION=redis  # or database, sqs, etc.
+```
+
+### Multi-Tenant Configuration
+
+Workflows use **central database** for state storage:
+
+```php
+// config/workflows.php
+return [
+    'stored_workflow_model' => App\Models\Workflow\StoredWorkflow::class,
+];
+
+// app/Models/Workflow/StoredWorkflow.php
+class StoredWorkflow extends BaseStoredWorkflow
+{
+    protected $connection = 'central'; // Force central DB
+}
+```
+
+### Migration Status
+
+- ✅ Phase 1-2: All activities created, tests passing
+- ✅ Phase 3: Feature flag integration complete
+- ✅ Phase 4: Advanced features demonstrated
+- ✅ Phase 5: Legacy code removed, workflows enabled by default
+
+### Key Benefits
+
+**Code Reduction**: 56% reduction (from ~873 lines to ~380 lines)
+
+| Feature | Laravel Workflow |
+|---------|------------------|
+| State Management | Automatic via yield |
+| Retry Logic | Activity-level (granular) |
+| Parallel Execution | Native via `ActivityStub::all()` |
+| Conditional Routing | Native PHP if/match |
+| Workflow History | Automatic event sourcing |
+| Resume After Crash | Resumes from last checkpoint |
+
+### Monitoring (Optional)
+
+Install Waterline UI for workflow visualization:
+
+```bash
+composer require laravel-workflow/waterline
+php artisan vendor:publish --provider="Waterline\WaterlineServiceProvider"
+```
+
+Access at: `http://stash.test:8000/waterline/dashboard`
+
+### Reference
+
+- Main workflow: `app/Workflows/DocumentProcessingWorkflow.php`
+- Advanced examples: `app/Workflows/AdvancedDocumentProcessingWorkflow.php`
+- Activities: `app/Workflows/Activities/`
+- Tests: `tests/Feature/Workflows/`
+- Documentation: `LARAVEL_WORKFLOW_ARCHITECTURE.md`

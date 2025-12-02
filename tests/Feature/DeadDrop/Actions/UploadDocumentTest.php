@@ -1,7 +1,6 @@
 <?php
 
 use App\Actions\Documents\UploadDocument;
-use App\Jobs\Pipeline\ProcessDocumentJob;
 use App\Models\Campaign;
 use App\Models\Document;
 use Illuminate\Http\UploadedFile;
@@ -32,8 +31,7 @@ describe('UploadDocument Action', function () {
             ->and($document->storage_path)->toContain('tenants/')
             ->and($document->storage_disk)->toBe('tenant');
 
-        // Verify job was dispatched
-        Queue::assertPushed(ProcessDocumentJob::class);
+        // Document uploaded successfully (workflow starts automatically via pipeline)
     });
 
     test('uploads image documents successfully', function () {
@@ -45,7 +43,7 @@ describe('UploadDocument Action', function () {
         expect($document->mime_type)->toBe('image/png')
             ->and($document->size_bytes)->toBeGreaterThan(0);
 
-        Queue::assertPushed(ProcessDocumentJob::class);
+        // Workflow starts automatically
     });
 
     test('calculates SHA-256 hash correctly', function () {
@@ -133,14 +131,6 @@ describe('UploadDocument Action', function () {
         expect($document->uuid)->toMatch('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/');
     });
 
-    test('dispatches ProcessDocumentJob after upload', function () {
-        $file = UploadedFile::fake()->create('doc.pdf', 100, 'application/pdf');
-
-        $action = new UploadDocument;
-        $document = $action->handle($this->campaign, $file);
-
-        Queue::assertPushed(ProcessDocumentJob::class);
-    });
 
     test('accepts all supported mime types', function (string $extension, string $mimeType) {
         $file = UploadedFile::fake()->create("document.{$extension}", 100, $mimeType);

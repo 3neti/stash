@@ -4,66 +4,51 @@ declare(strict_types=1);
 
 namespace App\Services\Pipeline;
 
-use App\Data\Processors\ProcessorResult;
 use App\Events\DocumentJobCreated;
-use App\Events\DocumentProcessingStageCompleted;
-use App\Events\ProcessorExecutionCompleted;
-use App\Events\ProcessorExecutionFailed;
-use App\Events\ProcessorExecutionStarted;
-use App\Jobs\Pipeline\ProcessDocumentJob;
 use App\Models\Campaign;
 use App\Models\Document;
 use App\Models\DocumentJob;
-use App\Models\Processor;
-use App\Models\ProcessorExecution;
 use App\Models\PipelineProgress;
-use App\Services\Validation\JsonSchemaValidator;
 use App\Tenancy\TenantContext;
+use App\Workflows\DocumentProcessingWorkflow;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Workflow\WorkflowStub;
 
 /**
- * DocumentProcessingPipeline orchestrates document processing through a processor graph.
+ * DocumentProcessingPipeline orchestrates document processing through Laravel Workflow.
  *
  * Responsible for:
  * - Creating DocumentJob from Document and Campaign pipeline config
- * - Executing processors sequentially
- * - Tracking ProcessorExecution records
- * - Handling processor results and state transitions
- * - Firing observable events at each stage
+ * - Starting Laravel Workflow for durable async execution
+ * - Tracking progress
+ * - Firing observable events
  */
 class DocumentProcessingPipeline
 {
-    private ?ProcessorHookManager $hookManager = null;
-
-    public function __construct(
-        private ProcessorRegistry $registry,
-    ) {}
-
-    public function setHookManager(ProcessorHookManager $manager): self
-    {
-        $this->hookManager = $manager;
-        return $this;
-    }
 
     /**
-     * Process a document through the campaign's pipeline.
+     * Process a document through the campaign's pipeline using Laravel Workflow.
      *
      * Creates a DocumentJob snapshotting the pipeline configuration,
-     * then dispatches it to the queue for execution.
+     * then starts a durable workflow for execution.
      *
      * @return DocumentJob The created job
      */
     public function process(Document $document, Campaign $campaign): DocumentJob
     {
-        Log::debug('[Pipeline] Processing document', [
+        Log::info('[Pipeline] Processing document via Laravel Workflow', [
             'document_id' => $document->id,
             'campaign_id' => $campaign->id,
         ]);
 
+        // Get tenant ID from context
+        $tenantId = TenantContext::current()?->id;
+
         // Create DocumentJob with snapshot of pipeline configuration
         $job = DocumentJob::create([
             'uuid' => (string) Str::uuid(),
+            'tenant_id' => $tenantId,
             'campaign_id' => $campaign->id,
             'document_id' => $document->id,
             'pipeline_instance' => $campaign->pipeline_config,
@@ -88,23 +73,21 @@ class DocumentProcessingPipeline
         // Fire event that job was created
         event(new DocumentJobCreated($job, $document, $campaign));
 
-        // Dispatch job to queue for processing
-        Log::debug('[Pipeline] Dispatching job to queue');
-        // Include tenant ID in job payload for middleware to use during bootstrap
-        $tenantId = TenantContext::current()?->id;
-        Log::debug('[Pipeline] Job will be dispatched with tenantId', ['tenant_id' => $tenantId]);
-        ProcessDocumentJob::dispatch($job->id, $tenantId);
+        // Start Laravel Workflow
+        Log::info('[Pipeline] Starting Laravel Workflow', [
+            'job_id' => $job->id,
+            'tenant_id' => $tenantId,
+        ]);
+
+        $workflow = WorkflowStub::make(DocumentProcessingWorkflow::class);
+        $workflow->start($job->id, $tenantId);
 
         return $job;
     }
 
     /**
-     * Execute the next processor stage in a DocumentJob.
-     *
-     * Fetches the current processor from the pipeline configuration,
-     * executes it, and handles the result (success/failure/retry).
-     *
-     * @return bool true if processing should continue (more stages), false if complete or failed
+     * @deprecated Legacy method - workflows handle execution now.
+     * Kept temporarily for any existing references. Will be removed.
      */
     public function executeNextStage(DocumentJob $job): bool
     {
@@ -201,11 +184,7 @@ class DocumentProcessingPipeline
     }
 
     /**
-     * Handle the result of a processor execution.
-     *
-     * Updates ProcessorExecution, advances job state, and either continues or fails.
-     *
-     * @return bool true if processing should continue, false if complete or failed
+     * @deprecated Legacy method - workflows handle execution now.
      */
     private function handleStageResult(DocumentJob $job, ProcessorExecution $execution, ProcessorResult $result, array $processorConfig, ?object $processor = null): bool
     {
@@ -310,9 +289,7 @@ class DocumentProcessingPipeline
     }
 
     /**
-     * Mark processing as complete.
-     *
-     * Updates job and document states, fires completion events.
+     * @deprecated Legacy method - workflow listeners handle completion now.
      */
     public function completeProcessing(DocumentJob $job): void
     {
@@ -328,9 +305,7 @@ class DocumentProcessingPipeline
     }
 
     /**
-     * Mark processing as failed.
-     *
-     * Updates job and document states, fires failure events.
+     * @deprecated Legacy method - workflow listeners handle failures now.
      */
     public function failProcessing(DocumentJob $job, string $error): void
     {

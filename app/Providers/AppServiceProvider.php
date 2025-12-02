@@ -2,13 +2,18 @@
 
 namespace App\Providers;
 
+use App\Listeners\WorkflowCompletedListener;
+use App\Listeners\WorkflowFailedListener;
 use App\Services\Pipeline\ProcessorRegistry;
 use App\Services\Pipeline\ProcessorHookManager;
 use App\Services\Pipeline\Hooks\TimeTrackingHook;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Workflow\Events\WorkflowCompleted;
+use Workflow\Events\WorkflowFailed;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -36,6 +41,10 @@ class AppServiceProvider extends ServiceProvider
         // Register processor hooks
         $hookManager = $this->app->make(ProcessorHookManager::class);
         $hookManager->register(new TimeTrackingHook());
+
+        // Register workflow event listeners
+        Event::listen(WorkflowCompleted::class, WorkflowCompletedListener::class);
+        Event::listen(WorkflowFailed::class, WorkflowFailedListener::class);
 
         $this->configureRateLimiting();
     }
