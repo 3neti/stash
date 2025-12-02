@@ -17,10 +17,11 @@ trait UsesDashboardSetup
      */
     protected function setupDashboardTestTenant(array $overrides = []): array
     {
-        // Create tenant on central DB
+        // Create tenant on central DB with unique slug per test
+        $uniqueSlug = 'test-company-' . uniqid();
         $tenant = Tenant::factory()->create(array_merge([
             'name' => 'Test Company',
-            'slug' => 'test-company',
+            'slug' => $uniqueSlug,
             'status' => 'active',
         ], $overrides));
 

@@ -24,9 +24,7 @@ test('authenticated user can upload document to campaign', function () {
         ]);
 
         // Test: Upload document to campaign
-        // This currently fails with SQLSTATE[42P01]: Undefined table: "campaigns"
-        // because the Campaign model queries the tenant connection
-        $file = UploadedFile::fake()->pdf('test.pdf');
+        $file = UploadedFile::fake()->create('test.pdf', 1024, 'application/pdf');
         
         $response = $this->actingAs($user)->post("/campaigns/{$campaign->id}/documents", [
             'file' => $file,

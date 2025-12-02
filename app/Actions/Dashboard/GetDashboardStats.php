@@ -6,6 +6,10 @@ namespace App\Actions\Dashboard;
 
 use App\Models\Campaign;
 use App\Models\Document;
+use App\States\Campaign\ActiveCampaignState;
+use App\States\Campaign\DraftCampaignState;
+use App\States\Campaign\PausedCampaignState;
+use App\States\Campaign\ArchivedCampaignState;
 use App\States\Document\PendingDocumentState;
 use App\States\Document\ProcessingDocumentState;
 use App\States\Document\QueuedDocumentState;
@@ -28,10 +32,10 @@ class GetDashboardStats
         return [
             'campaigns' => [
                 'total' => Campaign::count(),
-                'active' => Campaign::where('status', 'active')->count(),
-                'draft' => Campaign::where('status', 'draft')->count(),
-                'paused' => Campaign::where('status', 'paused')->count(),
-                'archived' => Campaign::where('status', 'archived')->count(),
+                'active' => Campaign::whereState('state', ActiveCampaignState::class)->count(),
+                'draft' => Campaign::whereState('state', DraftCampaignState::class)->count(),
+                'paused' => Campaign::whereState('state', PausedCampaignState::class)->count(),
+                'archived' => Campaign::whereState('state', ArchivedCampaignState::class)->count(),
             ],
             'documents' => [
                 'total' => Document::count(),
