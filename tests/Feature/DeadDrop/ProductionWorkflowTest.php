@@ -28,7 +28,7 @@ test('production workflow: database access after setup', function () {
     // Step 2: Setup test environment (manually instead of calling command)
     $tenant = Tenant::factory()->create([
         'name' => 'Production Test Tenant',
-        'status' => 'active',
+        'state' => \App\States\Campaign\ActiveCampaignState::class,
     ]);
 
     $user = User::factory()->create([

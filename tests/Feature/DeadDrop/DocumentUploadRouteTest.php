@@ -20,7 +20,7 @@ test('authenticated user can upload document to campaign', function () {
         $campaign = Campaign::factory()->create([
             'name' => 'Test Campaign for Upload',
             'type' => 'custom',
-            'status' => 'active',
+            'state' => \App\States\Campaign\ActiveCampaignState::class,
         ]);
 
         // Test: Upload document to campaign
@@ -46,7 +46,7 @@ test('authenticated user can retrieve uploaded documents for campaign', function
         $campaign = Campaign::factory()->create([
             'name' => 'Test Campaign for Documents List',
             'type' => 'custom',
-            'status' => 'active',
+            'state' => \App\States\Campaign\ActiveCampaignState::class,
         ]);
 
         $document = Document::factory()->create([
@@ -73,7 +73,7 @@ test('authenticated user can access document detail page', function () {
         $campaign = Campaign::factory()->create([
             'name' => 'Test Campaign for Document Detail',
             'type' => 'custom',
-            'status' => 'active',
+            'state' => \App\States\Campaign\ActiveCampaignState::class,
         ]);
 
         $document = Document::factory()->create([

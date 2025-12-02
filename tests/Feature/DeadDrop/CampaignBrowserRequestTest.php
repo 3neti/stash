@@ -31,7 +31,7 @@ test('browser request: campaign show page loads without SQLSTATE error', functio
     TenantContext::run($tenant, function () use (&$campaign) {
         $campaign = Campaign::factory()->create([
             'name' => 'Browser Test Campaign',
-            'status' => 'active',
+            'state' => \App\States\Campaign\ActiveCampaignState::class,
         ]);
     });
 

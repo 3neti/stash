@@ -26,7 +26,7 @@ class CampaignSeeder extends Seeder
                 'name' => 'Invoice Processing Pipeline',
                 'slug' => 'invoice-processing',
                 'description' => 'Automated pipeline for extracting data from invoices',
-                'status' => 'active',
+                'state' => \App\States\Campaign\ActiveCampaignState::class,
                 'pipeline_config' => [
                     'processors' => [
                         ['id' => $processors['tesseract-ocr'] ?? null, 'config' => ['language' => 'eng']],
@@ -53,7 +53,7 @@ class CampaignSeeder extends Seeder
                 'name' => 'Receipt OCR Workflow',
                 'slug' => 'receipt-ocr',
                 'description' => 'Extract text and data from receipts',
-                'status' => 'active',
+                'state' => \App\States\Campaign\ActiveCampaignState::class,
                 'pipeline_config' => [
                     'processors' => [
                         ['id' => $processors['openai-vision'] ?? null, 'config' => ['model' => 'gpt-4-vision-preview']],
@@ -77,7 +77,7 @@ class CampaignSeeder extends Seeder
                 'name' => 'Contract Analysis',
                 'slug' => 'contract-analysis',
                 'description' => 'Extract key terms and entities from legal contracts',
-                'status' => 'draft',
+                'state' => \App\States\Campaign\DraftCampaignState::class,
                 'pipeline_config' => [
                     'processors' => [
                         ['id' => $processors['tesseract-ocr'] ?? null, 'config' => ['language' => 'eng', 'dpi' => 600]],

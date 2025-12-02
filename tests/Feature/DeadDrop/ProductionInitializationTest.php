@@ -22,7 +22,7 @@ test('production scenario: user can access campaign after dashboard setup', func
     $tenant = Tenant::factory()->create([
         'name' => 'Production Test Tenant',
         'slug' => 'prod-test',
-        'status' => 'active',
+        'state' => \App\States\Campaign\ActiveCampaignState::class,
     ]);
 
     $user = User::factory()->create([
@@ -45,7 +45,7 @@ test('production scenario: user can access campaign after dashboard setup', func
         Campaign::factory()->create([
             'name' => 'Production Test Campaign',
             'type' => 'custom',
-            'status' => 'active',
+            'state' => \App\States\Campaign\ActiveCampaignState::class,
         ]);
     });
 
