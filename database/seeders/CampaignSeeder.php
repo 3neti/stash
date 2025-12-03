@@ -112,7 +112,7 @@ class CampaignSeeder extends Seeder
             [
                 'name' => 'Employee CSV Import',
                 'slug' => 'employee-csv-import',
-                'description' => 'Bulk import employee data from CSV files with validation',
+                'description' => 'Bulk import employee data from CSV files with validation and transformation',
                 'state' => \App\States\Campaign\ActiveCampaignState::class,
                 'pipeline_config' => [
                     'processors' => [
@@ -120,7 +120,22 @@ class CampaignSeeder extends Seeder
                         ['id' => $processors['csv-importer'] ?? null, 'type' => 'ocr', 'config' => [
                             'delimiter' => ',',
                             'has_headers' => true,
-                            'date_columns' => [],
+                            'date_columns' => ['hire_date'],
+                            'date_format' => 'Y-m-d',
+                            // Filters: Skip invalid rows
+                            'filters' => [
+                                'required_columns' => ['email', 'first_name', 'last_name'],
+                                'min_values' => ['salary' => 0],
+                                'allowed_values' => [
+                                    'department' => ['Engineering', 'Marketing', 'Sales', 'HR', 'Finance', 'Operations'],
+                                ],
+                            ],
+                            // Transformations: Clean and normalize data
+                            'transformations' => [
+                                'uppercase' => ['department'], // Standardize department names
+                                'trim' => ['email', 'first_name', 'last_name'], // Remove whitespace
+                                'integer' => ['salary'], // Convert salary to integer
+                            ],
                             'export_json' => true,
                         ]],
                         // Skip classification for CSV (no processor needed)
