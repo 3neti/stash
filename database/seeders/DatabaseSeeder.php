@@ -21,9 +21,6 @@ class DatabaseSeeder extends Seeder
         // Seed central database users (includes admin from .env)
         $this->call([UserSeeder::class]);
 
-        // Seed custom validation rules (central database)
-        $this->call([CustomValidationRuleSeeder::class]);
-
         $tenants = Tenant::all();
 
         // Auto-create default tenant if none exist and configured in .env
@@ -81,6 +78,9 @@ class DatabaseSeeder extends Seeder
                 return;
             }
         }
+
+        // Seed custom validation rules after tenants are created
+        $this->call([CustomValidationRuleSeeder::class]);
 
         foreach ($tenants as $tenant) {
             $this->command->info("\nSeeding tenant: {$tenant->name} ({$tenant->id})");
