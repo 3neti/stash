@@ -116,12 +116,19 @@ class CampaignSeeder extends Seeder
                 'state' => \App\States\Campaign\ActiveCampaignState::class,
                 'pipeline_config' => [
                     'processors' => [
-                        ['id' => $processors['csv-importer'] ?? null, 'type' => 'transformation', 'config' => [
+                        // CSV Importer acts as "OCR" step (reads and parses CSV)
+                        ['id' => $processors['csv-importer'] ?? null, 'type' => 'ocr', 'config' => [
                             'delimiter' => ',',
                             'has_headers' => true,
                             'date_columns' => [],
                             'export_json' => true,
                         ]],
+                        // Skip classification for CSV (no processor needed)
+                        ['id' => null, 'type' => 'classification', 'config' => []],
+                        // Skip extraction for CSV (data already structured)
+                        ['id' => null, 'type' => 'extraction', 'config' => []],
+                        // Optional: Add validation if needed
+                        ['id' => null, 'type' => 'validation', 'config' => []],
                     ],
                 ],
                 'checklist_template' => [

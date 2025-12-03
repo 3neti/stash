@@ -63,8 +63,12 @@ class ClassificationActivity extends Activity
         $processorConfig = $processorConfigs[1];
         $processorId = $processorConfig['id'] ?? null;
 
+        // If processor ID is null, skip this step (return empty result)
         if (! $processorId) {
-            throw new \RuntimeException('Processor ID missing in pipeline config');
+            return [
+                'skipped' => true,
+                'reason' => 'No classification processor configured for this campaign',
+            ];
         }
 
         // Step 4: Load Processor model and get from registry

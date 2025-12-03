@@ -68,8 +68,12 @@ class ExtractionActivity extends Activity
         $processorConfig = $processorConfigs[2];
         $processorId = $processorConfig['id'] ?? null;
 
+        // If processor ID is null, skip this step (return empty result)
         if (! $processorId) {
-            throw new \RuntimeException('Processor ID missing in pipeline config');
+            return [
+                'skipped' => true,
+                'reason' => 'No extraction processor configured for this campaign',
+            ];
         }
 
         // Step 4: Load Processor model and get from registry
