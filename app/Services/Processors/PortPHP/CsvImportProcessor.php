@@ -10,10 +10,11 @@ use App\Models\Document;
 use Port\Csv\CsvReader;
 use Port\Steps\StepAggregator;
 use Port\Steps\Step\ValueConverterStep;
-use Port\Steps\Step\MappingStep;
 use Port\Steps\Step\FilterStep;
 use Port\ValueConverter\DateTimeValueConverter;
 use Port\Writer\ArrayWriter;
+use Port\Reader\PdoReader;
+use Port\Filter\CallbackFilter;
 
 /**
  * CSV Import Processor
@@ -124,10 +125,19 @@ class CsvImportProcessor extends BasePortProcessor
         // 8. Add transformation step if specified
         $transformations = $config->config['transformations'] ?? [];
         if (! empty($transformations)) {
-            $mappingStep = new MappingStep(function ($row) use ($transformations) {
-                return $this->applyTransformations($row, $transformations);
+            // Use a custom workflow step for transformations
+            $workflow->addStep(new class($transformations, $this) implements \Port\Steps\Step {
+                public function __construct(
+                    private array $transformations,
+                    private CsvImportProcessor $processor
+                ) {}
+
+                public function process(&$item)
+                {
+                    $item = $this->processor->applyTransformations($item, $this->transformations);
+                    return true;
+                }
             });
-            $workflow->addStep($mappingStep);
         }
 
         return $workflow;
@@ -247,7 +257,7 @@ class CsvImportProcessor extends BasePortProcessor
      *
      * Returns the transformed row.
      */
-    protected function applyTransformations(array $row, array $transformations): array
+    public function applyTransformations(array $row, array $transformations): array
     {
         // Uppercase columns
         if (! empty($transformations['uppercase'])) {
