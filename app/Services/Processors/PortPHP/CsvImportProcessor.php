@@ -70,6 +70,51 @@ use Port\Filter\CallbackFilter;
 class CsvImportProcessor extends BasePortProcessor
 {
     /**
+     * Override handle() to apply post-processing filters and transformations.
+     */
+    public function handle(
+        Document $document,
+        ProcessorConfigData $config,
+        ProcessorContextData $context
+    ): \App\Data\Processors\ProcessorResultData {
+        // Call parent to run PortPHP workflow
+        $result = parent::handle($document, $config, $context);
+
+        // Apply filters and transformations to output data
+        if ($result->success && !empty($result->output['data'])) {
+            $filters = $config->config['filters'] ?? [];
+            $transformations = $config->config['transformations'] ?? [];
+
+            $processedData = [];
+            $filteredCount = 0;
+
+            foreach ($result->output['data'] as $row) {
+                // Apply filters first
+                if (!empty($filters) && !$this->applyFilters($row, $filters)) {
+                    $filteredCount++;
+                    continue; // Skip this row
+                }
+
+                // Apply transformations
+                if (!empty($transformations)) {
+                    $row = $this->applyTransformations($row, $transformations);
+                }
+
+                $processedData[] = $row;
+            }
+
+            // Update counts
+            $totalRows = $result->output['total_rows'];
+            $result->output['data'] = $processedData;
+            $result->output['rows_imported'] = count($processedData);
+            $result->output['rows_filtered'] = $filteredCount;
+            $result->output['rows_failed'] = $result->output['rows_failed'] + $filteredCount;
+        }
+
+        return $result;
+    }
+
+    /**
      * Configure the PortPHP workflow for CSV import.
      */
     protected function configureWorkflow(
@@ -113,33 +158,6 @@ class CsvImportProcessor extends BasePortProcessor
             $workflow->addStep($converterStep);
         }
 
-        // 7. Add filter step if specified
-        $filters = $config->config['filters'] ?? [];
-        if (! empty($filters)) {
-            $filterStep = new FilterStep(function ($row) use ($filters) {
-                return $this->applyFilters($row, $filters);
-            });
-            $workflow->addStep($filterStep);
-        }
-
-        // 8. Add transformation step if specified
-        $transformations = $config->config['transformations'] ?? [];
-        if (! empty($transformations)) {
-            // Use a custom workflow step for transformations
-            $workflow->addStep(new class($transformations, $this) implements \Port\Steps\Step {
-                public function __construct(
-                    private array $transformations,
-                    private CsvImportProcessor $processor
-                ) {}
-
-                public function process($item, callable $next)
-                {
-                    $transformed = $this->processor->applyTransformations($item, $this->transformations);
-                    return $next($transformed);
-                }
-            });
-        }
-
         return $workflow;
     }
 
@@ -148,6 +166,8 @@ class CsvImportProcessor extends BasePortProcessor
      */
     protected function extractOutputData(\Port\Result $portResult, array $outputArray): array
     {
+        // Note: Filters and transformations are applied post-processing
+        // to avoid complexity with PortPHP's middleware Step pattern
         return [
             'rows_imported' => $portResult->getSuccessCount(),
             'rows_failed' => $portResult->getErrorCount(),
