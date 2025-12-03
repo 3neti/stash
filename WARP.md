@@ -949,3 +949,131 @@ composer run dev           # Development (includes horizon)
 - Activities: `app/Workflows/Activities/`
 - Tests: `tests/Feature/Workflows/`
 - Documentation: `LARAVEL_WORKFLOW_ARCHITECTURE.md`
+
+## Multi-Language Translations for CSV Import
+
+The CSV Import processor supports multi-language validation error messages with locale-specific placeholders and currency symbols.
+
+### Supported Locales
+
+- **English** (`en`) - Default, Dollar ($)
+- **Filipino** (`fil`) - Philippine Peso (₱)
+- **Spanish** (`es`) - Dollar ($)
+
+### Locale Detection Priority
+
+1. **Campaign `settings['locale']`** (highest priority)
+2. **Tenant `settings['locale']`** (fallback)
+3. **Default: `'en'`** (English)
+
+### Quick Start
+
+#### 1. Set Locale on Campaign
+
+```php
+// Via Seeder
+Campaign::create([
+    'name' => 'Employee Import (Filipino)',
+    'slug' => 'employee-import-fil',
+    'settings' => ['locale' => 'fil'],  // Set locale
+    // ...
+]);
+
+// Via Tinker
+$campaign = Campaign::find('01xyz...');
+$campaign->settings = array_merge($campaign->settings, ['locale' => 'fil']);
+$campaign->save();
+```
+
+#### 2. Create Translated Validation Rules
+
+```php
+CustomValidationRule::create([
+    'name' => 'engineering_salary_minimum',
+    'type' => 'expression',
+    'config' => [
+        'expression' => "row['department'] != 'ENGINEERING' or value >= 50000",
+        'message' => 'Engineering employees must have salary >= $50,000',
+    ],
+    'translations' => [
+        'en' => ':department employees must have salary >= :currency:amount',
+        'fil' => 'Mga empleyado sa :department ay dapat may salary >= :currency:amount',
+        'es' => 'Los empleados de :department deben tener salary >= :currency:amount',
+    ],
+    'placeholders' => [
+        'department' => ['en' => 'Engineering', 'fil' => 'Engineering', 'es' => 'Ingeniería'],
+        'currency' => ['en' => '$', 'fil' => '₱', 'es' => '$'],
+        'amount' => ['en' => '50,000', 'fil' => '50,000', 'es' => '50.000'],
+    ],
+]);
+```
+
+#### 3. Test Translation
+
+```bash
+# Process CSV with Filipino locale
+php artisan document:process /tmp/employees_fil.csv --campaign=employee-csv-import-fil --wait --show-output
+
+# Check localized error messages in logs
+tail -f storage/logs/laravel.log | grep "CSV row validation failed"
+```
+
+### Example Output
+
+Validation error for Engineering employee with salary < 50k:
+
+- **English**: "Engineering employees must have salary >= $50,000"
+- **Filipino**: "Mga empleyado sa Engineering ay dapat may salary >= ₱50,000"
+- **Spanish**: "Los empleados de Ingeniería deben tener salary >= $50.000"
+
+### Standard Placeholders
+
+Automatically available in all translations:
+
+- `:attribute` - Field name (e.g., "Phone Number", "Salary")
+- `:value` - The value that failed validation
+
+### Custom Placeholders
+
+Define custom placeholders for any context:
+
+```php
+'placeholders' => [
+    'code' => ['en' => 'Philippine', 'fil' => 'Pilipinas', 'es' => 'Filipinas'],
+    'currency' => ['en' => '$', 'fil' => '₱', 'es' => '$'],
+    'min' => ['en' => '10', 'fil' => '10', 'es' => '10'],
+]
+```
+
+Reference in translations with `:placeholder_name`:
+
+```php
+'translations' => [
+    'en' => ':attribute must be a valid :code phone number',
+    'fil' => ':attribute ay dapat wastong numero ng telepono sa :code',
+]
+```
+
+### Testing
+
+```bash
+# Unit tests - locale detection
+php artisan test tests/Unit/Services/CsvImportProcessorLocaleTest.php
+
+# Feature tests - localized validation (EN/FIL/ES)
+php artisan test tests/Feature/DeadDrop/CsvImportLocalizedValidationTest.php
+```
+
+### Complete Documentation
+
+For step-by-step guides on adding new locales, custom placeholders, and translations, see:
+
+**📖 [TRANSLATIONS.md](TRANSLATIONS.md)** - Comprehensive translation guide
+
+### Files
+
+- Processor: `app/Services/Processors/PortPHP/CsvImportProcessor.php` (locale detection)
+- Model: `app/Models/CustomValidationRule.php` (translation methods)
+- Seeder: `database/seeders/CustomValidationRuleSeeder.php` (examples)
+- Tests: `tests/Unit/Services/CsvImportProcessorLocaleTest.php`
+- Tests: `tests/Feature/DeadDrop/CsvImportLocalizedValidationTest.php`
