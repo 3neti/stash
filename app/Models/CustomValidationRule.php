@@ -43,6 +43,8 @@ class CustomValidationRule extends Model
         'description',
         'type',
         'config',
+        'translations',
+        'placeholders',
         'is_active',
     ];
 
@@ -51,6 +53,8 @@ class CustomValidationRule extends Model
      */
     protected $casts = [
         'config' => 'array',
+        'translations' => 'array',
+        'placeholders' => 'array',
         'is_active' => 'boolean',
     ];
 
@@ -164,23 +168,87 @@ class CustomValidationRule extends Model
     }
 
     /**
-     * Get the error message for this rule.
+     * Get the error message for this rule with locale support.
+     *
+     * Lookup order:
+     * 1. translations[locale]
+     * 2. config['message'] (default)
+     * 3. Hardcoded fallback
+     *
+     * @param  string|null  $locale  Locale code (e.g., 'en', 'fil', 'es')
+     * @param  array  $context  Context for placeholder replacement (field name, value, etc.)
+     * @return string Localized error message with placeholders replaced
      */
-    public function getErrorMessage(): string
+    public function getErrorMessage(string $locale = null, array $context = []): string
     {
-        return $this->config['message'] ?? "The value does not match the required format.";
+        // Use app locale if not specified
+        $locale = $locale ?? app()->getLocale();
+
+        // 1. Try to get translation for the specified locale
+        $message = null;
+        if ($this->translations && isset($this->translations[$locale])) {
+            $message = $this->translations[$locale];
+        }
+
+        // 2. Fallback to default message in config
+        if (! $message) {
+            $message = $this->config['message'] ?? "The value does not match the required format.";
+        }
+
+        // 3. Replace placeholders
+        return $this->replacePlaceholders($message, $context, $locale);
+    }
+
+    /**
+     * Replace placeholders in the message with localized values.
+     *
+     * Supports:
+     * - :attribute - Field name
+     * - :value - Current value
+     * - :code, :date, etc. - Custom placeholders from config
+     *
+     * @param  string  $message  Message with placeholders
+     * @param  array  $context  Context data (field name, value, etc.)
+     * @param  string  $locale  Locale for placeholder values
+     * @return string Message with placeholders replaced
+     */
+    protected function replacePlaceholders(string $message, array $context, string $locale): string
+    {
+        // Standard placeholders
+        if (isset($context['attribute'])) {
+            $message = str_replace(':attribute', $context['attribute'], $message);
+        }
+        if (isset($context['value'])) {
+            $message = str_replace(':value', (string) $context['value'], $message);
+        }
+
+        // Custom placeholders from config
+        if ($this->placeholders) {
+            foreach ($this->placeholders as $key => $values) {
+                // Get localized value for this placeholder
+                $value = $values[$locale] ?? $values['en'] ?? $key;
+                $message = str_replace(":{$key}", $value, $message);
+            }
+        }
+
+        return $message;
     }
 
     /**
      * Test the rule with a sample value (useful for UI).
+     *
+     * @param  mixed  $value  Value to test
+     * @param  array  $context  Context for expression validation and placeholder replacement
+     * @param  string|null  $locale  Locale for error message
+     * @return array Test result with localized message
      */
-    public function test(mixed $value): array
+    public function test(mixed $value, array $context = [], string $locale = null): array
     {
-        $isValid = $this->validate($value);
+        $isValid = $this->validate($value, $context);
 
         return [
             'valid' => $isValid,
-            'message' => $isValid ? 'Valid' : $this->getErrorMessage(),
+            'message' => $isValid ? 'Valid' : $this->getErrorMessage($locale, $context),
             'rule_name' => $this->name,
             'rule_type' => $this->type,
         ];

@@ -231,50 +231,51 @@ class CampaignSeeder extends Seeder
                             // Transformations with REGEX (applied FIRST)
                             'transformations' => [
                                 // Regex transformations applied BEFORE simple transformations
+                                // NOTE: Transformations replace source fields IN-PLACE
                                 'regex_transformations' => [
-                                    // Extract area code from phone number
+                                    // Extract area code from phone (replaces phone field)
                                     // Input: '+639171234567' → Output: '917'
-                                    'phone_area_code' => [
+                                    'phone' => [
                                         'type' => 'extract',
                                         'pattern' => '/^(\+63|0)?(9\d{2})\d{7}$/',
                                         'group' => 2,
                                     ],
                                     
                                     // Reformat registration date from MM/DD/YYYY to YYYY-MM-DD
-                                    // Input: '12/25/2024' → Output: '2024-12-25'
+                                    // Input: '12/25/2023' → Output: '2023-12-25'
                                     'registration_date' => [
                                         'type' => 'replace',
                                         'pattern' => '/^(\d{2})\/(\d{2})\/(\d{4})$/',
                                         'replacement' => '$3-$1-$2',
                                     ],
                                     
-                                    // Extract domain from email
+                                    // Extract domain from email (replaces email field)
                                     // Input: 'john@company.com' → Output: 'company.com'
-                                    'email_domain' => [
+                                    'email' => [
                                         'type' => 'extract',
                                         'pattern' => '/@(.+)$/',
                                         'group' => 1,
                                     ],
                                     
-                                    // Split full name into first_name and last_name
-                                    // Input: 'Juan Dela Cruz' → Output: first_name='Juan', last_name='Dela Cruz'
+                                    // Split full name into first_name and last_name (creates new fields)
+                                    // Input: 'Juan Dela Cruz' → first_name='Juan', last_name='Dela Cruz'
                                     'full_name' => [
                                         'type' => 'split',
                                         'pattern' => '/\s+/',
                                         'output_fields' => ['first_name', 'last_name'],
-                                        'remove_original' => false, // Keep full_name field
+                                        'remove_original' => false,
                                     ],
                                     
-                                    // Extract all hashtags from bio
-                                    // Input: 'Hello #world #php #laravel' → Output: 'world,php,laravel'
+                                    // Extract hashtags from bio (replaces bio field)
+                                    // Input: '#php #laravel #vue' → Output: 'php,laravel,vue'
                                     'bio' => [
                                         'type' => 'extract_all',
                                         'pattern' => '/#(\w+)/',
                                         'group' => 1,
-                                        'output' => 'comma_separated', // or 'array' or 'json'
+                                        'output' => 'comma_separated',
                                     ],
                                     
-                                    // Clean employee ID (remove prefix)
+                                    // Remove EMP- prefix from employee_id
                                     // Input: 'EMP-001234' → Output: '001234'
                                     'employee_id' => [
                                         'type' => 'replace',
@@ -289,17 +290,19 @@ class CampaignSeeder extends Seeder
                                 'integer' => ['age'],
                             ],
                             
-                            // Validation rules
+                            // Validation rules (applied AFTER transformations)
                             'filters' => [
                                 'validation_rules' => [
-                                    'email' => ['required', 'email'],
-                                    'email_domain' => ['required', 'string'], // Extracted via regex
-                                    'phone_area_code' => ['required', 'string', 'size:3'], // Extracted via regex
-                                    'first_name' => ['required', 'string'], // Split from full_name
-                                    'last_name' => ['required', 'string'],  // Split from full_name
+                                    'email' => ['required', 'string'],  // Will be domain only
+                                    'phone' => ['required', 'string', 'size:3'],  // Will be area code only
+                                    'first_name' => ['required', 'string'],  // Created by split
+                                    'last_name' => ['required', 'string'],   // Created by split
+                                    'full_name' => ['required', 'string'],   // Original remains
+                                    'employee_id' => ['required', 'string'], // Prefix removed
                                     'department' => ['required', 'string'],
                                     'age' => ['required', 'integer', 'min:18', 'max:100'],
                                     'registration_date' => ['required', 'date_format:Y-m-d'],
+                                    'bio' => ['required', 'string'],  // Will be comma-separated hashtags
                                 ],
                             ],
                             
