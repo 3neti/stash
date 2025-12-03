@@ -138,17 +138,11 @@ class CampaignSeeder extends Seeder
                                         'regex:/^[a-z0-9._%+-]+@company\.com$/i',
                                     ],
                                     
-                                    // Department: Case-insensitive with Rule::in()
+                                    // Department: Case-insensitive validation (custom in_ci rule)
                                     'department' => [
                                         'required',
                                         'string',
-                                        function ($attribute, $value, $fail) {
-                                            $allowed = ['Engineering', 'Marketing', 'Sales', 'HR', 'Finance', 'Operations'];
-                                            $allowedLower = array_map('strtolower', $allowed);
-                                            if (!in_array(strtolower($value), $allowedLower)) {
-                                                $fail('The ' . $attribute . ' must be one of: ' . implode(', ', $allowed));
-                                            }
-                                        },
+                                        'in_ci:Engineering,Marketing,Sales,HR,Finance,Operations',
                                     ],
                                     
                                     // Salary: Numeric with range validation

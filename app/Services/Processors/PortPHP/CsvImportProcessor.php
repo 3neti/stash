@@ -233,7 +233,10 @@ class CsvImportProcessor extends BasePortProcessor
     {
         // Use Laravel validation if rules provided (recommended)
         if (!empty($filters['validation_rules'])) {
-            $validator = Validator::make($row, $filters['validation_rules']);
+            // Process rules to handle special cases
+            $rules = $this->processValidationRules($filters['validation_rules']);
+            
+            $validator = Validator::make($row, $rules);
             
             if ($validator->fails()) {
                 // Optionally log validation errors for debugging
@@ -363,6 +366,40 @@ class CsvImportProcessor extends BasePortProcessor
         }
 
         return $row;
+    }
+
+    /**
+     * Process validation rules to handle special cases.
+     *
+     * Converts string-based custom rules (e.g., 'in_ci:value1,value2') into closures.
+     */
+    protected function processValidationRules(array $rules): array
+    {
+        $processed = [];
+
+        foreach ($rules as $field => $fieldRules) {
+            $processedFieldRules = [];
+
+            foreach ($fieldRules as $rule) {
+                // Handle custom 'in_ci' (case-insensitive in) rule
+                if (is_string($rule) && str_starts_with($rule, 'in_ci:')) {
+                    $values = explode(',', substr($rule, 6));
+                    $processedFieldRules[] = function ($attribute, $value, $fail) use ($values) {
+                        $valueLower = strtolower($value);
+                        $valuesLower = array_map('strtolower', $values);
+                        if (!in_array($valueLower, $valuesLower)) {
+                            $fail('The ' . $attribute . ' must be one of: ' . implode(', ', $values));
+                        }
+                    };
+                } else {
+                    $processedFieldRules[] = $rule;
+                }
+            }
+
+            $processed[$field] = $processedFieldRules;
+        }
+
+        return $processed;
     }
 
     /**
