@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Campaign;
 use App\Models\Document;
+use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -20,6 +21,7 @@ class DocumentJobFactory extends Factory
     {
         return [
             'uuid' => fake()->uuid(),
+            'tenant_id' => Tenant::factory(),
             'campaign_id' => Campaign::factory(),
             'document_id' => Document::factory(),
             'pipeline_instance' => [

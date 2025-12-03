@@ -66,6 +66,29 @@ class ProcessorExecution extends Model implements HasMedia
     {
         return $this->belongsTo(Processor::class);
     }
+    
+    /**
+     * Contacts associated with this execution (signers, recipients, etc.).
+     */
+    public function contacts(): \Illuminate\Database\Eloquent\Relations\MorphToMany
+    {
+        return $this->morphToMany(
+            Contact::class,
+            'contactable',
+            'contactables'
+        )->withPivot('relationship_type', 'metadata')
+         ->withTimestamps();
+    }
+    
+    /**
+     * Get the primary signer contact for this execution.
+     */
+    public function signer(): ?Contact
+    {
+        return $this->contacts()
+            ->wherePivot('relationship_type', 'signer')
+            ->first();
+    }
 
     public function scopeCompleted($query)
     {
@@ -155,6 +178,23 @@ class ProcessorExecution extends Model implements HasMedia
 
         $this->addMediaCollection('conversions')
             ->acceptsMimeTypes(['application/pdf', 'image/png', 'image/jpeg'])
+            ->useDisk('tenant');
+        
+        // eKYC signing collections
+        $this->addMediaCollection('kyc_id_cards')
+            ->useDisk('tenant');
+        
+        $this->addMediaCollection('kyc_selfies')
+            ->useDisk('tenant');
+        
+        $this->addMediaCollection('signature_marks')
+            ->useDisk('tenant');
+        
+        $this->addMediaCollection('signed_documents')
+            ->useDisk('tenant');
+        
+        $this->addMediaCollection('blockchain_timestamps')
+            ->acceptsMimeTypes(['application/octet-stream']) // .ots files
             ->useDisk('tenant');
     }
 

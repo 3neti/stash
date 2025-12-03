@@ -16,6 +16,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "3neti/hyperverge": "^1.0",
         "inertiajs/inertia-laravel": "^2.0",
         "justinrainbow/json-schema": "^6.6",
         "laravel-workflow/laravel-workflow": "^1.0",
@@ -25,6 +26,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "laravel/wayfinder": "^0.1.9",
+        "lbhurtado/dead-drop-contact": "@dev",
         "lbhurtado/laravel-model-channel": "@dev",
         "lorisleiva/laravel-actions": "^2.9",
         "openai-php/client": "^0.18.0",
@@ -37,6 +39,7 @@
         "spatie/laravel-medialibrary": "^11.0",
         "spatie/laravel-model-states": "^2.12",
         "spatie/laravel-model-status": "^1.18",
+        "spatie/laravel-webhook-client": "^3.3",
         "symfony/expression-language": "^8.0",
         "thiagoalessio/tesseract_ocr": "^2.13"
     },
@@ -67,6 +70,7 @@
         "psr-4": {
             "App\\": "app/",
             "LBHurtado\\DeadDrop\\": "packages/*/src",
+            "LBHurtado\\Contact\\": "packages/contact/src",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         }

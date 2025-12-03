@@ -1,0 +1,48 @@
+{
+    "name": "lbhurtado/dead-drop-contact",
+    "description": "Contact management for Stash multi-tenant platform",
+    "type": "library",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Lester Hurtado",
+            "email": "lester@hurtado.ph"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "LBHurtado\\Contact\\": "src/",
+            "LBHurtado\\Contact\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LBHurtado\\Contact\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LBHurtado\\Contact\\ContactServiceProvider"
+            ]
+        }
+    },
+    "require": {
+        "spatie/laravel-data": "^4.18",
+        "propaganistas/laravel-phone": "^6.0",
+        "spatie/laravel-schemaless-attributes": "^2.5",
+        "spatie/laravel-medialibrary": "^11.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.3",
+        "pestphp/pest": "^3.8"
+    },
+    "scripts": {
+        "test": "vendor/bin/pest"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}

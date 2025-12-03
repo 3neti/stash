@@ -4,9 +4,11 @@ namespace App\Providers;
 
 use App\Listeners\WorkflowCompletedListener;
 use App\Listeners\WorkflowFailedListener;
+use App\Services\HypervergeCredentialResolver;
 use App\Services\Pipeline\Hooks\TimeTrackingHook;
 use App\Services\Pipeline\ProcessorHookManager;
 use App\Services\Pipeline\ProcessorRegistry;
+use LBHurtado\HyperVerge\Contracts\CredentialResolverInterface;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
@@ -27,6 +29,12 @@ class AppServiceProvider extends ServiceProvider
 
         // Register ProcessorHookManager as singleton
         $this->app->singleton(ProcessorHookManager::class);
+        
+        // Register HyperVerge CredentialResolver
+        $this->app->singleton(
+            CredentialResolverInterface::class,
+            HypervergeCredentialResolver::class
+        );
     }
 
     /**

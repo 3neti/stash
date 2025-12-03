@@ -1,0 +1,44 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::connection('tenant')->create('contacts', function (Blueprint $table) {
+            $table->id();
+            $table->string('mobile')->index();
+            $table->string('country')->default('PH');
+            $table->string('bank_account')->nullable();
+            $table->string('name')->nullable();
+            $table->string('email')->nullable();
+            $table->json('meta')->nullable(); // Schemaless attributes
+            
+            // eKYC fields
+            $table->string('kyc_transaction_id')->nullable()->index();
+            $table->string('kyc_status')->nullable()->index(); // pending, approved, rejected
+            $table->text('kyc_onboarding_url')->nullable();
+            $table->timestamp('kyc_submitted_at')->nullable();
+            $table->timestamp('kyc_completed_at')->nullable();
+            $table->json('kyc_rejection_reasons')->nullable();
+            
+            $table->timestamps();
+            
+            $table->unique('mobile');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::connection('tenant')->dropIfExists('contacts');
+    }
+};
