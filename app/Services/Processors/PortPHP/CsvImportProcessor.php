@@ -105,12 +105,21 @@ class CsvImportProcessor extends BasePortProcessor
                 $processedData[] = $row;
             }
 
-            // Update counts
-            $totalRows = $result->output['total_rows'];
-            $result->output['data'] = $processedData;
-            $result->output['rows_imported'] = count($processedData);
-            $result->output['rows_filtered'] = $filteredCount;
-            $result->output['rows_failed'] = $result->output['rows_failed'] + $filteredCount;
+            // Create new output array with updated data
+            $newOutput = $result->output;
+            $newOutput['data'] = $processedData;
+            $newOutput['rows_imported'] = count($processedData);
+            $newOutput['rows_filtered'] = $filteredCount;
+            $newOutput['rows_failed'] = ($result->output['rows_failed'] ?? 0) + $filteredCount;
+
+            // Return new ProcessorResultData with modified output
+            return new \App\Data\Processors\ProcessorResultData(
+                success: $result->success,
+                output: $newOutput,
+                error: $result->error,
+                metadata: $result->metadata,
+                artifactFiles: $result->artifactFiles
+            );
         }
 
         return $result;
