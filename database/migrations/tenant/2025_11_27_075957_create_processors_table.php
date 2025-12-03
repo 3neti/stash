@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('slug')->unique();
             $table->string('class_name');
-            $table->enum('category', ['ocr', 'classification', 'extraction', 'validation', 'enrichment', 'notification', 'storage', 'custom']);
+            $table->enum('category', ['ocr', 'classification', 'extraction', 'validation', 'enrichment', 'notification', 'storage', 'transformation', 'custom']);
             $table->text('description')->nullable();
             $table->json('config_schema')->nullable();
             $table->boolean('is_system')->default(false);

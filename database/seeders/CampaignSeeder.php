@@ -109,6 +109,39 @@ class CampaignSeeder extends Seeder
                 'max_concurrent_jobs' => 3,
                 'retention_days' => 365,
             ],
+            [
+                'name' => 'Employee CSV Import',
+                'slug' => 'employee-csv-import',
+                'description' => 'Bulk import employee data from CSV files with validation',
+                'state' => \App\States\Campaign\ActiveCampaignState::class,
+                'pipeline_config' => [
+                    'processors' => [
+                        ['id' => $processors['csv-importer'] ?? null, 'type' => 'transformation', 'config' => [
+                            'delimiter' => ',',
+                            'has_headers' => true,
+                            'date_columns' => [],
+                            'export_json' => true,
+                        ]],
+                    ],
+                ],
+                'checklist_template' => [
+                    ['title' => 'Verify column headers', 'required' => true],
+                    ['title' => 'Check for duplicate entries', 'required' => false],
+                ],
+                'allowed_mime_types' => [
+                    'text/csv',
+                    'text/plain',
+                    'application/csv',
+                    'application/vnd.ms-excel',
+                ],
+                'max_file_size_bytes' => 52428800, // 50MB for large CSV files
+                'settings' => [
+                    'queue' => 'default',
+                ],
+                'max_concurrent_jobs' => 5,
+                'retention_days' => 90,
+                'published_at' => now(),
+            ],
         ];
 
         foreach ($campaigns as $campaignData) {

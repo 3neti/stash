@@ -247,6 +247,40 @@ class ProcessorSeeder extends Seeder
                 'version' => '1.0.0',
                 'author' => 'DeadDrop Team',
             ],
+            [
+                'name' => 'CSV Importer',
+                'slug' => 'csv-importer',
+                'class_name' => 'App\\Services\\Processors\\PortPHP\\CsvImportProcessor',
+                'category' => 'transformation',
+                'description' => 'Import and transform CSV files using PortPHP ETL pipeline. No external APIs needed.',
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'delimiter' => ['type' => 'string', 'default' => ',', 'description' => 'Column delimiter'],
+                        'enclosure' => ['type' => 'string', 'default' => '"', 'description' => 'Field enclosure character'],
+                        'escape' => ['type' => 'string', 'default' => '\\', 'description' => 'Escape character'],
+                        'has_headers' => ['type' => 'boolean', 'default' => true, 'description' => 'First row contains headers'],
+                        'header_row' => ['type' => 'integer', 'default' => 0, 'description' => 'Header row number (0-indexed)'],
+                        'date_columns' => ['type' => 'array', 'items' => ['type' => 'string'], 'default' => [], 'description' => 'Columns to convert to DateTime'],
+                        'date_format' => ['type' => 'string', 'default' => 'Y-m-d', 'description' => 'Date format for conversion'],
+                        'export_json' => ['type' => 'boolean', 'default' => false, 'description' => 'Export imported data as JSON artifact'],
+                    ],
+                ],
+                'output_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'rows_imported' => ['type' => 'integer'],
+                        'rows_failed' => ['type' => 'integer'],
+                        'total_rows' => ['type' => 'integer'],
+                        'data' => ['type' => 'array', 'items' => ['type' => 'object']],
+                        'has_errors' => ['type' => 'boolean'],
+                    ],
+                    'required' => ['rows_imported', 'rows_failed', 'total_rows'],
+                ],
+                'is_system' => true,
+                'version' => '1.0.0',
+                'author' => 'DeadDrop Team',
+            ],
         ];
 
         foreach ($processors as $processorData) {
