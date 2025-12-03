@@ -331,6 +331,96 @@ class CampaignSeeder extends Seeder
                 'retention_days' => 90,
                 'published_at' => now(),
             ],
+            [
+                'name' => 'Employee CSV Import (Filipino)',
+                'slug' => 'employee-csv-import-fil',
+                'description' => 'Bulk import employee data with Filipino validation messages',
+                'state' => \App\States\Campaign\ActiveCampaignState::class,
+                'pipeline_config' => [
+                    'processors' => [
+                        ['id' => $processors['csv-importer'] ?? null, 'type' => 'ocr', 'config' => [
+                            'delimiter' => ',',
+                            'has_headers' => true,
+                            'date_columns' => ['hire_date'],
+                            'date_format' => 'Y-m-d',
+                            'filters' => [
+                                'validation_rules' => [
+                                    'first_name' => ['required', 'string', 'min:2', 'max:100'],
+                                    'last_name' => ['required', 'string', 'min:2', 'max:100'],
+                                    'email' => ['required', 'email:rfc,dns'],
+                                    'department' => ['required', 'string', 'in_ci:Engineering,Marketing,Sales,HR,Finance,Operations'],
+                                    'salary' => ['required', 'numeric', 'min:0', 'max:999999.99', 'custom:engineering_salary_minimum'],
+                                    'hire_date' => ['required', 'date_format:Y-m-d', 'after:2020-01-01', 'before_or_equal:today'],
+                                    'phone' => ['required', 'custom:valid_phone_ph'],
+                                ],
+                            ],
+                            'transformations' => [
+                                'uppercase' => ['department'],
+                                'trim' => ['email', 'first_name', 'last_name'],
+                                'integer' => ['salary'],
+                            ],
+                            'export_json' => true,
+                        ]],
+                        ['id' => null, 'type' => 'classification', 'config' => []],
+                        ['id' => null, 'type' => 'extraction', 'config' => []],
+                        ['id' => null, 'type' => 'validation', 'config' => []],
+                    ],
+                ],
+                'allowed_mime_types' => ['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel'],
+                'max_file_size_bytes' => 52428800,
+                'settings' => [
+                    'queue' => 'default',
+                    'locale' => 'fil', // Filipino locale
+                ],
+                'max_concurrent_jobs' => 5,
+                'retention_days' => 90,
+                'published_at' => now(),
+            ],
+            [
+                'name' => 'Employee CSV Import (Spanish)',
+                'slug' => 'employee-csv-import-es',
+                'description' => 'Bulk import employee data with Spanish validation messages',
+                'state' => \App\States\Campaign\ActiveCampaignState::class,
+                'pipeline_config' => [
+                    'processors' => [
+                        ['id' => $processors['csv-importer'] ?? null, 'type' => 'ocr', 'config' => [
+                            'delimiter' => ',',
+                            'has_headers' => true,
+                            'date_columns' => ['hire_date'],
+                            'date_format' => 'Y-m-d',
+                            'filters' => [
+                                'validation_rules' => [
+                                    'first_name' => ['required', 'string', 'min:2', 'max:100'],
+                                    'last_name' => ['required', 'string', 'min:2', 'max:100'],
+                                    'email' => ['required', 'email:rfc,dns'],
+                                    'department' => ['required', 'string', 'in_ci:Engineering,Marketing,Sales,HR,Finance,Operations'],
+                                    'salary' => ['required', 'numeric', 'min:0', 'max:999999.99', 'custom:engineering_salary_minimum'],
+                                    'hire_date' => ['required', 'date_format:Y-m-d', 'after:2020-01-01', 'before_or_equal:today'],
+                                    'phone' => ['required', 'custom:valid_phone_ph'],
+                                ],
+                            ],
+                            'transformations' => [
+                                'uppercase' => ['department'],
+                                'trim' => ['email', 'first_name', 'last_name'],
+                                'integer' => ['salary'],
+                            ],
+                            'export_json' => true,
+                        ]],
+                        ['id' => null, 'type' => 'classification', 'config' => []],
+                        ['id' => null, 'type' => 'extraction', 'config' => []],
+                        ['id' => null, 'type' => 'validation', 'config' => []],
+                    ],
+                ],
+                'allowed_mime_types' => ['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel'],
+                'max_file_size_bytes' => 52428800,
+                'settings' => [
+                    'queue' => 'default',
+                    'locale' => 'es', // Spanish locale
+                ],
+                'max_concurrent_jobs' => 5,
+                'retention_days' => 90,
+                'published_at' => now(),
+            ],
         ];
 
         foreach ($campaigns as $campaignData) {

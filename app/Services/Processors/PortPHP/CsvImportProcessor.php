@@ -245,14 +245,17 @@ class CsvImportProcessor extends BasePortProcessor
                 throw new \RuntimeException('No tenant context initialized for validation');
             }
             
+            // Detect locale from document's campaign settings, tenant settings, or default to 'en'
+            $locale = $this->detectLocale($document, $tenant);
+            
             // First, validate expression-based custom rules with full row context
             // (Laravel's validator closures don't have access to full row)
-            if (!$this->validateCustomExpressionRules($row, $filters['validation_rules'], $tenant->id)) {
+            if (!$this->validateCustomExpressionRules($row, $filters['validation_rules'], $tenant->id, $locale)) {
                 return false; // Skip if expression validation fails
             }
             
             // Then process and validate with Laravel
-            $rules = $this->processValidationRules($filters['validation_rules'], $tenant->id);
+            $rules = $this->processValidationRules($filters['validation_rules'], $tenant->id, $locale, $row);
             
             $validator = Validator::make($row, $rules);
             
@@ -404,7 +407,7 @@ class CsvImportProcessor extends BasePortProcessor
      * Expression rules need access to all fields in the row, which Laravel's
      * validator closures don't provide, so we validate them separately.
      */
-    protected function validateCustomExpressionRules(array $row, array $rules, string $tenantId): bool
+    protected function validateCustomExpressionRules(array $row, array $rules, string $tenantId, ?string $locale = null): bool
     {
         // Load tenant-specific custom rules
         CustomRuleRegistry::loadTenantRules($tenantId);
@@ -422,6 +425,19 @@ class CsvImportProcessor extends BasePortProcessor
                         
                         // Pass full row as context for multi-field expressions
                         if (!$customRule->validate($fieldValue, $row)) {
+                            // Log the localized error message for debugging
+                            $context = array_merge($row, [
+                                'attribute' => $field,
+                                'value' => $fieldValue,
+                            ]);
+                            $errorMessage = $customRule->getErrorMessage($locale, $context);
+                            \Log::debug('CSV row validation failed (expression rule)', [
+                                'field' => $field,
+                                'rule' => $ruleName,
+                                'value' => $fieldValue,
+                                'row' => $row,
+                                'error' => $errorMessage,
+                            ]);
                             return false; // Expression validation failed
                         }
                     }
@@ -437,7 +453,7 @@ class CsvImportProcessor extends BasePortProcessor
      *
      * Converts string-based custom rules (e.g., 'in_ci:value1,value2', 'custom:rule_name') into closures.
      */
-    protected function processValidationRules(array $rules, string $tenantId): array
+    protected function processValidationRules(array $rules, string $tenantId, ?string $locale = null, array $row = []): array
     {
         // Load tenant-specific custom rules
         CustomRuleRegistry::loadTenantRules($tenantId);
@@ -456,10 +472,15 @@ class CsvImportProcessor extends BasePortProcessor
                     if ($customRule) {
                         // Skip expression rules here (they're validated separately with full row context)
                         if ($customRule->type !== 'expression') {
-                            $processedFieldRules[] = function ($attribute, $value, $fail) use ($customRule) {
+                            $processedFieldRules[] = function ($attribute, $value, $fail) use ($customRule, $locale, $row) {
                                 // Regex and callback rules only need the field value
                                 if (!$customRule->validate($value)) {
-                                    $fail($customRule->getErrorMessage());
+                                    // Get localized error message with context
+                                    $context = array_merge($row, [
+                                        'attribute' => $attribute,
+                                        'value' => $value,
+                                    ]);
+                                    $fail($customRule->getErrorMessage($locale, $context));
                                 }
                             };
                         }
@@ -517,5 +538,29 @@ class CsvImportProcessor extends BasePortProcessor
         }
 
         return $row;
+    }
+
+    /**
+     * Detect locale from campaign settings, tenant settings, or default.
+     *
+     * Priority:
+     * 1. Campaign settings['locale']
+     * 2. Tenant settings['locale']
+     * 3. Default: 'en'
+     */
+    protected function detectLocale(Document $document, $tenant): string
+    {
+        // 1. Check campaign settings
+        if ($document->campaign && isset($document->campaign->settings['locale'])) {
+            return $document->campaign->settings['locale'];
+        }
+
+        // 2. Check tenant settings
+        if (isset($tenant->settings['locale'])) {
+            return $tenant->settings['locale'];
+        }
+
+        // 3. Default to English
+        return 'en';
     }
 }
