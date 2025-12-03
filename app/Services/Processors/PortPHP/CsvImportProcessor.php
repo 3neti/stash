@@ -13,6 +13,7 @@ use Port\Writer\ArrayWriter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use App\Services\Validation\CustomRuleRegistry;
+use App\Tenancy\TenantContext;
 
 /**
  * CSV Import Processor
@@ -234,11 +235,15 @@ class CsvImportProcessor extends BasePortProcessor
     {
         // Use Laravel validation if rules provided (recommended)
         if (!empty($filters['validation_rules'])) {
-            // Get tenant ID from document
-            $tenantId = $document->tenant_id ?? app('tenant_id');
+            // Get tenant ID from current tenant context
+            $tenant = TenantContext::current();
+            
+            if (!$tenant) {
+                throw new \RuntimeException('No tenant context initialized for validation');
+            }
             
             // Process rules to handle special cases
-            $rules = $this->processValidationRules($filters['validation_rules'], $tenantId);
+            $rules = $this->processValidationRules($filters['validation_rules'], $tenant->id);
             
             $validator = Validator::make($row, $rules);
             
