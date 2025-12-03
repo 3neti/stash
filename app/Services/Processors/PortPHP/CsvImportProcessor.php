@@ -106,7 +106,7 @@ class CsvImportProcessor extends BasePortProcessor
 
             $converterStep = new ValueConverterStep();
             foreach ($dateColumns as $column) {
-                $converterStep->add([$column => $dateConverter]);
+                $converterStep->add($column, $dateConverter);
             }
 
             $workflow->addStep($converterStep);
