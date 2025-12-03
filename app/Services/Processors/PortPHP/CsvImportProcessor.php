@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use App\Services\Validation\CustomRuleRegistry;
 use App\Tenancy\TenantContext;
+use App\Services\Processors\PortPHP\Transformations\RegexTransformer;
 
 /**
  * CSV Import Processor
@@ -33,6 +34,8 @@ use App\Tenancy\TenantContext;
  * - export_json: Export imported data as JSON artifact (default: false)
  *
  * Transformation options:
+ * - regex_transformations: Array of regex-based field transformations (applied FIRST)
+ *   Example: ['phone' => ['type' => 'extract', 'pattern' => '/9(\d{2})/', 'group' => 1]]
  * - uppercase: Array of columns to uppercase
  * - lowercase: Array of columns to lowercase
  * - trim: Array of columns to trim whitespace
@@ -317,9 +320,21 @@ class CsvImportProcessor extends BasePortProcessor
      * Apply transformations to a row.
      *
      * Returns the transformed row.
+     *
+     * Transformation order:
+     * 1. Regex transformations (extract, replace, split, extract_all)
+     * 2. Simple transformations (uppercase, lowercase, trim, type conversions)
+     * 3. Custom mapping callback
      */
     public function applyTransformations(array $row, array $transformations): array
     {
+        // 1. Apply regex transformations FIRST (most powerful, can create new fields)
+        if (!empty($transformations['regex_transformations'])) {
+            $regexTransformer = new RegexTransformer();
+            $row = $regexTransformer->transformRow($row, $transformations['regex_transformations']);
+        }
+
+        // 2. Simple transformations
         // Uppercase columns
         if (! empty($transformations['uppercase'])) {
             foreach ($transformations['uppercase'] as $column) {

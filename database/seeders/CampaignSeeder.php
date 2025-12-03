@@ -214,6 +214,120 @@ class CampaignSeeder extends Seeder
                 'retention_days' => 90,
                 'published_at' => now(),
             ],
+            [
+                'name' => 'Customer Data Import with Regex Extraction',
+                'slug' => 'customer-data-regex-import',
+                'description' => 'Import customer data with regex-based transformations (phone extraction, date reformatting, email domain extraction)',
+                'state' => \App\States\Campaign\ActiveCampaignState::class,
+                'pipeline_config' => [
+                    'processors' => [
+                        // CSV Importer with regex transformations
+                        ['id' => $processors['csv-importer'] ?? null, 'type' => 'ocr', 'config' => [
+                            'delimiter' => ',',
+                            'has_headers' => true,
+                            'date_columns' => ['registration_date'],
+                            'date_format' => 'Y-m-d',
+                            
+                            // Transformations with REGEX (applied FIRST)
+                            'transformations' => [
+                                // Regex transformations applied BEFORE simple transformations
+                                'regex_transformations' => [
+                                    // Extract area code from phone number
+                                    // Input: '+639171234567' → Output: '917'
+                                    'phone_area_code' => [
+                                        'type' => 'extract',
+                                        'pattern' => '/^(\+63|0)?(9\d{2})\d{7}$/',
+                                        'group' => 2,
+                                    ],
+                                    
+                                    // Reformat registration date from MM/DD/YYYY to YYYY-MM-DD
+                                    // Input: '12/25/2024' → Output: '2024-12-25'
+                                    'registration_date' => [
+                                        'type' => 'replace',
+                                        'pattern' => '/^(\d{2})\/(\d{2})\/(\d{4})$/',
+                                        'replacement' => '$3-$1-$2',
+                                    ],
+                                    
+                                    // Extract domain from email
+                                    // Input: 'john@company.com' → Output: 'company.com'
+                                    'email_domain' => [
+                                        'type' => 'extract',
+                                        'pattern' => '/@(.+)$/',
+                                        'group' => 1,
+                                    ],
+                                    
+                                    // Split full name into first_name and last_name
+                                    // Input: 'Juan Dela Cruz' → Output: first_name='Juan', last_name='Dela Cruz'
+                                    'full_name' => [
+                                        'type' => 'split',
+                                        'pattern' => '/\s+/',
+                                        'output_fields' => ['first_name', 'last_name'],
+                                        'remove_original' => false, // Keep full_name field
+                                    ],
+                                    
+                                    // Extract all hashtags from bio
+                                    // Input: 'Hello #world #php #laravel' → Output: 'world,php,laravel'
+                                    'bio' => [
+                                        'type' => 'extract_all',
+                                        'pattern' => '/#(\w+)/',
+                                        'group' => 1,
+                                        'output' => 'comma_separated', // or 'array' or 'json'
+                                    ],
+                                    
+                                    // Clean employee ID (remove prefix)
+                                    // Input: 'EMP-001234' → Output: '001234'
+                                    'employee_id' => [
+                                        'type' => 'replace',
+                                        'pattern' => '/^EMP-/',
+                                        'replacement' => '',
+                                    ],
+                                ],
+                                
+                                // Simple transformations (applied AFTER regex)
+                                'uppercase' => ['department'],
+                                'trim' => ['email', 'bio'],
+                                'integer' => ['age'],
+                            ],
+                            
+                            // Validation rules
+                            'filters' => [
+                                'validation_rules' => [
+                                    'email' => ['required', 'email'],
+                                    'email_domain' => ['required', 'string'], // Extracted via regex
+                                    'phone_area_code' => ['required', 'string', 'size:3'], // Extracted via regex
+                                    'first_name' => ['required', 'string'], // Split from full_name
+                                    'last_name' => ['required', 'string'],  // Split from full_name
+                                    'department' => ['required', 'string'],
+                                    'age' => ['required', 'integer', 'min:18', 'max:100'],
+                                    'registration_date' => ['required', 'date_format:Y-m-d'],
+                                ],
+                            ],
+                            
+                            'export_json' => true,
+                        ]],
+                        ['id' => null, 'type' => 'classification', 'config' => []],
+                        ['id' => null, 'type' => 'extraction', 'config' => []],
+                        ['id' => null, 'type' => 'validation', 'config' => []],
+                    ],
+                ],
+                'checklist_template' => [
+                    ['title' => 'Verify regex transformations applied correctly', 'required' => true],
+                    ['title' => 'Check extracted area codes', 'required' => false],
+                    ['title' => 'Verify date reformatting', 'required' => false],
+                ],
+                'allowed_mime_types' => [
+                    'text/csv',
+                    'text/plain',
+                    'application/csv',
+                ],
+                'max_file_size_bytes' => 10485760, // 10MB
+                'settings' => [
+                    'queue' => 'default',
+                ],
+                'max_concurrent_jobs' => 3,
+                'retention_days' => 90,
+                'published_at' => now(),
+            ],
         ];
 
         foreach ($campaigns as $campaignData) {
