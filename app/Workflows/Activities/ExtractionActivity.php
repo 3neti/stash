@@ -18,6 +18,9 @@ use Workflow\Activity;
 /**
  * ExtractionActivity
  *
+ * @deprecated Use GenericProcessorActivity instead for dynamic processor execution.
+ * This hardcoded activity is kept for backward compatibility only.
+ *
  * Laravel Workflow Activity that wraps the existing Extraction processor.
  */
 class ExtractionActivity extends Activity

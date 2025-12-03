@@ -18,6 +18,9 @@ use Workflow\Activity;
 /**
  * ClassificationActivity
  *
+ * @deprecated Use GenericProcessorActivity instead for dynamic processor execution.
+ * This hardcoded activity is kept for backward compatibility only.
+ *
  * Laravel Workflow Activity that wraps the existing Classification processor.
  */
 class ClassificationActivity extends Activity

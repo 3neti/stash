@@ -8,6 +8,7 @@ use App\Data\Pipeline\ProcessorConfigData;
 use App\Data\Processors\ProcessorContextData;
 use App\Events\ProcessorExecutionCompleted;
 use App\Models\DocumentJob;
+use App\Models\Processor;
 use App\Models\ProcessorExecution;
 use App\Models\Tenant;
 use App\Services\Pipeline\ProcessorRegistry;
@@ -17,45 +18,47 @@ use Workflow\Activity;
 use Workflow\Exceptions\NonRetryableException;
 
 /**
- * OcrActivity
+ * GenericProcessorActivity
  *
- * @deprecated Use GenericProcessorActivity instead for dynamic processor execution.
- * This hardcoded activity is kept for backward compatibility only.
+ * A dynamic Laravel Workflow Activity that can execute ANY processor from a campaign's pipeline.
+ * This replaces the hardcoded activities (OcrActivity, ClassificationActivity, etc.) with a single
+ * flexible activity that reads the processor configuration at runtime.
  *
- * Laravel Workflow Activity that wraps the existing OCR processor.
- * Activities are the "unit of work" in Laravel Workflow - they're automatically:
+ * Activities are automatically:
  * - Retried on failure (configurable)
  * - Executed asynchronously on queue workers
  * - Isolated from workflow state (workflow can resume even if activity fails)
- *
- * NOTE: This is a proof-of-concept. Shows how to wrap existing ProcessorInterface in Activity pattern.
  */
-class OcrActivity extends Activity
+class GenericProcessorActivity extends Activity
 {
     use HandlesProcessorArtifacts;
 
     /**
      * Maximum number of retry attempts.
-     * Default is infinite, but we limit to 5 for OCR operations.
      */
     public $tries = 5;
 
     /**
-     * Timeout in seconds (5 minutes for OCR processing).
+     * Timeout in seconds (5 minutes for most operations).
      */
     public $timeout = 300;
 
     /**
-     * Execute OCR processing for a document.
+     * Execute a processor at the specified index in the pipeline.
      *
      * @param  string  $documentJobId  The DocumentJob ULID
+     * @param  int  $processorIndex  Index in the pipeline_instance['processors'] array
+     * @param  array  $previousResults  Results from previous processors
      * @param  string  $tenantId  The Tenant ULID
-     * @return array OCR results (text, confidence, etc.)
+     * @return array Processor results or skip indicator
      */
-    public function execute(string $documentJobId, string $tenantId): array
-    {
+    public function execute(
+        string $documentJobId,
+        int $processorIndex,
+        array $previousResults,
+        string $tenantId
+    ): array {
         // Step 1: Initialize tenant context
-        // (In Laravel Workflow, each activity execution is isolated)
         $tenant = Tenant::on('central')->findOrFail($tenantId);
         app(TenancyService::class)->initializeTenant($tenant);
 
@@ -63,28 +66,32 @@ class OcrActivity extends Activity
         $documentJob = DocumentJob::findOrFail($documentJobId);
         $document = $documentJob->document;
 
-        // Step 3: Get first processor from pipeline (OCR is typically first)
+        // Step 3: Get processor config at specified index
         $processorConfigs = $documentJob->pipeline_instance['processors'] ?? [];
 
-        if (empty($processorConfigs)) {
-            throw new NonRetryableException('No processors configured in pipeline');
+        if ($processorIndex >= count($processorConfigs)) {
+            throw new NonRetryableException("Processor index {$processorIndex} out of bounds");
         }
 
-        // Get first processor config (OCR is first in pipeline)
-        $processorConfig = $processorConfigs[0];
+        $processorConfig = $processorConfigs[$processorIndex];
         $processorId = $processorConfig['id'] ?? null;
 
+        // Handle null processor (skip this step)
         if (! $processorId) {
-            throw new NonRetryableException('Processor ID missing in pipeline config');
+            return [
+                'skipped' => true,
+                'reason' => 'No processor configured at this index',
+                'index' => $processorIndex,
+            ];
         }
 
-        // Step 4: Load Processor model and get from registry
-        $processorModel = \App\Models\Processor::find($processorId);
+        // Step 4: Load Processor model
+        $processorModel = Processor::find($processorId);
         if (! $processorModel) {
             throw new NonRetryableException("Processor not found: {$processorId}");
         }
 
-        // Get processor implementation from registry using slug
+        // Step 5: Get processor implementation from registry
         $registry = app(ProcessorRegistry::class);
 
         // Register processor if not already registered
@@ -97,34 +104,39 @@ class OcrActivity extends Activity
         // Create ProcessorConfigData from processor config
         $config = ProcessorConfigData::from($processorConfig);
 
-        // Step 5: Create context
+        // Step 6: Create context with previous results
         $context = new ProcessorContextData(
             documentJobId: $documentJob->id,
-            processorIndex: 0,
-            previousOutputs: []
+            processorIndex: $processorIndex,
+            previousOutputs: $previousResults
         );
 
-        // Step 6: Create ProcessorExecution record for tracking
+        // Step 7: Create ProcessorExecution record for tracking
         $execution = ProcessorExecution::create([
             'job_id' => $documentJob->id,
             'processor_id' => $processorModel->id,
-            'input_data' => ['document_id' => $document->id],
+            'input_data' => [
+                'document_id' => $document->id,
+                'processor_index' => $processorIndex,
+                'previous_results_count' => count($previousResults),
+            ],
             'config' => $config->toArray(),
         ]);
         $execution->start();
 
-        // Step 7: Execute processor (existing implementation, no changes)
+        // Step 8: Execute processor
         try {
             $result = $processor->handle($document, $config, $context);
 
             if (! $result->success) {
-                $error = $result->error ?? 'OCR processing failed';
+                $error = $result->error ?? 'Processor execution failed';
                 $execution->fail($error);
 
-                // Check if this is a permanent failure (e.g., unsupported file format)
-                // vs temporary (e.g., API timeout) - throw appropriate exception
-                if (str_contains($error, 'unsupported') || str_contains($error, 'invalid file')) {
-                    // Don't retry for unsupported files
+                // Check if this is a permanent failure vs temporary
+                if (str_contains($error, 'unsupported') || 
+                    str_contains($error, 'invalid file') ||
+                    str_contains($error, 'not found')) {
+                    // Don't retry for permanent errors
                     throw new NonRetryableException($error);
                 }
 
@@ -140,7 +152,8 @@ class OcrActivity extends Activity
             );
 
             // Attach any artifact files from processor result
-            $this->attachResultArtifacts($execution, $result, $document, 'ocr');
+            $processorCategory = $processorModel->category ?? 'generic';
+            $this->attachResultArtifacts($execution, $result, $document, $processorCategory);
 
             // Fire event for real-time monitoring
             event(new ProcessorExecutionCompleted($execution, $documentJob));
@@ -152,14 +165,24 @@ class OcrActivity extends Activity
             throw $e;
         }
 
-        // Step 8: Update document metadata (optional - could be done in separate activity)
+        // Step 9: Update document metadata (store output for downstream processors)
         $metadata = $document->metadata ?? [];
-        $metadata['ocr_output'] = $result->output;
-        // Store extracted text for downstream processors
-        $metadata['extracted_text'] = $result->output['text'] ?? '';
+        $processorKey = $processorModel->slug ?? "processor_{$processorIndex}";
+        $metadata[$processorKey . '_output'] = $result->output;
+        
+        // Also store in a flat array for easy access
+        if (! isset($metadata['processor_outputs'])) {
+            $metadata['processor_outputs'] = [];
+        }
+        $metadata['processor_outputs'][$processorIndex] = [
+            'processor_slug' => $processorModel->slug,
+            'processor_name' => $processorModel->name,
+            'output' => $result->output,
+        ];
+        
         $document->update(['metadata' => $metadata]);
 
-        // Return results for next activity
+        // Return results for next processor
         return $result->output;
     }
 }

@@ -18,6 +18,9 @@ use Workflow\Activity;
 /**
  * ValidationActivity
  *
+ * @deprecated Use GenericProcessorActivity instead for dynamic processor execution.
+ * This hardcoded activity is kept for backward compatibility only.
+ *
  * Laravel Workflow Activity that wraps the existing Validation processor.
  */
 class ValidationActivity extends Activity
