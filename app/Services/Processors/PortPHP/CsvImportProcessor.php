@@ -242,7 +242,13 @@ class CsvImportProcessor extends BasePortProcessor
                 throw new \RuntimeException('No tenant context initialized for validation');
             }
             
-            // Process rules to handle special cases
+            // First, validate expression-based custom rules with full row context
+            // (Laravel's validator closures don't have access to full row)
+            if (!$this->validateCustomExpressionRules($row, $filters['validation_rules'], $tenant->id)) {
+                return false; // Skip if expression validation fails
+            }
+            
+            // Then process and validate with Laravel
             $rules = $this->processValidationRules($filters['validation_rules'], $tenant->id);
             
             $validator = Validator::make($row, $rules);
@@ -378,6 +384,40 @@ class CsvImportProcessor extends BasePortProcessor
     }
 
     /**
+     * Validate custom expression rules with full row context.
+     *
+     * Expression rules need access to all fields in the row, which Laravel's
+     * validator closures don't provide, so we validate them separately.
+     */
+    protected function validateCustomExpressionRules(array $row, array $rules, string $tenantId): bool
+    {
+        // Load tenant-specific custom rules
+        CustomRuleRegistry::loadTenantRules($tenantId);
+
+        foreach ($rules as $field => $fieldRules) {
+            foreach ($fieldRules as $rule) {
+                // Only process expression-based custom rules
+                if (is_string($rule) && str_starts_with($rule, 'custom:')) {
+                    $ruleName = substr($rule, 7);
+                    $customRule = CustomRuleRegistry::get($ruleName);
+
+                    // Only validate if it's an expression rule
+                    if ($customRule && $customRule->type === 'expression') {
+                        $fieldValue = $row[$field] ?? null;
+                        
+                        // Pass full row as context for multi-field expressions
+                        if (!$customRule->validate($fieldValue, $row)) {
+                            return false; // Expression validation failed
+                        }
+                    }
+                }
+            }
+        }
+
+        return true; // All expression validations passed
+    }
+
+    /**
      * Process validation rules to handle special cases.
      *
      * Converts string-based custom rules (e.g., 'in_ci:value1,value2', 'custom:rule_name') into closures.
@@ -399,11 +439,15 @@ class CsvImportProcessor extends BasePortProcessor
                     $customRule = CustomRuleRegistry::get($ruleName);
 
                     if ($customRule) {
-                        $processedFieldRules[] = function ($attribute, $value, $fail) use ($customRule) {
-                            if (!$customRule->validate($value)) {
-                                $fail($customRule->getErrorMessage());
-                            }
-                        };
+                        // Skip expression rules here (they're validated separately with full row context)
+                        if ($customRule->type !== 'expression') {
+                            $processedFieldRules[] = function ($attribute, $value, $fail) use ($customRule) {
+                                // Regex and callback rules only need the field value
+                                if (!$customRule->validate($value)) {
+                                    $fail($customRule->getErrorMessage());
+                                }
+                            };
+                        }
                     } else {
                         // Rule not found - log warning and skip
                         \Log::warning('Custom validation rule not found', [

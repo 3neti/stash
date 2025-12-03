@@ -83,6 +83,43 @@ class CustomValidationRuleSeeder extends Seeder
                 ],
                 'is_active' => true,
             ],
+            // Expression-based rules (Phase 2)
+            [
+                'tenant_id' => $tenant->id,
+                'name' => 'valid_salary_range',
+                'label' => 'Valid Salary Range',
+                'description' => 'Salary must be between 30,000 and 200,000',
+                'type' => 'expression',
+                'config' => [
+                    'expression' => 'salary >= 30000 and salary <= 200000',
+                    'message' => 'Salary must be between ₱30,000 and ₱200,000',
+                ],
+                'is_active' => true,
+            ],
+            [
+                'tenant_id' => $tenant->id,
+                'name' => 'engineering_salary_minimum',
+                'label' => 'Engineering Minimum Salary',
+                'description' => 'Engineering department employees must earn at least ₱50,000',
+                'type' => 'expression',
+                'config' => [
+                    'expression' => 'department != "ENGINEERING" or salary >= 50000',
+                    'message' => 'Engineering employees must have salary >= ₱50,000',
+                ],
+                'is_active' => true,
+            ],
+            [
+                'tenant_id' => $tenant->id,
+                'name' => 'recent_hire_validation',
+                'label' => 'Recent Hire Validation',
+                'description' => 'Employees hired after 2023-01-01 must have salary >= 40,000',
+                'type' => 'expression',
+                'config' => [
+                    'expression' => 'hire_date < "2023-01-01" or salary >= 40000',
+                    'message' => 'Recent hires (2023+) must have salary >= ₱40,000',
+                ],
+                'is_active' => true,
+            ],
         ];
 
         foreach ($rules as $ruleData) {

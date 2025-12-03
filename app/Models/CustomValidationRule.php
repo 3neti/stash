@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 
 /**
  * CustomValidationRule
@@ -65,9 +66,10 @@ class CustomValidationRule extends Model
      * Validate a value against this custom rule.
      *
      * @param  mixed  $value  The value to validate
+     * @param  array  $context  Full row context for expression validation
      * @return bool True if valid, false otherwise
      */
-    public function validate(mixed $value): bool
+    public function validate(mixed $value, array $context = []): bool
     {
         if (! $this->is_active) {
             return true; // Inactive rules always pass
@@ -75,7 +77,7 @@ class CustomValidationRule extends Model
 
         return match ($this->type) {
             'regex' => $this->validateRegex($value),
-            'expression' => $this->validateExpression($value),
+            'expression' => $this->validateExpression($value, $context),
             'callback' => $this->validateCallback($value),
             default => true,
         };
@@ -111,12 +113,45 @@ class CustomValidationRule extends Model
     }
 
     /**
-     * Validate using expression language (Phase 2 - Future).
+     * Validate using Symfony Expression Language.
+     *
+     * Supports complex multi-field logic like:
+     * - 'age >= 18 and age <= 65'
+     * - 'salary > 50000 or department in ["Engineering", "Sales"]'
+     * - '(price * quantity) > 1000'
      */
-    protected function validateExpression(mixed $value): bool
+    protected function validateExpression(mixed $value, array $context = []): bool
     {
-        // TODO: Implement in Phase 2 using Symfony Expression Language
-        return true;
+        $expression = $this->config['expression'] ?? null;
+
+        if (! $expression) {
+            return true; // No expression = always valid
+        }
+
+        try {
+            $language = new ExpressionLanguage();
+
+            // Build evaluation context
+            // 'value' is the current field value
+            // All other row fields are available by name
+            $evalContext = ['value' => $value] + $context;
+
+            // Evaluate expression
+            $result = $language->evaluate($expression, $evalContext);
+
+            return (bool) $result;
+        } catch (\Exception $e) {
+            // Invalid expression - log error and fail validation
+            \Log::error('Invalid expression in custom validation rule', [
+                'rule_id' => $this->id,
+                'rule_name' => $this->name,
+                'expression' => $expression,
+                'context' => $evalContext ?? [],
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     /**

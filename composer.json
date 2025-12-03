@@ -37,6 +37,7 @@
         "spatie/laravel-medialibrary": "^11.0",
         "spatie/laravel-model-states": "^2.12",
         "spatie/laravel-model-status": "^1.18",
+        "symfony/expression-language": "^8.0",
         "thiagoalessio/tesseract_ocr": "^2.13"
     },
     "require-dev": {

@@ -166,6 +166,16 @@ class CampaignSeeder extends Seeder
                                         'required',
                                         'custom:valid_phone_ph',
                                     ],
+                                    
+                                    // Multi-field expression validation:
+                                    // Engineering dept must have salary >= 50k
+                                    'salary' => [
+                                        'required',
+                                        'numeric',
+                                        'min:0',
+                                        'max:999999.99',
+                                        'custom:engineering_salary_minimum',
+                                    ],
                                 ],
                             ],
                             
