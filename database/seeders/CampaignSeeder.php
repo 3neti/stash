@@ -160,6 +160,12 @@ class CampaignSeeder extends Seeder
                                         'after:2020-01-01',  // Company founded in 2020
                                         'before_or_equal:today',
                                     ],
+                                    
+                                    // Phone: Custom regex rule for PH phone numbers
+                                    'phone' => [
+                                        'required',
+                                        'custom:valid_phone_ph',
+                                    ],
                                 ],
                             ],
                             

@@ -12,6 +12,7 @@ use Port\Steps\StepAggregator;
 use Port\Writer\ArrayWriter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use App\Services\Validation\CustomRuleRegistry;
 
 /**
  * CSV Import Processor
@@ -103,7 +104,7 @@ class CsvImportProcessor extends BasePortProcessor
                 }
 
                 // Apply validation/filters AFTER transformations
-                if (!empty($filters) && !$this->applyFilters($row, $filters)) {
+                if (!empty($filters) && !$this->applyFilters($row, $filters, $document)) {
                     $filteredCount++;
                     continue; // Skip this row
                 }
@@ -229,12 +230,15 @@ class CsvImportProcessor extends BasePortProcessor
      *
      * Returns true to keep the row, false to skip it.
      */
-    protected function applyFilters(array $row, array $filters): bool
+    protected function applyFilters(array $row, array $filters, Document $document): bool
     {
         // Use Laravel validation if rules provided (recommended)
         if (!empty($filters['validation_rules'])) {
+            // Get tenant ID from document
+            $tenantId = $document->tenant_id ?? app('tenant_id');
+            
             // Process rules to handle special cases
-            $rules = $this->processValidationRules($filters['validation_rules']);
+            $rules = $this->processValidationRules($filters['validation_rules'], $tenantId);
             
             $validator = Validator::make($row, $rules);
             
@@ -371,18 +375,40 @@ class CsvImportProcessor extends BasePortProcessor
     /**
      * Process validation rules to handle special cases.
      *
-     * Converts string-based custom rules (e.g., 'in_ci:value1,value2') into closures.
+     * Converts string-based custom rules (e.g., 'in_ci:value1,value2', 'custom:rule_name') into closures.
      */
-    protected function processValidationRules(array $rules): array
+    protected function processValidationRules(array $rules, string $tenantId): array
     {
+        // Load tenant-specific custom rules
+        CustomRuleRegistry::loadTenantRules($tenantId);
+
         $processed = [];
 
         foreach ($rules as $field => $fieldRules) {
             $processedFieldRules = [];
 
             foreach ($fieldRules as $rule) {
+                // Handle custom validation rules: 'custom:rule_name'
+                if (is_string($rule) && str_starts_with($rule, 'custom:')) {
+                    $ruleName = substr($rule, 7);
+                    $customRule = CustomRuleRegistry::get($ruleName);
+
+                    if ($customRule) {
+                        $processedFieldRules[] = function ($attribute, $value, $fail) use ($customRule) {
+                            if (!$customRule->validate($value)) {
+                                $fail($customRule->getErrorMessage());
+                            }
+                        };
+                    } else {
+                        // Rule not found - log warning and skip
+                        \Log::warning('Custom validation rule not found', [
+                            'rule_name' => $ruleName,
+                            'field' => $field,
+                        ]);
+                    }
+                }
                 // Handle custom 'in_ci' (case-insensitive in) rule
-                if (is_string($rule) && str_starts_with($rule, 'in_ci:')) {
+                elseif (is_string($rule) && str_starts_with($rule, 'in_ci:')) {
                     $values = explode(',', substr($rule, 6));
                     $processedFieldRules[] = function ($attribute, $value, $fail) use ($values) {
                         $valueLower = strtolower($value);
