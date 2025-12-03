@@ -52,18 +52,18 @@ class CsvImportProcessor extends BasePortProcessor
         $reader = new CsvReader($file);
 
         // 3. Configure CSV reader from config
-        $delimiter = $config->get('delimiter', ',');
-        $enclosure = $config->get('enclosure', '"');
-        $escape = $config->get('escape', '\\');
+        $delimiter = $config->config['delimiter'] ?? ',';
+        $enclosure = $config->config['enclosure'] ?? '"';
+        $escape = $config->config['escape'] ?? '\\';
 
         $reader->setDelimiter($delimiter);
         $reader->setEnclosure($enclosure);
         $reader->setEscape($escape);
 
         // 4. Set header row if configured
-        $hasHeaders = $config->get('has_headers', true);
+        $hasHeaders = $config->config['has_headers'] ?? true;
         if ($hasHeaders) {
-            $headerRow = $config->get('header_row', 0);
+            $headerRow = $config->config['header_row'] ?? 0;
             $reader->setHeaderRowNumber($headerRow);
         }
 
@@ -71,9 +71,9 @@ class CsvImportProcessor extends BasePortProcessor
         $workflow = new StepAggregator($reader);
 
         // 6. Add date converters if specified
-        $dateColumns = $config->get('date_columns', []);
+        $dateColumns = $config->config['date_columns'] ?? [];
         if (! empty($dateColumns)) {
-            $dateFormat = $config->get('date_format', 'Y-m-d');
+            $dateFormat = $config->config['date_format'] ?? 'Y-m-d';
             $dateConverter = new DateTimeValueConverter($dateFormat);
 
             $converterStep = new ValueConverterStep();
@@ -110,7 +110,7 @@ class CsvImportProcessor extends BasePortProcessor
         ProcessorConfigData $config
     ): array {
         // Optionally export imported data as JSON artifact
-        if ($config->get('export_json', false) && ! empty($outputData['data'])) {
+        if (($config->config['export_json'] ?? false) && ! empty($outputData['data'])) {
             return [
                 'extracted-data' => $this->exportToJson($outputData['data']),
             ];
