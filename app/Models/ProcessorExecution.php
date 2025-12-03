@@ -10,16 +10,19 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\ModelStates\HasStates;
 
 /**
  * ProcessorExecution Model
  *
- * Tracks individual processor invocations with metrics.
+ * Tracks individual processor invocations with metrics and optionally stores binary artifacts.
  */
-class ProcessorExecution extends Model
+class ProcessorExecution extends Model implements HasMedia
 {
-    use BelongsToTenant, HasFactory, HasStates, HasUlids;
+    use BelongsToTenant, HasFactory, HasStates, HasUlids, InteractsWithMedia;
 
     protected $connection = 'tenant';
 
@@ -127,5 +130,73 @@ class ProcessorExecution extends Model
 
             $this->state->transitionTo('failed');
         });
+    }
+
+    /**
+     * Register media collections for processor artifacts.
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('ocr-outputs')
+            ->acceptsMimeTypes(['text/plain', 'text/html'])
+            ->useDisk('tenant');
+
+        $this->addMediaCollection('annotated-documents')
+            ->acceptsMimeTypes(['application/pdf', 'image/png', 'image/jpeg'])
+            ->useDisk('tenant');
+
+        $this->addMediaCollection('thumbnails')
+            ->acceptsMimeTypes(['image/png', 'image/jpeg'])
+            ->useDisk('tenant');
+
+        $this->addMediaCollection('extracted-data')
+            ->acceptsMimeTypes(['application/json', 'text/plain'])
+            ->useDisk('tenant');
+
+        $this->addMediaCollection('conversions')
+            ->acceptsMimeTypes(['application/pdf', 'image/png', 'image/jpeg'])
+            ->useDisk('tenant');
+    }
+
+    /**
+     * Register media conversions for image artifacts.
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        // Generate thumbnail for image outputs
+        $this->addMediaConversion('thumb')
+            ->width(150)
+            ->height(150)
+            ->sharpen(10)
+            ->performOnCollections('annotated-documents', 'conversions')
+            ->nonQueued();
+
+        // Generate preview for larger viewing
+        $this->addMediaConversion('preview')
+            ->width(800)
+            ->height(600)
+            ->sharpen(5)
+            ->performOnCollections('annotated-documents', 'conversions')
+            ->nonQueued();
+    }
+
+    /**
+     * Helper method to attach processor artifact with metadata.
+     *
+     * @param  string  $filePath  Path to the file to attach
+     * @param  string  $collection  Collection name (ocr-outputs, annotated-documents, etc.)
+     * @param  array  $properties  Custom properties (processor slug, execution timestamp, etc.)
+     * @return \Spatie\MediaLibrary\MediaCollections\Models\Media
+     */
+    public function attachArtifact(string $filePath, string $collection, array $properties = []): Media
+    {
+        return $this->addMedia($filePath)
+            ->withCustomProperties(array_merge([
+                'processor_slug' => $this->processor->slug ?? null,
+                'execution_id' => $this->id,
+                'document_job_id' => $this->job_id,
+                'timestamp' => now()->toIso8601String(),
+            ], $properties))
+            ->toMediaCollection($collection);
     }
 }
