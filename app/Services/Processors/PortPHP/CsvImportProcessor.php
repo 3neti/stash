@@ -90,13 +90,7 @@ class CsvImportProcessor extends BasePortProcessor
             $filteredCount = 0;
 
             foreach ($result->output['data'] as $row) {
-                // Apply filters first
-                if (!empty($filters) && !$this->applyFilters($row, $filters)) {
-                    $filteredCount++;
-                    continue; // Skip this row
-                }
-
-                // Apply transformations
+                // Apply transformations FIRST (clean data before validation)
                 if (!empty($transformations)) {
                     $row = $this->applyTransformations($row, $transformations);
                 }
@@ -106,6 +100,12 @@ class CsvImportProcessor extends BasePortProcessor
                 if (!empty($dateColumns)) {
                     $dateFormat = $config->config['date_format'] ?? 'Y-m-d';
                     $row = $this->convertDateColumns($row, $dateColumns, $dateFormat);
+                }
+
+                // Apply validation/filters AFTER transformations
+                if (!empty($filters) && !$this->applyFilters($row, $filters)) {
+                    $filteredCount++;
+                    continue; // Skip this row
                 }
 
                 $processedData[] = $row;
