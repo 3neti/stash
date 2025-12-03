@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Campaign;
 use App\Models\Processor;
 use Illuminate\Database\Seeder;
+use Illuminate\Validation\Rule;
 
 class CampaignSeeder extends Seeder
 {
@@ -112,7 +113,7 @@ class CampaignSeeder extends Seeder
             [
                 'name' => 'Employee CSV Import',
                 'slug' => 'employee-csv-import',
-                'description' => 'Bulk import employee data from CSV files with validation and transformation',
+                'description' => 'Bulk import employee data with Laravel validation rules',
                 'state' => \App\States\Campaign\ActiveCampaignState::class,
                 'pipeline_config' => [
                     'processors' => [
@@ -122,20 +123,59 @@ class CampaignSeeder extends Seeder
                             'has_headers' => true,
                             'date_columns' => ['hire_date'],
                             'date_format' => 'Y-m-d',
-                            // Filters: Skip invalid rows
+                            
+                            // Laravel Validation Rules (Advanced Examples)
                             'filters' => [
-                                'required_columns' => ['email', 'first_name', 'last_name'],
-                                'min_values' => ['salary' => 0],
-                                'allowed_values' => [
-                                    'department' => ['Engineering', 'Marketing', 'Sales', 'HR', 'Finance', 'Operations'],
+                                'validation_rules' => [
+                                    // Required fields with type validation
+                                    'first_name' => ['required', 'string', 'min:2', 'max:100'],
+                                    'last_name' => ['required', 'string', 'min:2', 'max:100'],
+                                    
+                                    // Email must be valid AND from company domain
+                                    'email' => [
+                                        'required',
+                                        'email:rfc,dns',
+                                        'regex:/^[a-z0-9._%+-]+@company\.com$/i',
+                                    ],
+                                    
+                                    // Department: Case-insensitive with Rule::in()
+                                    'department' => [
+                                        'required',
+                                        'string',
+                                        function ($attribute, $value, $fail) {
+                                            $allowed = ['Engineering', 'Marketing', 'Sales', 'HR', 'Finance', 'Operations'];
+                                            $allowedLower = array_map('strtolower', $allowed);
+                                            if (!in_array(strtolower($value), $allowedLower)) {
+                                                $fail('The ' . $attribute . ' must be one of: ' . implode(', ', $allowed));
+                                            }
+                                        },
+                                    ],
+                                    
+                                    // Salary: Numeric with range validation
+                                    'salary' => [
+                                        'required',
+                                        'numeric',
+                                        'min:0',
+                                        'max:999999.99',
+                                    ],
+                                    
+                                    // Hire date: Valid date, not in future, after company founding
+                                    'hire_date' => [
+                                        'required',
+                                        'date_format:Y-m-d',
+                                        'after:2020-01-01',  // Company founded in 2020
+                                        'before_or_equal:today',
+                                    ],
                                 ],
                             ],
+                            
                             // Transformations: Clean and normalize data
                             'transformations' => [
                                 'uppercase' => ['department'], // Standardize department names
                                 'trim' => ['email', 'first_name', 'last_name'], // Remove whitespace
                                 'integer' => ['salary'], // Convert salary to integer
                             ],
+                            
                             'export_json' => true,
                         ]],
                         // Skip classification for CSV (no processor needed)

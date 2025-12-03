@@ -10,6 +10,8 @@ use App\Models\Document;
 use Port\Csv\CsvReader;
 use Port\Steps\StepAggregator;
 use Port\Writer\ArrayWriter;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 /**
  * CSV Import Processor
@@ -37,12 +39,16 @@ use Port\Writer\ArrayWriter;
  * - boolean: Array of columns to convert to booleans
  * - mapping: Custom callback mapping function
  *
- * Filter options:
+ * Filter options (DEPRECATED - Use validation_rules instead):
  * - required_columns: Array of columns that must not be empty
  * - min_values: Object with column => minimum value constraints
  * - max_values: Object with column => maximum value constraints
  * - allowed_values: Object with column => array of allowed values
  * - custom_filter: Custom callback filter function
+ *
+ * Validation Rules (Recommended - Laravel Validation):
+ * - validation_rules: Array of Laravel validation rules per column
+ *   Example: ['email' => ['required', 'email'], 'salary' => ['required', 'numeric', 'min:0']]
  *
  * Example config:
  * {
@@ -219,12 +225,29 @@ class CsvImportProcessor extends BasePortProcessor
     }
 
     /**
-     * Apply filter rules to a row.
+     * Apply filter rules to a row using Laravel validation.
      *
      * Returns true to keep the row, false to skip it.
      */
     protected function applyFilters(array $row, array $filters): bool
     {
+        // Use Laravel validation if rules provided (recommended)
+        if (!empty($filters['validation_rules'])) {
+            $validator = Validator::make($row, $filters['validation_rules']);
+            
+            if ($validator->fails()) {
+                // Optionally log validation errors for debugging
+                // Log::debug('CSV row validation failed', [
+                //     'row' => $row,
+                //     'errors' => $validator->errors()->all(),
+                // ]);
+                return false; // Skip invalid row
+            }
+            
+            return true; // Keep valid row
+        }
+
+        // Legacy filters (backward compatibility) - DEPRECATED
         // Check required columns (must not be empty)
         if (! empty($filters['required_columns'])) {
             foreach ($filters['required_columns'] as $column) {
