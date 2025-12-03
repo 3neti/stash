@@ -11,6 +11,7 @@ use App\Actions\Documents\GetDocumentStatus;
 use App\Actions\Documents\ListDocuments;
 use App\Actions\Documents\UploadDocument;
 use App\Http\Controllers\API\DocumentProgressController;
+use App\Http\Controllers\Api\ProcessorArtifactController;
 use App\Http\Middleware\InitializeTenantFromUser;
 use App\Models\Campaign;
 use Illuminate\Support\Facades\Route;
@@ -73,3 +74,22 @@ Route::middleware(['auth:sanctum', 'throttle:api', InitializeTenantFromUser::cla
 Route::middleware(['auth:sanctum', 'throttle:api', InitializeTenantFromUser::class])->get('documents/{uuid}/metrics', [DocumentProgressController::class, 'metrics'])
     ->name('api.documents.metrics.index')
     ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+
+// Processor Artifacts API
+Route::middleware(['auth:sanctum', 'throttle:api', InitializeTenantFromUser::class])->group(function () {
+    // List all artifacts for a document
+    Route::get('documents/{document}/artifacts', [ProcessorArtifactController::class, 'documentArtifacts'])
+        ->name('api.documents.artifacts.index');
+
+    // List artifacts by collection for a specific processor execution
+    Route::get('processor-executions/{execution}/artifacts/{collection}', [ProcessorArtifactController::class, 'executionArtifactsByCollection'])
+        ->name('api.processor-executions.artifacts.collection');
+
+    // Get single artifact metadata
+    Route::get('processor-executions/{execution}/artifacts/{media}', [ProcessorArtifactController::class, 'show'])
+        ->name('api.processor-executions.artifacts.show');
+
+    // Download artifact file
+    Route::get('processor-executions/{execution}/artifacts/{media}/download', [ProcessorArtifactController::class, 'download'])
+        ->name('api.processor-executions.artifacts.download');
+});
