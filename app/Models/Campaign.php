@@ -35,7 +35,9 @@ use Spatie\ModelStates\HasStates;
  * @property string $type template|custom|meta
  * @property array $pipeline_config Processor graph definition
  * @property array|null $checklist_template Checklist items
- * @property array|null $settings Queue, AI routing, file rules
+ * @property array|null $settings Queue, AI routing preferences
+ * @property array|null $allowed_mime_types Accepted file MIME types
+ * @property int $max_file_size_bytes Maximum file size in bytes
  * @property string|null $credentials Campaign-level credential overrides (encrypted)
  * @property int $max_concurrent_jobs Maximum concurrent jobs
  * @property int $retention_days Data retention days
@@ -59,6 +61,8 @@ class Campaign extends Model implements AuthenticatableContract
         'pipeline_config',
         'checklist_template',
         'settings',
+        'allowed_mime_types',
+        'max_file_size_bytes',
         'credentials',
         'max_concurrent_jobs',
         'retention_days',
@@ -69,6 +73,8 @@ class Campaign extends Model implements AuthenticatableContract
         'pipeline_config' => 'array',
         'checklist_template' => 'array',
         'settings' => 'array',
+        'allowed_mime_types' => 'array',
+        'max_file_size_bytes' => 'integer',
         'max_concurrent_jobs' => 'integer',
         'retention_days' => 'integer',
         'published_at' => 'datetime',
@@ -77,6 +83,7 @@ class Campaign extends Model implements AuthenticatableContract
 
     protected $attributes = [
         'type' => 'custom',
+        'max_file_size_bytes' => 10485760, // 10MB
         'max_concurrent_jobs' => 10,
         'retention_days' => 90,
     ];
@@ -189,6 +196,102 @@ class Campaign extends Model implements AuthenticatableContract
     public function getProcessorCountAttribute(): int
     {
         return count($this->pipeline_config['processors'] ?? []);
+    }
+
+    /**
+     * Check if campaign accepts a specific MIME type.
+     */
+    public function acceptsMimeType(string $mimeType): bool
+    {
+        $allowed = $this->allowed_mime_types ?? [];
+
+        // If no restrictions configured, accept common types
+        if (empty($allowed)) {
+            return in_array($mimeType, [
+                'application/pdf',
+                'image/png',
+                'image/jpeg',
+                'image/jpg',
+                'image/tiff',
+            ]);
+        }
+
+        return in_array($mimeType, $allowed);
+    }
+
+    /**
+     * Get allowed file extensions based on MIME types.
+     */
+    public function getAcceptedExtensions(): array
+    {
+        $mimeTypes = $this->allowed_mime_types ?? [];
+
+        if (empty($mimeTypes)) {
+            return ['pdf', 'png', 'jpg', 'jpeg', 'tiff'];
+        }
+
+        return $this->mimeTypesToExtensions($mimeTypes);
+    }
+
+    /**
+     * Get allowed MIME types (with defaults if not configured).
+     */
+    public function getAllowedMimeTypes(): array
+    {
+        return $this->allowed_mime_types ?? [
+            'application/pdf',
+            'image/png',
+            'image/jpeg',
+            'image/tiff',
+        ];
+    }
+
+    /**
+     * Get maximum file size in bytes.
+     */
+    public function getMaxFileSizeBytes(): int
+    {
+        return $this->max_file_size_bytes ?? 10485760; // 10MB default
+    }
+
+    /**
+     * Get maximum file size in megabytes.
+     */
+    public function getMaxFileSizeMB(): float
+    {
+        return round($this->getMaxFileSizeBytes() / 1048576, 2);
+    }
+
+    /**
+     * Convert MIME types to file extensions.
+     */
+    private function mimeTypesToExtensions(array $mimeTypes): array
+    {
+        $map = [
+            'application/pdf' => 'pdf',
+            'image/png' => 'png',
+            'image/jpeg' => 'jpg',
+            'image/jpg' => 'jpg',
+            'image/tiff' => 'tiff',
+            'image/tif' => 'tiff',
+            'image/heic' => 'heic',
+            'image/heif' => 'heif',
+            'text/markdown' => 'md',
+            'text/plain' => 'txt',
+            'application/vnd.ms-excel' => 'xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+            'application/msword' => 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+        ];
+
+        $extensions = [];
+        foreach ($mimeTypes as $mimeType) {
+            if (isset($map[$mimeType])) {
+                $extensions[] = $map[$mimeType];
+            }
+        }
+
+        return array_unique($extensions);
     }
 
     /**

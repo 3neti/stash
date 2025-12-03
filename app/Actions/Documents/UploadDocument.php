@@ -52,6 +52,8 @@ class UploadDocument
      * @param  UploadedFile  $file  The uploaded file
      * @param  array|null  $metadata  Optional metadata for the document
      * @return Document The created document
+     *
+     * @throws \Illuminate\Validation\ValidationException If file validation fails
      */
     public function handle(
         Campaign $campaign,
@@ -64,6 +66,9 @@ class UploadDocument
             'tenant_context' => TenantContext::current()?->id,
             'connection' => app('db')->getDefaultConnection(),
         ]);
+
+        // Validate file against campaign-specific rules
+        $this->validateFile($file, $campaign);
 
         // 1. Generate unique document ID
         $documentId = (string) new Ulid;
@@ -219,6 +224,49 @@ class UploadDocument
             $date->format('m'),
             $filename
         );
+    }
+
+    /**
+     * Validate file against campaign-specific rules.
+     *
+     * @param  UploadedFile  $file  The file to validate
+     * @param  Campaign  $campaign  The campaign with file rules
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    private function validateFile(UploadedFile $file, Campaign $campaign): void
+    {
+        $mimeType = $file->getMimeType();
+        $fileSizeBytes = $file->getSize();
+
+        // Validate MIME type
+        if (! $campaign->acceptsMimeType($mimeType)) {
+            $allowedExtensions = implode(', ', $campaign->getAcceptedExtensions());
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'file' => sprintf(
+                    'The file must be a file of type: %s. Uploaded file type: %s',
+                    $allowedExtensions,
+                    $mimeType
+                ),
+            ]);
+        }
+
+        // Validate file size
+        if ($fileSizeBytes > $campaign->getMaxFileSizeBytes()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'file' => sprintf(
+                    'The file must not be greater than %s MB. Uploaded file size: %s MB',
+                    $campaign->getMaxFileSizeMB(),
+                    round($fileSizeBytes / 1048576, 2)
+                ),
+            ]);
+        }
+
+        Log::debug('[UploadDocument] File validation passed', [
+            'mime_type' => $mimeType,
+            'size_bytes' => $fileSizeBytes,
+            'campaign_allowed_mime_types' => $campaign->getAllowedMimeTypes(),
+            'campaign_max_size_bytes' => $campaign->getMaxFileSizeBytes(),
+        ]);
     }
 
     /**

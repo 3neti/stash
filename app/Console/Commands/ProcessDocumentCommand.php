@@ -63,6 +63,7 @@ class ProcessDocumentCommand extends Command
     public function handle(): int
     {
         $documentPaths = $this->argument('documents');
+        $isDryRun = (bool) $this->option('dry-run');
 
         // Validate all files exist before processing
         $missingFiles = [];
@@ -130,7 +131,12 @@ class ProcessDocumentCommand extends Command
             $this->newLine();
         }
 
-        // 3. Process each document
+        // 3. Dry run: validate files without processing
+        if ($isDryRun) {
+            return $this->performDryRun($documentPaths, $tenant);
+        }
+
+        // 4. Process each document
         $results = [];
         $totalCount = count($documentPaths);
 
@@ -149,7 +155,7 @@ class ProcessDocumentCommand extends Command
             }
         }
 
-        // 4. Output results
+        // 5. Output results
         if ($this->shouldOutputJson()) {
             // JSON output mode
             $successCount = count(array_filter($results, fn ($r) => $r['success']));
@@ -178,7 +184,7 @@ class ProcessDocumentCommand extends Command
             }
         }
 
-        // 5. Determine exit code
+        // 6. Determine exit code
         $successCount = count(array_filter($results, fn ($r) => $r['success']));
         $failureCount = $totalCount - $successCount;
 
@@ -518,6 +524,137 @@ class ProcessDocumentCommand extends Command
                 $displayValue = is_bool($value) ? ($value ? 'true' : 'false') : $value;
                 $this->line("{$indentStr}<comment>{$key}:</comment> {$displayValue}");
             }
+        }
+    }
+
+    /**
+     * Perform dry-run validation of files against campaign rules.
+     */
+    private function performDryRun(array $documentPaths, Tenant $tenant): int
+    {
+        $this->conditionalOutput('🔍 Dry-run mode: Validating files without processing...');
+        $this->newLine();
+
+        $results = [];
+        $totalCount = count($documentPaths);
+        $validCount = 0;
+        $invalidCount = 0;
+
+        TenantContext::run($tenant, function () use ($documentPaths, &$results, &$validCount, &$invalidCount) {
+            // Find campaign
+            $campaignSlug = $this->option('campaign');
+            $campaign = null;
+
+            if ($campaignSlug) {
+                $campaign = Campaign::where('slug', $campaignSlug)->first();
+                if (! $campaign) {
+                    $this->error("Campaign not found: {$campaignSlug}");
+                    return;
+                }
+            } else {
+                $campaign = Campaign::whereNotNull('published_at')->first();
+                if (! $campaign) {
+                    $this->error('No published campaigns found');
+                    return;
+                }
+            }
+
+            $this->conditionalOutput("✓ Validating against campaign: {$campaign->name} ({$campaign->slug})");
+            $this->conditionalOutput("  - Allowed types: ".implode(', ', $campaign->getAcceptedExtensions()));
+            $this->conditionalOutput("  - Max file size: {$campaign->getMaxFileSizeMB()} MB");
+            $this->newLine();
+
+            // Validate each file
+            foreach ($documentPaths as $filePath) {
+                $filename = basename($filePath);
+                $mimeType = mime_content_type($filePath);
+                $fileSizeBytes = filesize($filePath);
+                $fileSizeMB = round($fileSizeBytes / 1048576, 2);
+                $errors = [];
+
+                // Validate MIME type
+                if (! $campaign->acceptsMimeType($mimeType)) {
+                    $errors[] = "Invalid type: {$mimeType} (expected: ".implode(', ', $campaign->getAcceptedExtensions()).')';
+                }
+
+                // Validate file size
+                if ($fileSizeBytes > $campaign->getMaxFileSizeBytes()) {
+                    $errors[] = "File too large: {$fileSizeMB} MB (max: {$campaign->getMaxFileSizeMB()} MB)";
+                }
+
+                $isValid = empty($errors);
+                if ($isValid) {
+                    $validCount++;
+                } else {
+                    $invalidCount++;
+                }
+
+                $results[] = [
+                    'filename' => $filename,
+                    'mime_type' => $mimeType,
+                    'size_mb' => $fileSizeMB,
+                    'valid' => $isValid,
+                    'errors' => $errors,
+                ];
+            }
+        });
+
+        // Output results
+        if ($this->shouldOutputJson()) {
+            // JSON output
+            $this->outputJson([
+                'dry_run' => true,
+                'valid' => $validCount === count($documentPaths),
+                'total' => count($documentPaths),
+                'valid_count' => $validCount,
+                'invalid_count' => $invalidCount,
+                'files' => array_map(function ($result) {
+                    return [
+                        'file' => $result['filename'],
+                        'mime_type' => $result['mime_type'],
+                        'size_mb' => $result['size_mb'],
+                        'valid' => $result['valid'],
+                        'errors' => $result['errors'],
+                    ];
+                }, $results),
+            ]);
+        } else {
+            // Standard output
+            $rows = [];
+            foreach ($results as $result) {
+                $statusIcon = $result['valid'] ? '<fg=green>✓</>' : '<fg=red>✗</>';
+                $status = $statusIcon.' '.($result['valid'] ? 'Valid' : 'Invalid');
+                $errorMsg = empty($result['errors']) ? '' : implode('; ', $result['errors']);
+
+                $rows[] = [
+                    $result['filename'],
+                    $result['mime_type'],
+                    $result['size_mb'].' MB',
+                    $status,
+                    $errorMsg,
+                ];
+            }
+
+            $this->table(
+                ['File', 'MIME Type', 'Size', 'Status', 'Errors'],
+                $rows
+            );
+
+            $this->newLine();
+            if ($invalidCount === 0) {
+                $this->info("✅ All {$totalCount} file(s) are valid and ready for processing!");
+            } else {
+                $this->warn("⚠ {$invalidCount} of {$totalCount} file(s) failed validation");
+            }
+        }
+
+        // Return appropriate exit code
+        if ($invalidCount === 0) {
+            return self::SUCCESS;
+        } elseif ($validCount === 0) {
+            return 2; // All invalid
+        } else {
+            return 1; // Some invalid
         }
     }
 }

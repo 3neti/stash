@@ -25,7 +25,11 @@ return new class extends Migration
             // Pipeline and workflow configuration
             $table->json('pipeline_config'); // Processor graph definition
             $table->json('checklist_template')->nullable(); // Checklist items
-            $table->json('settings')->nullable(); // Queue, AI routing, file rules
+            $table->json('settings')->nullable(); // Queue, AI routing preferences
+
+            // File upload configuration
+            $table->json('allowed_mime_types')->nullable(); // Accepted file types
+            $table->unsignedBigInteger('max_file_size_bytes')->default(10485760); // 10MB default
 
             // Credential overrides (encrypted)
             $table->text('credentials')->nullable(); // Campaign-level credential overrides

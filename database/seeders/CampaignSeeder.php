@@ -40,10 +40,16 @@ class CampaignSeeder extends Seeder
                     ['title' => 'Check invoice total', 'required' => true],
                     ['title' => 'Validate payment terms', 'required' => false],
                 ],
+                'allowed_mime_types' => [
+                    'application/pdf',
+                    'image/png',
+                    'image/jpeg',
+                    'image/tiff',
+                ],
+                'max_file_size_bytes' => 10485760, // 10MB
                 'settings' => [
                     'queue' => 'high-priority',
                     'ai_provider' => 'openai',
-                    'max_file_size' => 10485760,
                 ],
                 'max_concurrent_jobs' => 5,
                 'retention_days' => 90,
@@ -64,10 +70,15 @@ class CampaignSeeder extends Seeder
                     ['title' => 'Verify merchant name', 'required' => true],
                     ['title' => 'Check total amount', 'required' => true],
                 ],
+                'allowed_mime_types' => [
+                    'image/jpeg',
+                    'image/png',
+                    'image/heic', // iPhone photos
+                ],
+                'max_file_size_bytes' => 5242880, // 5MB
                 'settings' => [
                     'queue' => 'default',
                     'ai_provider' => 'openai',
-                    'max_file_size' => 5242880,
                 ],
                 'max_concurrent_jobs' => 10,
                 'retention_days' => 60,
@@ -85,6 +96,12 @@ class CampaignSeeder extends Seeder
                         ['id' => $processors['data-enricher'] ?? null, 'type' => 'enrichment', 'config' => ['enrichment_sources' => ['legal_db']]],
                     ],
                 ],
+                'allowed_mime_types' => [
+                    'application/pdf',
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+                ],
+                'max_file_size_bytes' => 20971520, // 20MB (larger for contracts)
                 'settings' => [
                     'queue' => 'low-priority',
                     'ai_provider' => 'anthropic',

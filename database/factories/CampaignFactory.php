@@ -32,6 +32,13 @@ class CampaignFactory extends Factory
                 ['item' => 'Review document', 'required' => true],
                 ['item' => 'Verify signatures', 'required' => false],
             ],
+            'allowed_mime_types' => [
+                'application/pdf',
+                'image/png',
+                'image/jpeg',
+                'image/tiff',
+            ],
+            'max_file_size_bytes' => 10485760, // 10MB
             'settings' => [
                 'queue' => 'default',
                 'ai_provider' => 'openai',
