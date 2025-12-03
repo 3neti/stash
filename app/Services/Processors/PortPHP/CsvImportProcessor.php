@@ -132,10 +132,10 @@ class CsvImportProcessor extends BasePortProcessor
                     private CsvImportProcessor $processor
                 ) {}
 
-                public function process(&$item)
+                public function process($item, callable $next)
                 {
-                    $item = $this->processor->applyTransformations($item, $this->transformations);
-                    return true;
+                    $transformed = $this->processor->applyTransformations($item, $this->transformations);
+                    return $next($transformed);
                 }
             });
         }
