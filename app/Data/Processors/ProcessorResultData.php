@@ -20,5 +20,7 @@ class ProcessorResultData extends Data
         public readonly array $metadata = [],
         public readonly ?int $tokensUsed = null,
         public readonly ?int $costCredits = null,
+        /** @var array<string, string> Array of collection => file_path for binary artifacts */
+        public readonly array $artifactFiles = [],
     ) {}
 }

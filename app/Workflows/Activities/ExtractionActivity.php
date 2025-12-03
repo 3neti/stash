@@ -12,6 +12,7 @@ use App\Models\ProcessorExecution;
 use App\Models\Tenant;
 use App\Services\Pipeline\ProcessorRegistry;
 use App\Services\Tenancy\TenancyService;
+use App\Workflows\Activities\Concerns\HandlesProcessorArtifacts;
 use Workflow\Activity;
 
 /**
@@ -21,6 +22,8 @@ use Workflow\Activity;
  */
 class ExtractionActivity extends Activity
 {
+    use HandlesProcessorArtifacts;
+
     /**
      * Maximum number of retry attempts.
      */
@@ -126,6 +129,9 @@ class ExtractionActivity extends Activity
                 tokensUsed: (int) ($result->output['tokens_used'] ?? 0),
                 costCredits: (int) ($result->output['cost_credits'] ?? 0)
             );
+
+            // Attach any artifact files from processor result
+            $this->attachResultArtifacts($execution, $result, $document, 'extraction');
 
             // Fire event for real-time monitoring
             event(new ProcessorExecutionCompleted($execution, $documentJob));

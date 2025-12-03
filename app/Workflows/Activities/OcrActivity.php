@@ -12,6 +12,7 @@ use App\Models\ProcessorExecution;
 use App\Models\Tenant;
 use App\Services\Pipeline\ProcessorRegistry;
 use App\Services\Tenancy\TenancyService;
+use App\Workflows\Activities\Concerns\HandlesProcessorArtifacts;
 use Workflow\Activity;
 use Workflow\Exceptions\NonRetryableException;
 
@@ -28,6 +29,8 @@ use Workflow\Exceptions\NonRetryableException;
  */
 class OcrActivity extends Activity
 {
+    use HandlesProcessorArtifacts;
+
     /**
      * Maximum number of retry attempts.
      * Default is infinite, but we limit to 5 for OCR operations.
@@ -132,6 +135,9 @@ class OcrActivity extends Activity
                 tokensUsed: (int) ($result->output['tokens_used'] ?? 0),
                 costCredits: (int) ($result->output['cost_credits'] ?? 0)
             );
+
+            // Attach any artifact files from processor result
+            $this->attachResultArtifacts($execution, $result, $document, 'ocr');
 
             // Fire event for real-time monitoring
             event(new ProcessorExecutionCompleted($execution, $documentJob));
