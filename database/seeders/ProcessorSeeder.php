@@ -281,6 +281,63 @@ class ProcessorSeeder extends Seeder
                 'version' => '1.0.0',
                 'author' => 'DeadDrop Team',
             ],
+            [
+                'name' => 'eKYC Verification',
+                'slug' => 'ekyc-verification',
+                'class_name' => 'App\\Processors\\EKycVerificationProcessor',
+                'category' => 'validation',
+                'description' => 'HyperVerge eKYC identity verification with face matching and document OCR',
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'country' => ['type' => 'string', 'default' => 'PH', 'description' => 'Country code for phone number formatting'],
+                        'transaction_id_prefix' => ['type' => 'string', 'default' => 'ekyc', 'description' => 'Prefix for transaction IDs'],
+                        'contact_fields' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'mobile' => ['type' => 'string', 'enum' => ['required', 'optional']],
+                                'name' => ['type' => 'string', 'enum' => ['required', 'optional']],
+                                'email' => ['type' => 'string', 'enum' => ['required', 'optional']],
+                            ],
+                            'default' => [
+                                'mobile' => 'required',
+                                'name' => 'required',
+                                'email' => 'optional',
+                            ],
+                        ],
+                    ],
+                ],
+                'output_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'transaction_id' => ['type' => 'string'],
+                        'kyc_link' => ['type' => 'string'],
+                        'kyc_status' => ['type' => 'string', 'enum' => ['pending', 'approved', 'rejected']],
+                        'contact_id' => ['type' => 'string'],
+                        'contact_mobile' => ['type' => 'string'],
+                        'contact_name' => ['type' => 'string'],
+                        'contact_email' => ['type' => 'string'],
+                        'kyc_result' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'application_status' => ['type' => 'string'],
+                                'face_match_score' => ['type' => 'number'],
+                                'liveness_score' => ['type' => 'number'],
+                                'name' => ['type' => 'string'],
+                                'birth_date' => ['type' => 'string'],
+                                'id_number' => ['type' => 'string'],
+                            ],
+                        ],
+                        'approved_at' => ['type' => 'string'],
+                        'rejected_at' => ['type' => 'string'],
+                        'rejection_reasons' => ['type' => 'array', 'items' => ['type' => 'string']],
+                    ],
+                    'required' => ['transaction_id', 'kyc_link', 'kyc_status'],
+                ],
+                'is_system' => true,
+                'version' => '1.0.0',
+                'author' => 'DeadDrop Team',
+            ],
         ];
 
         foreach ($processors as $processorData) {

@@ -136,8 +136,8 @@ class ProcessorExecution extends Model implements HasMedia
 
     public function fail(string $error): void
     {
-        // If already completed, do not attempt to transition to failed
-        if ($this->isCompleted()) {
+        // If already completed or failed, do not attempt to transition
+        if ($this->isCompleted() || $this->isFailed()) {
             return;
         }
 

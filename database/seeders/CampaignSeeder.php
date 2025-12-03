@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\Campaign;
 use App\Models\Processor;
+use App\Models\Tenant;
+use App\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Validation\Rule;
 
@@ -13,6 +15,25 @@ class CampaignSeeder extends Seeder
      * Run the database seeds.
      */
     public function run(): void
+    {
+        // If running in tenant context, seed campaigns
+        if (TenantContext::isInitialized()) {
+            $this->seedCampaigns();
+        } else {
+            // Otherwise, seed for all tenants
+            $tenants = Tenant::on('pgsql')->get();
+            foreach ($tenants as $tenant) {
+                TenantContext::run($tenant, function () {
+                    $this->seedCampaigns();
+                });
+            }
+        }
+    }
+
+    /**
+     * Seed campaigns for current tenant context.
+     */
+    private function seedCampaigns(): void
     {
         $processors = Processor::pluck('id', 'slug')->toArray();
 
@@ -419,6 +440,43 @@ class CampaignSeeder extends Seeder
                 ],
                 'max_concurrent_jobs' => 5,
                 'retention_days' => 90,
+                'published_at' => now(),
+            ],
+            [
+                'name' => 'Test eKYC Campaign',
+                'slug' => 'test-ekyc-campaign',
+                'description' => 'Test campaign for eKYC verification with document signing',
+                'state' => \App\States\Campaign\ActiveCampaignState::class,
+                'pipeline_config' => [
+                    'processors' => [
+                        ['id' => $processors['ekyc-verification'] ?? null, 'type' => 'validation', 'config' => [
+                            'country' => 'PH',
+                            'contact_fields' => [
+                                'mobile' => 'required',
+                                'name' => 'required',
+                                'email' => 'optional',
+                            ],
+                        ]],
+                        // Additional processors can be added here after KYC approval
+                    ],
+                ],
+                'checklist_template' => [
+                    ['title' => 'Verify KYC completion', 'required' => true],
+                    ['title' => 'Check ID verification', 'required' => true],
+                    ['title' => 'Verify contact information', 'required' => false],
+                ],
+                'allowed_mime_types' => [
+                    'application/pdf',
+                    'image/png',
+                    'image/jpeg',
+                ],
+                'max_file_size_bytes' => 10485760, // 10MB
+                'settings' => [
+                    'queue' => 'default',
+                    'locale' => 'en',
+                ],
+                'max_concurrent_jobs' => 5,
+                'retention_days' => 365,
                 'published_at' => now(),
             ],
         ];
