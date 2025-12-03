@@ -13,10 +13,11 @@ class CustomValidationRuleSeeder extends Seeder
      */
     public function run(): void
     {
-        $tenant = Tenant::where('id', 'default')->first();
+        // Get first tenant (should be the default tenant created from .env)
+        $tenant = Tenant::first();
 
         if (! $tenant) {
-            $this->command->warn('No tenant found. Run TenantSeeder first.');
+            $this->command->warn('No tenant found. Skipping custom validation rules seeding.');
 
             return;
         }
