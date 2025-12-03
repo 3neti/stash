@@ -47,18 +47,14 @@ class CsvImportProcessor extends BasePortProcessor
         // 1. Get CSV file path
         $csvPath = $this->getDocumentPath($document);
 
-        // 2. Create CSV reader
-        $file = new \SplFileObject($csvPath);
-        $reader = new CsvReader($file);
-
-        // 3. Configure CSV reader from config
+        // 2. Get CSV reader configuration
         $delimiter = $config->config['delimiter'] ?? ',';
         $enclosure = $config->config['enclosure'] ?? '"';
         $escape = $config->config['escape'] ?? '\\';
 
-        $reader->setDelimiter($delimiter);
-        $reader->setEnclosure($enclosure);
-        $reader->setEscape($escape);
+        // 3. Create CSV reader with configuration
+        $file = new \SplFileObject($csvPath);
+        $reader = new CsvReader($file, $delimiter, $enclosure, $escape);
 
         // 4. Set header row if configured
         $hasHeaders = $config->config['has_headers'] ?? true;
