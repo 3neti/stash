@@ -9,12 +9,7 @@ use App\Data\Processors\ProcessorContextData;
 use App\Models\Document;
 use Port\Csv\CsvReader;
 use Port\Steps\StepAggregator;
-use Port\Steps\Step\ValueConverterStep;
-use Port\Steps\Step\FilterStep;
-use Port\ValueConverter\DateTimeValueConverter;
 use Port\Writer\ArrayWriter;
-use Port\Reader\PdoReader;
-use Port\Filter\CallbackFilter;
 
 /**
  * CSV Import Processor
@@ -100,6 +95,13 @@ class CsvImportProcessor extends BasePortProcessor
                     $row = $this->applyTransformations($row, $transformations);
                 }
 
+                // Apply date conversions
+                $dateColumns = $config->config['date_columns'] ?? [];
+                if (!empty($dateColumns)) {
+                    $dateFormat = $config->config['date_format'] ?? 'Y-m-d';
+                    $row = $this->convertDateColumns($row, $dateColumns, $dateFormat);
+                }
+
                 $processedData[] = $row;
             }
 
@@ -144,19 +146,8 @@ class CsvImportProcessor extends BasePortProcessor
         // 5. Create workflow from reader
         $workflow = new StepAggregator($reader);
 
-        // 6. Add date converters if specified
-        $dateColumns = $config->config['date_columns'] ?? [];
-        if (! empty($dateColumns)) {
-            $dateFormat = $config->config['date_format'] ?? 'Y-m-d';
-            $dateConverter = new DateTimeValueConverter($dateFormat);
-
-            $converterStep = new ValueConverterStep();
-            foreach ($dateColumns as $column) {
-                $converterStep->add($column, $dateConverter);
-            }
-
-            $workflow->addStep($converterStep);
-        }
+        // Note: Date conversion is handled in post-processing
+        // ValueConverterStep expects object properties, not array keys
 
         return $workflow;
     }
@@ -337,6 +328,33 @@ class CsvImportProcessor extends BasePortProcessor
         // Custom mapping callback
         if (! empty($transformations['mapping']) && is_callable($transformations['mapping'])) {
             $row = $transformations['mapping']($row);
+        }
+
+        return $row;
+    }
+
+    /**
+     * Convert date columns to DateTime objects or formatted strings.
+     */
+    protected function convertDateColumns(array $row, array $dateColumns, string $dateFormat): array
+    {
+        foreach ($dateColumns as $column) {
+            if (isset($row[$column]) && !empty($row[$column])) {
+                try {
+                    // Try to parse the date string
+                    $date = \DateTime::createFromFormat($dateFormat, $row[$column]);
+                    
+                    if ($date === false) {
+                        // Try standard strtotime parsing
+                        $date = new \DateTime($row[$column]);
+                    }
+                    
+                    // Keep as formatted string (or convert to ISO 8601)
+                    $row[$column] = $date->format('Y-m-d');
+                } catch (\Exception $e) {
+                    // Keep original value if parsing fails
+                }
+            }
         }
 
         return $row;
