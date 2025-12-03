@@ -47,10 +47,10 @@ abstract class BasePortProcessor implements ProcessorInterface
      * Extract output data from the PortPHP result.
      *
      * @param  \Port\Result  $portResult  The PortPHP workflow result
-     * @param  ArrayWriter  $arrayWriter  The array writer used to collect data
+     * @param  array  $outputArray  The array data collected by ArrayWriter
      * @return array Output data for ProcessorResultData
      */
-    abstract protected function extractOutputData(\Port\Result $portResult, ArrayWriter $arrayWriter): array;
+    abstract protected function extractOutputData(\Port\Result $portResult, array $outputArray): array;
 
     /**
      * Handle document processing using PortPHP workflow.
@@ -65,7 +65,8 @@ abstract class BasePortProcessor implements ProcessorInterface
             $workflow = $this->configureWorkflow($document, $config, $context);
 
             // 2. Add ArrayWriter to collect data for output_data
-            $arrayWriter = new ArrayWriter();
+            $outputArray = [];
+            $arrayWriter = new ArrayWriter($outputArray);
             $workflow->addWriter($arrayWriter);
 
             // 3. Execute PortPHP workflow
@@ -74,7 +75,7 @@ abstract class BasePortProcessor implements ProcessorInterface
             $duration = microtime(true) - $startTime;
 
             // 4. Extract output data (implemented by subclass)
-            $outputData = $this->extractOutputData($portResult, $arrayWriter);
+            $outputData = $this->extractOutputData($portResult, $outputArray);
 
             // 5. Generate artifact files if needed
             $artifactFiles = $this->generateArtifacts($outputData, $document, $config);

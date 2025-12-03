@@ -86,13 +86,13 @@ class CsvImportProcessor extends BasePortProcessor
     /**
      * Extract output data from PortPHP result.
      */
-    protected function extractOutputData(\Port\Result $portResult, ArrayWriter $arrayWriter): array
+    protected function extractOutputData(\Port\Result $portResult, array $outputArray): array
     {
         return [
             'rows_imported' => $portResult->getSuccessCount(),
             'rows_failed' => $portResult->getErrorCount(),
             'total_rows' => $portResult->getTotalProcessedCount(),
-            'data' => $arrayWriter->getData(),
+            'data' => $outputArray,
             'has_errors' => $portResult->hasErrors(),
         ];
     }
