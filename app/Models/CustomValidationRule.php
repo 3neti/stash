@@ -179,7 +179,7 @@ class CustomValidationRule extends Model
      * @param  array  $context  Context for placeholder replacement (field name, value, etc.)
      * @return string Localized error message with placeholders replaced
      */
-    public function getErrorMessage(string $locale = null, array $context = []): string
+    public function getErrorMessage(?string $locale = null, array $context = []): string
     {
         // Use app locale if not specified
         $locale = $locale ?? app()->getLocale();
@@ -242,7 +242,7 @@ class CustomValidationRule extends Model
      * @param  string|null  $locale  Locale for error message
      * @return array Test result with localized message
      */
-    public function test(mixed $value, array $context = [], string $locale = null): array
+    public function test(mixed $value, array $context = [], ?string $locale = null): array
     {
         $isValid = $this->validate($value, $context);
 

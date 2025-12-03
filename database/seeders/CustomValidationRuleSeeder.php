@@ -31,7 +31,19 @@ class CustomValidationRuleSeeder extends Seeder
                 'type' => 'regex',
                 'config' => [
                     'pattern' => '/^(\+63|0)?9\d{9}$/',
-                    'message' => 'Must be a valid Philippine phone number (e.g., +639123456789 or 09123456789)',
+                    'message' => 'Must be a valid Philippine phone number',
+                ],
+                'translations' => [
+                    'en' => ':attribute must be a valid :code phone number',
+                    'fil' => ':attribute ay dapat wastong numero ng telepono sa :code',
+                    'es' => ':attribute debe ser un número de teléfono válido de :code',
+                ],
+                'placeholders' => [
+                    'code' => [
+                        'en' => 'Philippine',
+                        'fil' => 'Pilipinas',
+                        'es' => 'Filipinas',
+                    ],
                 ],
                 'is_active' => true,
             ],
@@ -56,6 +68,18 @@ class CustomValidationRuleSeeder extends Seeder
                 'config' => [
                     'pattern' => '/^\d{4}$/',
                     'message' => 'ZIP code must be exactly 4 digits',
+                ],
+                'translations' => [
+                    'en' => ':attribute must be exactly :digits digits',
+                    'fil' => ':attribute ay dapat eksaktong :digits na numero',
+                    'es' => ':attribute debe tener exactamente :digits dígitos',
+                ],
+                'placeholders' => [
+                    'digits' => [
+                        'en' => '4',
+                        'fil' => '4',
+                        'es' => '4',
+                    ],
                 ],
                 'is_active' => true,
             ],
@@ -105,6 +129,28 @@ class CustomValidationRuleSeeder extends Seeder
                 'config' => [
                     'expression' => 'department != "ENGINEERING" or salary >= 50000',
                     'message' => 'Engineering employees must have salary >= ₱50,000',
+                ],
+                'translations' => [
+                    'en' => ':department employees must have :attribute >= :currency:amount',
+                    'fil' => 'Mga empleyado sa :department ay dapat may :attribute >= :currency:amount',
+                    'es' => 'Los empleados de :department deben tener :attribute >= :currency:amount',
+                ],
+                'placeholders' => [
+                    'department' => [
+                        'en' => 'Engineering',
+                        'fil' => 'Engineering',
+                        'es' => 'Ingeniería',
+                    ],
+                    'currency' => [
+                        'en' => '$',
+                        'fil' => '₱',
+                        'es' => '$',
+                    ],
+                    'amount' => [
+                        'en' => '50,000',
+                        'fil' => '50,000',
+                        'es' => '50.000',
+                    ],
                 ],
                 'is_active' => true,
             ],
