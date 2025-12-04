@@ -8,6 +8,7 @@ trait HasAdditionalAttributes
     const EMAIL_FIELD = 'email';
     const BIRTH_DATE = 'birth_date';
     const ADDRESS_FIELD = 'address';
+    const GENDER_FIELD = 'gender';
     const GROSS_MONTHLY_INCOME_FIELD = 'gross_monthly_income';
     
     // KYC fields
@@ -25,6 +26,7 @@ trait HasAdditionalAttributes
             self::EMAIL_FIELD,
             self::BIRTH_DATE,
             self::ADDRESS_FIELD,
+            self::GENDER_FIELD,
             self::GROSS_MONTHLY_INCOME_FIELD,
             self::KYC_TRANSACTION_ID,
             self::KYC_STATUS,
@@ -91,6 +93,20 @@ trait HasAdditionalAttributes
     public function getAddressAttribute(): ?string
     {
         return $this->getAttribute('meta')->get(self::ADDRESS_FIELD) ?? '';
+    }
+
+    public function setGenderAttribute(?string $value): self
+    {
+        if ($value !== null) {
+            $this->getAttribute('meta')->set(self::GENDER_FIELD, $value);
+        }
+
+        return $this;
+    }
+
+    public function getGenderAttribute(): ?string
+    {
+        return $this->getAttribute('meta')->get(self::GENDER_FIELD);
     }
 
     public function setGrossMonthlyIncomeAttribute(?string $value): self

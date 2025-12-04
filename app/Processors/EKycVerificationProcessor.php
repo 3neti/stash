@@ -56,19 +56,32 @@ class EKycVerificationProcessor extends AbstractProcessor
         // 4. Generate transaction ID
         $transactionId = $this->generateTransactionId($document, $config);
         
-        // 5. Generate HyperVerge onboarding link
+        // 5. Generate HyperVerge onboarding link (or skip if using fixed ID)
         $redirectUrl = $config->config['redirect_url'] 
             ?? config('app.url') . '/kyc/callback/' . $document->uuid;
         
-        $link = GenerateOnboardingLink::get(
-            transactionId: $transactionId,
-            workflowId: $config->config['workflow_id'] ?? config('hyperverge.url_workflow', 'onboarding'),
-            redirectUrl: $redirectUrl,
-            options: [
-                'validateWorkflowInputs' => 'no',
-                'allowEmptyWorkflowInputs' => 'yes',
-            ]
-        );
+        $isFixedId = !empty(config('hyperverge.fixed_transaction_ids', []));
+        
+        if ($isFixedId) {
+            // Skip API call - use existing transaction for callback testing
+            $link = null; // No new link created
+            
+            \Illuminate\Support\Facades\Log::info('[EKycVerificationProcessor] Skipping HyperVerge API call (fixed ID mode)', [
+                'transaction_id' => $transactionId,
+                'document_id' => $document->id,
+            ]);
+        } else {
+            // Create new onboarding link via HyperVerge API
+            $link = GenerateOnboardingLink::get(
+                transactionId: $transactionId,
+                workflowId: $config->config['workflow_id'] ?? config('hyperverge.url_workflow', 'onboarding'),
+                redirectUrl: $redirectUrl,
+                options: [
+                    'validateWorkflowInputs' => 'no',
+                    'allowEmptyWorkflowInputs' => 'yes',
+                ]
+            );
+        }
         
         // 6. Store in contact if exists
         if ($contact) {
@@ -84,14 +97,15 @@ class EKycVerificationProcessor extends AbstractProcessor
         return [
             'transaction_id' => $transactionId,
             'kyc_link' => $link,
-            'kyc_status' => 'pending',
+            'kyc_status' => $isFixedId ? 'testing_mode' : 'pending',
             'contact_id' => $contact?->id,
             'contact_mobile' => $contactData['mobile'] ?? null,
             'contact_email' => $contactData['email'] ?? null,
             'contact_name' => $contactData['name'] ?? null,
             'workflow_id' => $config->config['workflow_id'] ?? config('hyperverge.url_workflow', 'onboarding'),
-            'awaiting_webhook' => true,
+            'awaiting_callback' => true,
             'redirect_url' => $redirectUrl,
+            'fixed_id_mode' => $isFixedId,
         ];
     }
     

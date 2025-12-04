@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::connection('tenant')->create('contacts', function (Blueprint $table) {
             $table->id();
-            $table->string('mobile')->index();
+            $table->string('mobile')->nullable()->index(); // Nullable for eKYC - may not have phone
             $table->string('country')->default('PH');
             $table->string('bank_account')->nullable();
             $table->string('name')->nullable();
@@ -21,7 +21,7 @@ return new class extends Migration
             $table->json('meta')->nullable(); // Schemaless attributes
             
             // eKYC fields
-            $table->string('kyc_transaction_id')->nullable()->index();
+            $table->string('kyc_transaction_id')->nullable()->unique(); // Use as unique identifier
             $table->string('kyc_status')->nullable()->index(); // pending, approved, rejected
             $table->text('kyc_onboarding_url')->nullable();
             $table->timestamp('kyc_submitted_at')->nullable();
@@ -29,8 +29,6 @@ return new class extends Migration
             $table->json('kyc_rejection_reasons')->nullable();
             
             $table->timestamps();
-            
-            $table->unique('mobile');
         });
     }
 

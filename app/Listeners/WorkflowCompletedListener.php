@@ -84,11 +84,11 @@ class WorkflowCompletedListener
             }
 
             // Transition to running first if still pending (workflow just started)
-            if (! $job->isRunning() && ! $job->isCompleted()) {
+            if (! $job->isRunning() && ! $job->isCompleted() && ! $job->isFailed()) {
                 $job->start();
             }
 
-            // Mark job as complete
+            // Mark job as complete (idempotent - will no-op if already completed/failed)
             $job->complete();
 
             // Mark document as complete

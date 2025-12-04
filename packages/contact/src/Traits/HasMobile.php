@@ -13,13 +13,19 @@ trait HasMobile
 
         return Attribute::make(
             get: function ($value, $attributes) use ($default_country) {
+                if (empty($value)) {
+                    return null;
+                }
+                
                 $country = $attributes['country'] ?? $default_country;
-
                 return phone($value, $country)->formatForMobileDialingInCountry($country);
             },
             set: function ($value, $attributes) use ($default_country) {
+                if (empty($value)) {
+                    return null;
+                }
+                
                 $country = $attributes['country'] ?? $default_country;
-
                 return phone($value, $country)->formatForMobileDialingInCountry($country);
             }
         );

@@ -141,18 +141,33 @@ class Document extends Model
 
     public function toProcessing(): void
     {
+        // Prevent re-processing if already completed or failed
+        if ($this->isCompleted() || $this->isFailed()) {
+            return;
+        }
+
         $this->state->transitionTo(ProcessingDocumentState::class);
         $this->save();
     }
 
     public function toCompleted(): void
     {
+        // Prevent re-completing or completing after failure
+        if ($this->isCompleted() || $this->isFailed()) {
+            return;
+        }
+
         $this->state->transitionTo(CompletedDocumentState::class);
         $this->update(['processed_at' => now()]);
     }
 
     public function toFailed(): void
     {
+        // Prevent re-failing or failing after completion
+        if ($this->isCompleted() || $this->isFailed()) {
+            return;
+        }
+
         $this->state->transitionTo(FailedDocumentState::class);
         $this->save();
     }
@@ -164,6 +179,11 @@ class Document extends Model
 
     public function markFailed(string $error): void
     {
+        // Prevent re-failing or failing after completion
+        if ($this->isCompleted() || $this->isFailed()) {
+            return;
+        }
+
         $this->state->transitionTo(FailedDocumentState::class);
         $this->update([
             'error_message' => $error,

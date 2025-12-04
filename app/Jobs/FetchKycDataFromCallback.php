@@ -7,6 +7,7 @@ namespace App\Jobs;
 use App\Models\Contact;
 use App\Models\KycTransaction;
 use App\Models\ProcessorExecution;
+use App\Services\HyperVerge\KycDataExtractor;
 use App\Services\Tenancy\TenancyService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -107,6 +108,9 @@ class FetchKycDataFromCallback implements ShouldQueue
             'transaction_id' => $this->transactionId,
         ]);
 
+        // Extract personal data from KYC result
+        $personalData = KycDataExtractor::extractPersonalData($result);
+
         // Find ProcessorExecution if exists
         if ($kycTransaction->processor_execution_id) {
             $execution = ProcessorExecution::find($kycTransaction->processor_execution_id);
@@ -130,18 +134,19 @@ class FetchKycDataFromCallback implements ShouldQueue
                     ]);
                 }
 
-                // Update execution output with approval data
+                // Update execution output with approval data and extracted personal data
                 $execution->update([
                     'output_data' => array_merge($execution->output_data ?? [], [
                         'kyc_status' => 'approved',
                         'kyc_approved_at' => now()->toIso8601String(),
+                        'kyc_data' => array_filter($personalData, fn($v) => $v !== null),
                     ]),
                 ]);
             }
         }
 
-        // Update or create Contact
-        $this->updateContact($kycTransaction, $result, true);
+        // Update or create Contact with personal data
+        $this->updateContact($kycTransaction, $result, true, [], $personalData);
     }
 
     /**
@@ -178,24 +183,16 @@ class FetchKycDataFromCallback implements ShouldQueue
         KycTransaction $kycTransaction,
         $result,
         bool $approved,
-        array $reasons = []
+        array $reasons = [],
+        array $personalData = []
     ): void {
         $metadata = $kycTransaction->metadata ?? [];
         $mobile = $metadata['contact_mobile'] ?? null;
         $email = $metadata['contact_email'] ?? null;
 
-        if (!$mobile && !$email) {
-            return;
-        }
-
-        // Find or create contact
-        $contact = null;
-        if ($mobile) {
-            $contact = Contact::where('mobile', $mobile)->first();
-        }
-        if (!$contact && $email) {
-            $contact = Contact::where('email', $email)->first();
-        }
+        // Find or create contact by transaction ID (primary key)
+        // Mobile/email are optional - we store extracted KYC data regardless
+        $contact = Contact::where('kyc_transaction_id', $this->transactionId)->first();
 
         $data = [
             'kyc_transaction_id' => $this->transactionId,
@@ -207,16 +204,30 @@ class FetchKycDataFromCallback implements ShouldQueue
             $data['kyc_rejection_reasons'] = $reasons;
         }
 
+        // Merge personal data if approved and available
+        if ($approved && !empty($personalData)) {
+            $data = array_merge($data, array_filter($personalData, fn($v) => $v !== null));
+            
+            Log::info('[FetchKycData] Merging personal data into Contact', [
+                'fields' => array_keys(array_filter($personalData, fn($v) => $v !== null)),
+            ]);
+        }
+
         if ($contact) {
             $contact->update($data);
             Log::info('[FetchKycData] Contact updated', ['contact_id' => $contact->id]);
         } else {
+            // Create new Contact with transaction ID as unique key
             $contact = Contact::create(array_merge($data, [
-                'mobile' => $mobile,
-                'email' => $email,
-                'name' => $metadata['contact_name'] ?? null,
+                'mobile' => !empty($mobile) ? $mobile : null,
+                'email' => !empty($email) ? $email : null,
+                'name' => $metadata['contact_name'] ?? $personalData['name'] ?? null,
             ]));
-            Log::info('[FetchKycData] Contact created', ['contact_id' => $contact->id]);
+            Log::info('[FetchKycData] Contact created from KYC data', [
+                'contact_id' => $contact->id,
+                'has_mobile' => !empty($mobile),
+                'has_email' => !empty($email),
+            ]);
         }
     }
 }

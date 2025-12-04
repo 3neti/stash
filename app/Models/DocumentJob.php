@@ -124,12 +124,22 @@ class DocumentJob extends Model
 
     public function start(): void
     {
+        // Prevent re-starting if already running, completed, or failed
+        if ($this->isRunning() || $this->isCompleted() || $this->isFailed()) {
+            return;
+        }
+
         $this->state->transitionTo('running');
         $this->update(['started_at' => now()]);
     }
 
     public function complete(): void
     {
+        // Prevent re-completing or completing after failure
+        if ($this->isCompleted() || $this->isFailed()) {
+            return;
+        }
+
         $this->state->transitionTo('completed');
         $this->update(['completed_at' => now()]);
 
