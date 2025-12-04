@@ -17,14 +17,14 @@ use LBHurtado\HyperVerge\Actions\Results\StoreKYCImages;
 use LBHurtado\HyperVerge\Actions\Results\ValidateKYCResult;
 
 /**
- * Fetch KYC data and artifacts from HyperVerge API.
+ * Fetch KYC data and artifacts from HyperVerge API after callback.
  * 
- * This job is dispatched when the callback is received (user completes KYC).
- * It fetches the full KYC result, validates it, downloads images, and updates records.
+ * This job is dispatched when the callback redirect is received (user completes KYC in browser).
+ * It fetches the full KYC result from HyperVerge, validates it, downloads images, and updates records.
  * 
- * Does NOT depend on Spatie webhook infrastructure - standalone job.
+ * Note: This handles GET callback redirects, not POST webhooks.
  */
-class FetchKycDataFromHyperverge implements ShouldQueue
+class FetchKycDataFromCallback implements ShouldQueue
 {
     use Queueable;
 
@@ -78,8 +78,8 @@ class FetchKycDataFromHyperverge implements ShouldQueue
             // Validate result
             $validation = ValidateKYCResult::make()->handle($result);
 
-            // Update transaction status
-            $kycTransaction->markWebhookReceived(
+            // Update transaction with data fetch result
+            $kycTransaction->markDataFetchCompleted(
                 $validation->valid ? 'auto_approved' : 'rejected'
             );
 

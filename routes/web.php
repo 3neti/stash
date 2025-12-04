@@ -25,22 +25,8 @@ Route::middleware(['auth', 'verified', InitializeTenantFromUser::class])->group(
 });
 
 // KYC Callback (no auth required - public endpoint for HyperVerge redirect)
+// Note: This handles GET callback redirects from browser, not POST webhooks
 Route::get('/kyc/callback/{documentUuid}', KycCallbackController::class)
     ->name('kyc.callback');
-
-// Webhook (no auth required)
-Route::post('/webhooks/hyperverge', function (\Illuminate\Http\Request $request) {
-    $webhookConfig = new \Spatie\WebhookClient\WebhookConfig([
-        'name' => 'hyperverge',
-        'signing_secret' => config('hyperverge.webhook.secret'),
-        'signature_header_name' => 'X-HyperVerge-Signature',
-        'signature_validator' => \LBHurtado\HyperVerge\Webhooks\HypervergeSignatureValidator::class,
-        'webhook_profile' => \LBHurtado\HyperVerge\Webhooks\HypervergeWebhookProfile::class,
-        'webhook_model' => \Spatie\WebhookClient\Models\WebhookCall::class,
-        'process_webhook_job' => config('hyperverge.webhook.process_webhook_job'),
-    ]);
-
-    return (new \Spatie\WebhookClient\WebhookController)->__invoke($request, $webhookConfig);
-})->name('webhooks.hyperverge');
 
 require __DIR__.'/settings.php';

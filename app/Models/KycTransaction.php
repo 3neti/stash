@@ -11,7 +11,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * KYC Transaction Registry (Central Database)
  * 
  * Maps HyperVerge transaction IDs to tenant/document context.
- * Used by public webhook/callback endpoints to locate the correct tenant and resources.
+ * Used by public callback endpoints to locate the correct tenant and resources.
+ * 
+ * Note: This handles callback redirects (GET) from browser, not server-to-server webhooks (POST).
  * 
  * Possible statuses from HyperVerge:
  * - auto_approved: Automatically approved by HyperVerge
@@ -79,13 +81,15 @@ class KycTransaction extends Model
     }
     
     /**
-     * Mark webhook as received.
+     * Mark data fetch completed (after callback processing).
+     * 
+     * Called by FetchKycDataFromCallback job after fetching/validating KYC data.
      */
-    public function markWebhookReceived(string $status): void
+    public function markDataFetchCompleted(string $status): void
     {
         $this->update([
             'status' => $status,
-            'webhook_received_at' => now(),
+            'webhook_received_at' => now(), // Keep column name for backward compatibility
         ]);
     }
 }

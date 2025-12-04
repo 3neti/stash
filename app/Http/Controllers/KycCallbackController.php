@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Jobs\FetchKycDataFromHyperverge;
+use App\Jobs\FetchKycDataFromCallback;
 use App\Models\Document;
 use App\Models\KycTransaction;
 use App\Services\Tenancy\TenancyService;
@@ -126,7 +126,7 @@ class KycCallbackController extends Controller
     ): void {
         try {
             // Dispatch standalone fetch job
-            FetchKycDataFromHyperverge::dispatch($transactionId, $status);
+            FetchKycDataFromCallback::dispatch($transactionId, $status);
 
             Log::info('[KYC Callback] Dispatched KYC data fetch job', [
                 'transaction_id' => $transactionId,

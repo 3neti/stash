@@ -19,8 +19,8 @@ return new class extends Migration
             $table->ulid('processor_execution_id')->nullable()->comment('ProcessorExecution ULID in tenant database');
             $table->string('status')->default('pending')->comment('HyperVerge status: auto_approved, approved, needs_review, auto_declined, rejected, user_cancelled, error');
             $table->json('metadata')->nullable()->comment('Additional data: workflow_id, redirect_url, contact info, etc.');
-            $table->timestamp('callback_received_at')->nullable()->comment('When redirect callback was received');
-            $table->timestamp('webhook_received_at')->nullable()->comment('When webhook was received');
+            $table->timestamp('callback_received_at')->nullable()->comment('When GET callback redirect was received from browser');
+            $table->timestamp('webhook_received_at')->nullable()->comment('When data fetch completed (misnomer, kept for compatibility)');
             $table->timestamps();
             
             // Indexes for fast lookups
