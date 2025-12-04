@@ -62,8 +62,12 @@ class EKycVerificationProcessor extends AbstractProcessor
         
         $link = GenerateOnboardingLink::get(
             transactionId: $transactionId,
-            workflowId: $config->config['workflow_id'] ?? 'workflow_2nQDNT',
-            redirectUrl: $redirectUrl
+            workflowId: $config->config['workflow_id'] ?? config('hyperverge.url_workflow', 'onboarding'),
+            redirectUrl: $redirectUrl,
+            options: [
+                'validateWorkflowInputs' => 'no',
+                'allowEmptyWorkflowInputs' => 'yes',
+            ]
         );
         
         // 6. Store in contact if exists
@@ -85,7 +89,7 @@ class EKycVerificationProcessor extends AbstractProcessor
             'contact_mobile' => $contactData['mobile'] ?? null,
             'contact_email' => $contactData['email'] ?? null,
             'contact_name' => $contactData['name'] ?? null,
-            'workflow_id' => $config->config['workflow_id'] ?? 'workflow_2nQDNT',
+            'workflow_id' => $config->config['workflow_id'] ?? config('hyperverge.url_workflow', 'onboarding'),
             'awaiting_webhook' => true,
             'redirect_url' => $redirectUrl,
         ];
@@ -93,18 +97,35 @@ class EKycVerificationProcessor extends AbstractProcessor
     
     /**
      * Generate unique transaction ID for this KYC verification.
+     * 
+     * If HYPERVERGE_FIXED_TRANSACTION_IDS is set in .env, uses those IDs for testing.
+     * Otherwise generates: PREFIX-TIMESTAMP-RANDOM (e.g., EKYC-1764771305-9475)
+     * No underscores to avoid conflicts with HyperVerge identifier format.
      */
     private function generateTransactionId(Document $document, ProcessorConfigData $config): string
     {
-        $prefix = $config->config['transaction_prefix'] ?? 'ekyc';
+        // Check for fixed transaction IDs (for testing with existing HyperVerge transactions)
+        $fixedIds = config('hyperverge.fixed_transaction_ids', []);
         
-        return implode('_', [
-            $prefix,
-            $document->campaign_id,
-            $document->id,
-            now()->timestamp,
-            str_pad((string) rand(0, 9999), 4, '0', STR_PAD_LEFT)
-        ]);
+        if (!empty($fixedIds)) {
+            // Use first available fixed ID
+            $transactionId = $fixedIds[0];
+            
+            \Illuminate\Support\Facades\Log::info('[EKycVerificationProcessor] Using fixed transaction ID', [
+                'transaction_id' => $transactionId,
+                'document_id' => $document->id,
+            ]);
+            
+            return $transactionId;
+        }
+        
+        // Generate new transaction ID
+        $prefix = strtoupper($config->config['transaction_prefix'] ?? 'EKYC');
+        $timestamp = now()->timestamp;
+        $random = str_pad((string) rand(0, 9999), 4, '0', STR_PAD_LEFT);
+        
+        // Use hyphens instead of underscores
+        return "{$prefix}-{$timestamp}-{$random}";
     }
     
     public function getOutputSchema(): ?array

@@ -32,6 +32,16 @@ return [
     'test_mode' => env('HYPERVERGE_TEST_MODE', false),
 
     /**
+     * Fixed transaction IDs for testing (comma-separated)
+     * When set, the eKYC processor will use these IDs instead of generating new ones.
+     * Useful for testing with existing HyperVerge transactions.
+     * Example: EKYC-1764773764-3863,EKYC-1234567890-5678
+     */
+    'fixed_transaction_ids' => env('HYPERVERGE_FIXED_TRANSACTION_IDS') 
+        ? array_map('trim', explode(',', env('HYPERVERGE_FIXED_TRANSACTION_IDS')))
+        : [],
+
+    /**
      * Webhook configuration
      */
     'webhook' => [

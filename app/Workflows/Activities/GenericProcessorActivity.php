@@ -8,6 +8,7 @@ use App\Data\Pipeline\ProcessorConfigData;
 use App\Data\Processors\ProcessorContextData;
 use App\Events\ProcessorExecutionCompleted;
 use App\Models\DocumentJob;
+use App\Models\KycTransaction;
 use App\Models\Processor;
 use App\Models\ProcessorExecution;
 use App\Models\Tenant;
@@ -182,7 +183,61 @@ class GenericProcessorActivity extends Activity
         
         $document->update(['metadata' => $metadata]);
 
+        // Register KYC transaction in central DB if this is eKYC processor
+        if ($processorModel->slug === 'ekyc-verification' && isset($result->output['transaction_id'])) {
+            $this->registerKycTransaction(
+                transactionId: $result->output['transaction_id'],
+                tenantId: $tenantId,
+                documentId: $document->id,
+                executionId: $execution->id,
+                metadata: [
+                    'workflow_id' => $result->output['workflow_id'] ?? null,
+                    'redirect_url' => $result->output['redirect_url'] ?? null,
+                    'contact_mobile' => $result->output['contact_mobile'] ?? null,
+                    'contact_email' => $result->output['contact_email'] ?? null,
+                    'contact_name' => $result->output['contact_name'] ?? null,
+                ]
+            );
+        }
+
         // Return results for next processor
         return $result->output;
+    }
+
+    /**
+     * Register KYC transaction in central database registry.
+     * 
+     * This allows public webhook/callback endpoints to locate the tenant and document
+     * without requiring authentication.
+     */
+    protected function registerKycTransaction(
+        string $transactionId,
+        string $tenantId,
+        string $documentId,
+        string $executionId,
+        array $metadata
+    ): void {
+        try {
+            KycTransaction::create([
+                'transaction_id' => $transactionId,
+                'tenant_id' => $tenantId,
+                'document_id' => $documentId,
+                'processor_execution_id' => $executionId,
+                'status' => 'pending',
+                'metadata' => $metadata,
+            ]);
+
+            \Illuminate\Support\Facades\Log::info('[GenericProcessorActivity] KYC transaction registered', [
+                'transaction_id' => $transactionId,
+                'tenant_id' => $tenantId,
+                'document_id' => $documentId,
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('[GenericProcessorActivity] Failed to register KYC transaction', [
+                'transaction_id' => $transactionId,
+                'error' => $e->getMessage(),
+            ]);
+            // Don't throw - this is not critical for workflow continuation
+        }
     }
 }

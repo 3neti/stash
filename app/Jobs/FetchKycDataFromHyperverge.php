@@ -1,0 +1,222 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Jobs;
+
+use App\Models\Contact;
+use App\Models\KycTransaction;
+use App\Models\ProcessorExecution;
+use App\Services\Tenancy\TenancyService;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
+use LBHurtado\HyperVerge\Actions\Results\ExtractKYCImages;
+use LBHurtado\HyperVerge\Actions\Results\FetchKYCResult;
+use LBHurtado\HyperVerge\Actions\Results\StoreKYCImages;
+use LBHurtado\HyperVerge\Actions\Results\ValidateKYCResult;
+
+/**
+ * Fetch KYC data and artifacts from HyperVerge API.
+ * 
+ * This job is dispatched when the callback is received (user completes KYC).
+ * It fetches the full KYC result, validates it, downloads images, and updates records.
+ * 
+ * Does NOT depend on Spatie webhook infrastructure - standalone job.
+ */
+class FetchKycDataFromHyperverge implements ShouldQueue
+{
+    use Queueable;
+
+    public $tries = 3;
+    public $timeout = 120;
+
+    /**
+     * Create a new job instance.
+     */
+    public function __construct(
+        public string $transactionId,
+        public string $status
+    ) {}
+
+    /**
+     * Execute the job.
+     */
+    public function handle(): void
+    {
+        Log::info('[FetchKycData] Starting KYC data fetch', [
+            'transaction_id' => $this->transactionId,
+            'status' => $this->status,
+        ]);
+
+        // Find transaction in registry
+        $kycTransaction = KycTransaction::where('transaction_id', $this->transactionId)->first();
+
+        if (!$kycTransaction) {
+            Log::error('[FetchKycData] Transaction not found', [
+                'transaction_id' => $this->transactionId,
+            ]);
+            return;
+        }
+
+        // Initialize tenant
+        app(TenancyService::class)->initializeTenant($kycTransaction->tenant);
+
+        // Load document for context (credential resolution)
+        $document = \App\Models\Document::find($kycTransaction->document_id);
+
+        try {
+            // Fetch KYC result from HyperVerge
+            // Call handle() directly to ensure we get the DTO object
+            $result = FetchKYCResult::make()->handle($this->transactionId, $document);
+            
+            Log::info('[FetchKycData] KYC result fetched', [
+                'transaction_id' => $this->transactionId,
+                'application_status' => $result->applicationStatus ?? null,
+            ]);
+
+            // Validate result
+            $validation = ValidateKYCResult::make()->handle($result);
+
+            // Update transaction status
+            $kycTransaction->markWebhookReceived(
+                $validation->valid ? 'auto_approved' : 'rejected'
+            );
+
+            if ($validation->valid) {
+                $this->handleApproved($kycTransaction, $result);
+            } else {
+                $this->handleRejected($kycTransaction, $validation->reasons);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('[FetchKycData] Failed to fetch KYC data', [
+                'transaction_id' => $this->transactionId,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e; // Retry
+        }
+    }
+
+    /**
+     * Handle approved KYC result.
+     */
+    protected function handleApproved(KycTransaction $kycTransaction, $result): void
+    {
+        Log::info('[FetchKycData] KYC approved', [
+            'transaction_id' => $this->transactionId,
+        ]);
+
+        // Find ProcessorExecution if exists
+        if ($kycTransaction->processor_execution_id) {
+            $execution = ProcessorExecution::find($kycTransaction->processor_execution_id);
+
+            if ($execution) {
+                // Download and store images
+                $imageData = ExtractKYCImages::run($this->transactionId);
+                
+                // Filter out metadata (country, document type) - only keep URLs
+                $imageUrls = array_filter($imageData, function ($value, $key) {
+                    return is_string($value) && str_starts_with($value, 'http');
+                }, ARRAY_FILTER_USE_BOTH);
+                
+                if (!empty($imageUrls)) {
+                    StoreKYCImages::run($execution, $imageUrls, $this->transactionId);
+                    
+                    Log::info('[FetchKycData] Images stored', [
+                        'transaction_id' => $this->transactionId,
+                        'execution_id' => $execution->id,
+                        'image_count' => count($imageUrls),
+                    ]);
+                }
+
+                // Update execution output with approval data
+                $execution->update([
+                    'output_data' => array_merge($execution->output_data ?? [], [
+                        'kyc_status' => 'approved',
+                        'kyc_approved_at' => now()->toIso8601String(),
+                    ]),
+                ]);
+            }
+        }
+
+        // Update or create Contact
+        $this->updateContact($kycTransaction, $result, true);
+    }
+
+    /**
+     * Handle rejected KYC result.
+     */
+    protected function handleRejected(KycTransaction $kycTransaction, array $reasons): void
+    {
+        Log::warning('[FetchKycData] KYC rejected', [
+            'transaction_id' => $this->transactionId,
+            'reasons' => $reasons,
+        ]);
+
+        if ($kycTransaction->processor_execution_id) {
+            $execution = ProcessorExecution::find($kycTransaction->processor_execution_id);
+
+            if ($execution) {
+                $execution->update([
+                    'output_data' => array_merge($execution->output_data ?? [], [
+                        'kyc_status' => 'rejected',
+                        'kyc_rejection_reasons' => $reasons,
+                        'kyc_rejected_at' => now()->toIso8601String(),
+                    ]),
+                ]);
+            }
+        }
+
+        $this->updateContact($kycTransaction, [], false, $reasons);
+    }
+
+    /**
+     * Update or create Contact record.
+     */
+    protected function updateContact(
+        KycTransaction $kycTransaction,
+        $result,
+        bool $approved,
+        array $reasons = []
+    ): void {
+        $metadata = $kycTransaction->metadata ?? [];
+        $mobile = $metadata['contact_mobile'] ?? null;
+        $email = $metadata['contact_email'] ?? null;
+
+        if (!$mobile && !$email) {
+            return;
+        }
+
+        // Find or create contact
+        $contact = null;
+        if ($mobile) {
+            $contact = Contact::where('mobile', $mobile)->first();
+        }
+        if (!$contact && $email) {
+            $contact = Contact::where('email', $email)->first();
+        }
+
+        $data = [
+            'kyc_transaction_id' => $this->transactionId,
+            'kyc_status' => $approved ? 'approved' : 'rejected',
+            'kyc_completed_at' => now(),
+        ];
+
+        if (!$approved) {
+            $data['kyc_rejection_reasons'] = $reasons;
+        }
+
+        if ($contact) {
+            $contact->update($data);
+            Log::info('[FetchKycData] Contact updated', ['contact_id' => $contact->id]);
+        } else {
+            $contact = Contact::create(array_merge($data, [
+                'mobile' => $mobile,
+                'email' => $email,
+                'name' => $metadata['contact_name'] ?? null,
+            ]));
+            Log::info('[FetchKycData] Contact created', ['contact_id' => $contact->id]);
+        }
+    }
+}

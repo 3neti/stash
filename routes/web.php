@@ -3,6 +3,7 @@
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\KycCallbackController;
 use App\Http\Middleware\InitializeTenantFromUser;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -22,6 +23,10 @@ Route::middleware(['auth', 'verified', InitializeTenantFromUser::class])->group(
     Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
     Route::get('documents/{uuid}', [DocumentController::class, 'show'])->name('documents.show');
 });
+
+// KYC Callback (no auth required - public endpoint for HyperVerge redirect)
+Route::get('/kyc/callback/{documentUuid}', KycCallbackController::class)
+    ->name('kyc.callback');
 
 // Webhook (no auth required)
 Route::post('/webhooks/hyperverge', function (\Illuminate\Http\Request $request) {
