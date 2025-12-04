@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Events\ContactReady;
 use App\Models\Contact;
 use App\Models\KycTransaction;
 use App\Models\ProcessorExecution;
@@ -155,6 +156,16 @@ class FetchKycDataFromCallback implements ShouldQueue
             if ($execution) {
                 $this->copyMediaToContact($execution, $contact);
             }
+        }
+        
+        // Broadcast real-time event that Contact is ready
+        if ($contact) {
+            ContactReady::dispatch($contact, $this->transactionId);
+            
+            Log::info('[FetchKycData] ContactReady event dispatched', [
+                'transaction_id' => $this->transactionId,
+                'contact_id' => $contact->id,
+            ]);
         }
     }
 

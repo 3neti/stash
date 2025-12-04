@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useEchoPublic } from '@laravel/echo-vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import axios from 'axios'
 import type { ContactData, KycContactResponse } from '@/types/kyc'
 
@@ -47,6 +48,39 @@ const formatDate = (dateStr: string | null) => {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
+  })
+}
+
+// Real-time listener for ContactReady event
+const channelName = computed(() => 
+  props.transactionId ? `kyc.${props.transactionId}` : null
+)
+
+interface ContactReadyPayload {
+  contact: ContactData
+}
+
+if (channelName.value && props.success) {
+  const { listen, stopListening, leaveChannel } = useEchoPublic<ContactReadyPayload>(
+    channelName.value,
+    '.contact.ready',
+    (payload) => {
+      console.log('[KYC Complete] Contact ready event received', payload)
+      if (payload.contact) {
+        contactData.value = payload.contact
+        error.value = null
+      }
+    }
+  )
+  
+  onMounted(() => {
+    listen()
+    console.log('[KYC Complete] Listening for contact.ready on channel:', channelName.value)
+  })
+  
+  onBeforeUnmount(() => {
+    stopListening()
+    leaveChannel(true)
   })
 }
 </script>
