@@ -43,8 +43,17 @@ class Contact extends BaseContact
      */
     public function registerMediaCollections(): void
     {
-        // Only generic profile photos (not eKYC media)
+        // Profile photos
         $this->addMediaCollection('profile_photos')
+            ->singleFile()
+            ->useDisk('tenant');
+        
+        // KYC ID card images (full + cropped)
+        $this->addMediaCollection('kyc_id_cards')
+            ->useDisk('tenant');
+        
+        // KYC selfie image
+        $this->addMediaCollection('kyc_selfies')
             ->singleFile()
             ->useDisk('tenant');
     }

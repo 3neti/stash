@@ -146,7 +146,16 @@ class FetchKycDataFromCallback implements ShouldQueue
         }
 
         // Update or create Contact with personal data
-        $this->updateContact($kycTransaction, $result, true, [], $personalData);
+        $contact = $this->updateContact($kycTransaction, $result, true, [], $personalData);
+        
+        // Copy KYC media from ProcessorExecution to Contact (permanent storage)
+        if ($kycTransaction->processor_execution_id && $contact) {
+            $execution = ProcessorExecution::find($kycTransaction->processor_execution_id);
+            
+            if ($execution) {
+                $this->copyMediaToContact($execution, $contact);
+            }
+        }
     }
 
     /**
@@ -177,7 +186,36 @@ class FetchKycDataFromCallback implements ShouldQueue
     }
 
     /**
+     * Copy KYC media from ProcessorExecution to Contact.
+     */
+    protected function copyMediaToContact(ProcessorExecution $execution, Contact $contact): void
+    {
+        $copiedCount = 0;
+        
+        // Copy ID card images
+        foreach ($execution->getMedia('kyc_id_cards') as $media) {
+            $media->copy($contact, 'kyc_id_cards');
+            $copiedCount++;
+        }
+        
+        // Copy selfie images
+        foreach ($execution->getMedia('kyc_selfies') as $media) {
+            $media->copy($contact, 'kyc_selfies');
+            $copiedCount++;
+        }
+        
+        if ($copiedCount > 0) {
+            Log::info('[FetchKycData] KYC media copied to Contact', [
+                'contact_id' => $contact->id,
+                'execution_id' => $execution->id,
+                'media_count' => $copiedCount,
+            ]);
+        }
+    }
+    
+    /**
      * Update or create Contact record.
+     * Returns the Contact instance for further processing.
      */
     protected function updateContact(
         KycTransaction $kycTransaction,
@@ -185,7 +223,7 @@ class FetchKycDataFromCallback implements ShouldQueue
         bool $approved,
         array $reasons = [],
         array $personalData = []
-    ): void {
+    ): ?Contact {
         $metadata = $kycTransaction->metadata ?? [];
         $mobile = $metadata['contact_mobile'] ?? null;
         $email = $metadata['contact_email'] ?? null;
@@ -229,5 +267,7 @@ class FetchKycDataFromCallback implements ShouldQueue
                 'has_email' => !empty($email),
             ]);
         }
+        
+        return $contact;
     }
 }
