@@ -59,7 +59,18 @@ class GenericProcessorActivity extends Activity
         array $previousResults,
         string $tenantId
     ): array {
-        // Step 1: Initialize tenant context
+        // Step 1: Get current workflow ID from activity context
+        // workflowId() returns integer database ID, convert to string
+        $rawWorkflowId = $this->workflowId();
+        $workflowId = $rawWorkflowId ? (string) $rawWorkflowId : null;
+        
+        \Illuminate\Support\Facades\Log::debug('[GenericProcessorActivity] Captured workflow ID', [
+            'raw_workflow_id' => $rawWorkflowId,
+            'workflow_id_string' => $workflowId,
+            'workflow_id_type' => gettype($rawWorkflowId),
+        ]);
+        
+        // Step 2: Initialize tenant context
         $tenant = Tenant::on('central')->findOrFail($tenantId);
         app(TenancyService::class)->initializeTenant($tenant);
 
@@ -187,11 +198,12 @@ class GenericProcessorActivity extends Activity
         if ($processorModel->slug === 'ekyc-verification' && isset($result->output['transaction_id'])) {
             $this->registerKycTransaction(
                 transactionId: $result->output['transaction_id'],
+                workflowId: $workflowId,
+                documentJobId: $documentJob->id,
                 tenantId: $tenantId,
                 documentId: $document->id,
                 executionId: $execution->id,
                 metadata: [
-                    'workflow_id' => $result->output['workflow_id'] ?? null,
                     'redirect_url' => $result->output['redirect_url'] ?? null,
                     'contact_mobile' => $result->output['contact_mobile'] ?? null,
                     'contact_email' => $result->output['contact_email'] ?? null,
@@ -212,23 +224,31 @@ class GenericProcessorActivity extends Activity
      */
     protected function registerKycTransaction(
         string $transactionId,
+        ?string $workflowId,
+        string $documentJobId,
         string $tenantId,
         string $documentId,
         string $executionId,
         array $metadata
     ): void {
         try {
-            KycTransaction::create([
-                'transaction_id' => $transactionId,
-                'tenant_id' => $tenantId,
-                'document_id' => $documentId,
-                'processor_execution_id' => $executionId,
-                'status' => 'pending',
-                'metadata' => $metadata,
-            ]);
+            // Use updateOrCreate to handle fixed transaction IDs in testing
+            KycTransaction::updateOrCreate(
+                ['transaction_id' => $transactionId],
+                [
+                    'workflow_id' => $workflowId,
+                    'document_job_id' => $documentJobId,
+                    'tenant_id' => $tenantId,
+                    'document_id' => $documentId,
+                    'processor_execution_id' => $executionId,
+                    'status' => 'pending',
+                    'metadata' => $metadata,
+                ]
+            );
 
             \Illuminate\Support\Facades\Log::info('[GenericProcessorActivity] KYC transaction registered', [
                 'transaction_id' => $transactionId,
+                'workflow_id' => $workflowId,
                 'tenant_id' => $tenantId,
                 'document_id' => $documentId,
             ]);

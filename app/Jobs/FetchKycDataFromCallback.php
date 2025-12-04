@@ -167,6 +167,21 @@ class FetchKycDataFromCallback implements ShouldQueue
                 'contact_id' => $contact->id,
             ]);
         }
+        
+        // Signal workflow to continue if workflow_id is present
+        Log::info('[FetchKycData] Checking workflow_id for signaling', [
+            'transaction_id' => $this->transactionId,
+            'workflow_id' => $kycTransaction->workflow_id,
+            'has_workflow_id' => !empty($kycTransaction->workflow_id),
+        ]);
+        
+        if ($kycTransaction->workflow_id) {
+            $this->signalWorkflowToContinue($kycTransaction, $contact);
+        } else {
+            Log::warning('[FetchKycData] Skipping workflow signal - no workflow_id', [
+                'transaction_id' => $this->transactionId,
+            ]);
+        }
     }
 
     /**
@@ -280,5 +295,50 @@ class FetchKycDataFromCallback implements ShouldQueue
         }
         
         return $contact;
+    }
+    
+    /**
+     * Signal workflow to continue after KYC callback completes.
+     * 
+     * Sends a signal to the workflow that was waiting for this callback,
+     * allowing it to resume and continue to the next processors.
+     */
+    protected function signalWorkflowToContinue(
+        KycTransaction $kycTransaction,
+        ?Contact $contact
+    ): void {
+        try {
+            $workflow = \Workflow\WorkflowStub::load($kycTransaction->workflow_id);
+            
+            if (!$workflow) {
+                Log::warning('[FetchKycData] Workflow not found for signal', [
+                    'workflow_id' => $kycTransaction->workflow_id,
+                    'transaction_id' => $this->transactionId,
+                ]);
+                return;
+            }
+            
+            $callbackData = [
+                'kyc_status' => 'approved',
+                'contact_id' => $contact?->id,
+                'kyc_completed_at' => now()->toIso8601String(),
+            ];
+            
+            // Call the receiveKycCallback signal method
+            $workflow->receiveKycCallback($this->transactionId, $callbackData);
+            
+            Log::info('[FetchKycData] Workflow signaled to continue', [
+                'workflow_id' => $kycTransaction->workflow_id,
+                'transaction_id' => $this->transactionId,
+                'contact_id' => $contact?->id,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[FetchKycData] Failed to signal workflow', [
+                'workflow_id' => $kycTransaction->workflow_id,
+                'transaction_id' => $this->transactionId,
+                'error' => $e->getMessage(),
+            ]);
+            // Don't throw - callback completion should succeed even if signal fails
+        }
     }
 }

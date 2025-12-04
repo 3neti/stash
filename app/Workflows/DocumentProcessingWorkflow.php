@@ -9,7 +9,9 @@ use App\Models\Tenant;
 use App\Services\Tenancy\TenancyService;
 use App\Workflows\Activities\GenericProcessorActivity;
 use Workflow\ActivityStub;
+use Workflow\SignalMethod;
 use Workflow\Workflow;
+use Workflow\WorkflowStub;
 
 /**
  * DocumentProcessingWorkflow
@@ -22,6 +24,27 @@ use Workflow\Workflow;
  */
 class DocumentProcessingWorkflow extends Workflow
 {
+    /**
+     * Signal data storage for KYC callbacks
+     * Maps transaction_id => callback_data
+     */
+    private array $callbackSignals = [];
+    /**
+     * Signal method to receive KYC callback data.
+     * Called externally by FetchKycDataFromCallback job.
+     */
+    #[SignalMethod]
+    public function receiveKycCallback(string $transactionId, array $callbackData): void
+    {
+        $this->callbackSignals[$transactionId] = $callbackData;
+        
+        \Illuminate\Support\Facades\Log::info('[Workflow] receiveKycCallback method called', [
+            'transaction_id' => $transactionId,
+            'callback_data' => $callbackData,
+            'existing_signals' => array_keys($this->callbackSignals),
+        ]);
+    }
+
     /**
      * Execute the document processing workflow.
      *
@@ -50,8 +73,56 @@ class DocumentProcessingWorkflow extends Workflow
                 $tenantId
             );
 
-            // Store result for next processor
-            $results[] = $result;
+            // Check if processor is awaiting external callback (e.g., KYC verification)
+            if (($result['awaiting_callback'] ?? false) && !empty($result['transaction_id'])) {
+                $transactionId = $result['transaction_id'];
+                
+                \Illuminate\Support\Facades\Log::info('[Workflow] Waiting for external callback signal', [
+                    'transaction_id' => $transactionId,
+                    'document_job_id' => $documentJobId,
+                    'result' => $result,
+                ]);
+                
+                // Wait for signal with 24-hour timeout
+                // Returns true if signal received, false if timeout
+                $signalReceived = yield WorkflowStub::awaitWithTimeout(
+                    86400, // 24 hours in seconds
+                    fn() => isset($this->callbackSignals[$transactionId])
+                );
+                
+                if (!$signalReceived) {
+                    // Timeout occurred - callback never arrived
+                    \Illuminate\Support\Facades\Log::warning('[Workflow] Callback timeout - no signal received', [
+                        'transaction_id' => $transactionId,
+                        'timeout_hours' => 24,
+                    ]);
+                    
+                    // Merge timeout status into result
+                    $results[] = array_merge($result, [
+                        'kyc_status' => 'timeout',
+                        'callback_received' => false,
+                        'error' => 'KYC callback timeout after 24 hours',
+                    ]);
+                    
+                    // Fail workflow on timeout
+                    throw new \Exception("KYC callback timeout for transaction {$transactionId}");
+                } else {
+                    // Signal received - get callback data
+                    $callbackData = $this->callbackSignals[$transactionId];
+                    
+                    \Illuminate\Support\Facades\Log::info('[Workflow] Callback signal processed', [
+                        'transaction_id' => $transactionId,
+                        'callback_data' => $callbackData,
+                    ]);
+                    
+                    $results[] = array_merge($result, $callbackData, [
+                        'callback_received' => true,
+                    ]);
+                }
+            } else {
+                // No callback needed - store result directly
+                $results[] = $result;
+            }
         }
 
         return $results;

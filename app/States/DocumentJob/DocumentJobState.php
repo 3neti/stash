@@ -18,6 +18,7 @@ abstract class DocumentJobState extends State
             ->registerStatesFromDirectory(__DIR__)
             ->allowTransition(PendingJobState::class, QueuedJobState::class)
             ->allowTransition(PendingJobState::class, RunningJobState::class) // Direct execution
+            ->allowTransition(PendingJobState::class, FailedJobState::class) // Allow workflow failures before running
             ->allowTransition(QueuedJobState::class, RunningJobState::class)
             ->allowTransition(RunningJobState::class, CompletedJobState::class)
             ->allowTransition(RunningJobState::class, FailedJobState::class)

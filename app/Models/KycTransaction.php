@@ -33,6 +33,8 @@ class KycTransaction extends Model
         'tenant_id',
         'document_id',
         'processor_execution_id',
+        'workflow_id',
+        'document_job_id',
         'status',
         'metadata',
         'callback_received_at',
