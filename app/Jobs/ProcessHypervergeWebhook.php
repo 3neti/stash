@@ -9,7 +9,7 @@ use App\Models\ProcessorExecution;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use LBHurtado\HyperVerge\Actions\Results\StoreKYCImages;
-use LBHurtado\HyperVerge\Data\KYCResultData;
+use LBHurtado\HyperVerge\Data\Responses\KYCResultData;
 use LBHurtado\HyperVerge\Webhooks\ProcessHypervergeWebhookJob as BaseJob;
 
 /**

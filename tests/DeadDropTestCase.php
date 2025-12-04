@@ -25,11 +25,10 @@ abstract class DeadDropTestCase extends BaseTestCase
     /**
      * Define database connections to be refreshed during tests.
      * Both central and tenant connections need to be transacted.
+     *
+     * Laravel 12 expects this as a property, not a method override.
      */
-    protected function connectionsToTransact(): array
-    {
-        return ['central', 'tenant'];
-    }
+    protected array $connectionsToTransact = ['central', 'tenant'];
 
     /**
      * Setup the test environment.
@@ -45,7 +44,7 @@ abstract class DeadDropTestCase extends BaseTestCase
     /**
      * Run migrations on tenant connection after refreshing database.
      */
-    protected function afterRefreshingDatabase(): void
+    protected function afterRefreshingDatabase()
     {
         // Run tenant migrations on tenant connection
         $this->artisan('migrate', [

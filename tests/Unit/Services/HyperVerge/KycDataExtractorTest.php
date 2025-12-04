@@ -6,6 +6,8 @@ use App\Services\HyperVerge\KycDataExtractor;
 use LBHurtado\HyperVerge\Data\Modules\IdCardModuleData;
 use LBHurtado\HyperVerge\Data\Responses\KYCResultData;
 
+uses(Tests\TestCase::class);
+
 function createMockResult(array $fieldsExtracted): KYCResultData
 {
     $idCardModule = new IdCardModuleData(
