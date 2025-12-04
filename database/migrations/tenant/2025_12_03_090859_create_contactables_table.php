@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::connection('tenant')->create('contactables', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('contact_id')->index();
+            $table->ulid('contact_id')->index();
             $table->ulidMorphs('contactable'); // contactable_id (ULID), contactable_type
             $table->string('relationship_type')->nullable(); // 'signer', 'recipient', etc.
             $table->json('metadata')->nullable(); // Custom data per relationship

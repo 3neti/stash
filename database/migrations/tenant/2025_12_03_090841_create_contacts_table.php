@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::connection('tenant')->create('contacts', function (Blueprint $table) {
-            $table->id();
+            $table->ulid('id')->primary();
             $table->string('mobile')->nullable()->index(); // Nullable for eKYC - may not have phone
             $table->string('country')->default('PH');
             $table->string('bank_account')->nullable();

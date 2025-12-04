@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasKycAccess;
 use App\Tenancy\Traits\BelongsToTenant;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use LBHurtado\Contact\Models\Contact as BaseContact;
 
 /**
@@ -15,6 +16,7 @@ class Contact extends BaseContact
 {
     use BelongsToTenant;
     use HasKycAccess;
+    use HasUlids;
     
     protected $connection = 'tenant';
     
