@@ -20,24 +20,26 @@ class Contact extends BaseContact
     
     protected $connection = 'tenant';
     
-    protected $fillable = [
-        'mobile',
-        'country',
-        'bank_account',
-        'name',
-        'email',
-        'kyc_transaction_id',
-        'kyc_status',
-        'kyc_onboarding_url',
-        'kyc_submitted_at',
-        'kyc_completed_at',
-        'kyc_rejection_reasons',
-    ];
+    /**
+     * Merge parent fillable with KYC operational fields.
+     * Note: kyc_onboarding_url and kyc_rejection_reasons are stored in meta (via HasAdditionalAttributes)
+     */
+    public function __construct(array $attributes = [])
+    {
+        // Merge parent fillable with KYC operational database columns only
+        $this->fillable = array_merge(parent::$fillable ?? [], [
+            'kyc_transaction_id',  // For lookups/querying
+            'kyc_status',          // For filtering
+            'kyc_submitted_at',    // Timestamps
+            'kyc_completed_at',
+        ]);
+        
+        parent::__construct($attributes);
+    }
     
     protected $casts = [
         'kyc_submitted_at' => 'datetime',
         'kyc_completed_at' => 'datetime',
-        'kyc_rejection_reasons' => 'array',
     ];
     
     /**

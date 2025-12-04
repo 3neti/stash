@@ -20,13 +20,12 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->json('meta')->nullable(); // Schemaless attributes
             
-            // eKYC fields
+            // eKYC operational fields (queryable)
             $table->string('kyc_transaction_id')->nullable()->unique(); // Use as unique identifier
             $table->string('kyc_status')->nullable()->index(); // pending, approved, rejected
-            $table->text('kyc_onboarding_url')->nullable();
             $table->timestamp('kyc_submitted_at')->nullable();
             $table->timestamp('kyc_completed_at')->nullable();
-            $table->json('kyc_rejection_reasons')->nullable();
+            // Note: kyc_onboarding_url and kyc_rejection_reasons stored in meta JSON field
             
             $table->timestamps();
         });

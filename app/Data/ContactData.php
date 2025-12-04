@@ -23,7 +23,7 @@ class ContactData extends Data
         public readonly ?string $gender,
         public readonly string $kyc_status,
         public readonly ?string $kyc_completed_at,
-        /** @var array<int, string> Temporary signed URLs for ID card images */
+        /** @var array<int, string> URLs for ID card images */
         public readonly array $id_card_urls,
         public readonly ?string $selfie_url,
     ) {}
@@ -31,7 +31,7 @@ class ContactData extends Data
     /**
      * Create ContactData from Contact model.
      * 
-     * Generates temporary signed URLs for media (expire in 1 hour).
+     * Generates media URLs (public for local filesystem, full URL for S3).
      */
     public static function fromContact(Contact $contact): self
     {
@@ -44,10 +44,9 @@ class ContactData extends Data
             kyc_status: $contact->kyc_status ?? 'pending',
             kyc_completed_at: $contact->kyc_completed_at?->toIso8601String(),
             id_card_urls: $contact->getMedia('kyc_id_cards')
-                ->map(fn($media) => $media->getTemporaryUrl(now()->addHour()))
+                ->map(fn($media) => $media->getUrl())
                 ->toArray(),
-            selfie_url: $contact->getFirstMedia('kyc_selfies')
-                ?->getTemporaryUrl(now()->addHour()),
+            selfie_url: $contact->getFirstMedia('kyc_selfies')?->getUrl(),
         );
     }
 }

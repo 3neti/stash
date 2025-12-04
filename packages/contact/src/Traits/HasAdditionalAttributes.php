@@ -11,12 +11,8 @@ trait HasAdditionalAttributes
     const GENDER_FIELD = 'gender';
     const GROSS_MONTHLY_INCOME_FIELD = 'gross_monthly_income';
     
-    // KYC fields
-    const KYC_TRANSACTION_ID = 'kyc_transaction_id';
-    const KYC_STATUS = 'kyc_status';
+    // KYC operational fields (stored in meta, not DB columns)
     const KYC_ONBOARDING_URL = 'kyc_onboarding_url';
-    const KYC_SUBMITTED_AT = 'kyc_submitted_at';
-    const KYC_COMPLETED_AT = 'kyc_completed_at';
     const KYC_REJECTION_REASONS = 'kyc_rejection_reasons';
 
     public function initializeHasAdditionalAttributes(): void
@@ -28,11 +24,7 @@ trait HasAdditionalAttributes
             self::ADDRESS_FIELD,
             self::GENDER_FIELD,
             self::GROSS_MONTHLY_INCOME_FIELD,
-            self::KYC_TRANSACTION_ID,
-            self::KYC_STATUS,
             self::KYC_ONBOARDING_URL,
-            self::KYC_SUBMITTED_AT,
-            self::KYC_COMPLETED_AT,
             self::KYC_REJECTION_REASONS,
         ]);
     }
@@ -123,33 +115,7 @@ trait HasAdditionalAttributes
         return $this->getAttribute('meta')->get(self::GROSS_MONTHLY_INCOME_FIELD) ?? '';
     }
 
-    // KYC Attributes
-
-    public function setKycTransactionIdAttribute(?string $value): self
-    {
-        if ($value !== null) {
-            $this->getAttribute('meta')->set(self::KYC_TRANSACTION_ID, $value);
-        }
-        return $this;
-    }
-
-    public function getKycTransactionIdAttribute(): ?string
-    {
-        return $this->getAttribute('meta')->get(self::KYC_TRANSACTION_ID);
-    }
-
-    public function setKycStatusAttribute(?string $value): self
-    {
-        if ($value !== null) {
-            $this->getAttribute('meta')->set(self::KYC_STATUS, $value);
-        }
-        return $this;
-    }
-
-    public function getKycStatusAttribute(): ?string
-    {
-        return $this->getAttribute('meta')->get(self::KYC_STATUS);
-    }
+    // KYC Attributes (meta fields only - operational fields like kyc_transaction_id are DB columns)
 
     public function setKycOnboardingUrlAttribute(?string $value): self
     {
@@ -162,32 +128,6 @@ trait HasAdditionalAttributes
     public function getKycOnboardingUrlAttribute(): ?string
     {
         return $this->getAttribute('meta')->get(self::KYC_ONBOARDING_URL);
-    }
-
-    public function setKycSubmittedAtAttribute(?string $value): self
-    {
-        if ($value !== null) {
-            $this->getAttribute('meta')->set(self::KYC_SUBMITTED_AT, $value);
-        }
-        return $this;
-    }
-
-    public function getKycSubmittedAtAttribute(): ?string
-    {
-        return $this->getAttribute('meta')->get(self::KYC_SUBMITTED_AT);
-    }
-
-    public function setKycCompletedAtAttribute(?string $value): self
-    {
-        if ($value !== null) {
-            $this->getAttribute('meta')->set(self::KYC_COMPLETED_AT, $value);
-        }
-        return $this;
-    }
-
-    public function getKycCompletedAtAttribute(): ?string
-    {
-        return $this->getAttribute('meta')->get(self::KYC_COMPLETED_AT);
     }
 
     public function setKycRejectionReasonsAttribute(?array $value): self

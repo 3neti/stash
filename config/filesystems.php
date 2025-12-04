@@ -63,7 +63,8 @@ return [
         'tenant' => [
             'driver' => 'local',
             'root' => storage_path('app/tenants'),
-            'visibility' => 'private',
+            'url' => env('APP_URL').'/storage/tenants',
+            'visibility' => 'public',
             'throw' => true, // Throw exceptions on errors for tenant files
             'report' => true,
         ],
@@ -83,6 +84,7 @@ return [
 
     'links' => [
         public_path('storage') => storage_path('app/public'),
+        public_path('storage/tenants') => storage_path('app/tenants'),
     ],
 
 ];
