@@ -12,6 +12,7 @@ use App\Actions\Documents\ListDocuments;
 use App\Actions\Documents\UploadDocument;
 use App\Http\Controllers\API\DocumentProgressController;
 use App\Http\Controllers\Api\ProcessorArtifactController;
+use App\Http\Controllers\API\KycContactController;
 use App\Http\Middleware\InitializeTenantFromUser;
 use App\Models\Campaign;
 use Illuminate\Support\Facades\Route;
@@ -74,6 +75,10 @@ Route::middleware(['auth:sanctum', 'throttle:api', InitializeTenantFromUser::cla
 Route::middleware(['auth:sanctum', 'throttle:api', InitializeTenantFromUser::class])->get('documents/{uuid}/metrics', [DocumentProgressController::class, 'metrics'])
     ->name('api.documents.metrics.index')
     ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+
+// KYC Contact Data (public endpoint - no auth, secured by transaction ID)
+Route::get('/kyc/{transactionId}/contact', KycContactController::class)
+    ->name('api.kyc.contact');
 
 // Processor Artifacts API
 Route::middleware(['auth:sanctum', 'throttle:api', InitializeTenantFromUser::class])->group(function () {
