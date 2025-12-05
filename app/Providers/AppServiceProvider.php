@@ -4,11 +4,15 @@ namespace App\Providers;
 
 use App\Listeners\WorkflowCompletedListener;
 use App\Listeners\WorkflowFailedListener;
+use App\Services\DocumentVerificationUrlResolver;
 use App\Services\HypervergeCredentialResolver;
+use App\Services\StashDocumentStorage;
 use App\Services\Pipeline\Hooks\TimeTrackingHook;
 use App\Services\Pipeline\ProcessorHookManager;
 use App\Services\Pipeline\ProcessorRegistry;
 use LBHurtado\HyperVerge\Contracts\CredentialResolverInterface;
+use LBHurtado\HyperVerge\Contracts\DocumentStoragePort;
+use LBHurtado\HyperVerge\Contracts\VerificationUrlResolver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
@@ -34,6 +38,18 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(
             CredentialResolverInterface::class,
             HypervergeCredentialResolver::class
+        );
+        
+        // Register HyperVerge VerificationUrlResolver
+        $this->app->bind(
+            VerificationUrlResolver::class,
+            DocumentVerificationUrlResolver::class
+        );
+        
+        // Register HyperVerge DocumentStoragePort
+        $this->app->singleton(
+            DocumentStoragePort::class,
+            StashDocumentStorage::class
         );
     }
 

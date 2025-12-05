@@ -16,9 +16,11 @@ return new class extends Migration
             $table->string('name');
             $table->string('slug')->unique();
             $table->string('class_name');
-            $table->enum('category', ['ocr', 'classification', 'extraction', 'validation', 'enrichment', 'notification', 'storage', 'transformation', 'custom']);
+            $table->enum('category', ['ocr', 'classification', 'extraction', 'validation', 'enrichment', 'notification', 'storage', 'transformation', 'signing', 'custom']);
             $table->text('description')->nullable();
             $table->json('config_schema')->nullable();
+            $table->json('output_schema')->nullable()->comment('JSON schema for validating processor output');
+            $table->json('dependencies')->nullable()->comment('Required processor slugs that must run before this processor');
             $table->boolean('is_system')->default(false);
             $table->boolean('is_active')->default(true);
             $table->string('version')->default('1.0.0');

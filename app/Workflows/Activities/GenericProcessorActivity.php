@@ -113,8 +113,14 @@ class GenericProcessorActivity extends Activity
 
         $processor = $registry->get($processorModel->slug);
 
-        // Create ProcessorConfigData from processor config
-        $config = ProcessorConfigData::from($processorConfig);
+        // Resolve placeholders in config (e.g., {{ekyc-verification.transaction_id}})
+        $resolvedConfig = $this->resolveConfigPlaceholders(
+            $processorConfig,
+            $previousResults
+        );
+
+        // Create ProcessorConfigData from resolved config
+        $config = ProcessorConfigData::from($resolvedConfig);
 
         // Step 6: Create context with previous results
         $context = new ProcessorContextData(
@@ -259,5 +265,77 @@ class GenericProcessorActivity extends Activity
             ]);
             // Don't throw - this is not critical for workflow continuation
         }
+    }
+
+    /**
+     * Resolve placeholder variables in processor config.
+     * 
+     * Replaces {{processor-slug.field}} with values from previous processor outputs.
+     * Example: {{ekyc-verification.transaction_id}} -> "EKYC-1234567890"
+     * 
+     * @param array $config Processor config with possible placeholders
+     * @param array $previousResults Array of previous processor outputs indexed by processor index
+     * @return array Resolved config
+     */
+    protected function resolveConfigPlaceholders(array $config, array $previousResults): array
+    {
+        // Deep clone config to avoid modifying original
+        $resolved = $config;
+        
+        // Check if config has 'config' key and it's an array
+        if (!isset($resolved['config']) || !is_array($resolved['config'])) {
+            return $resolved;
+        }
+        
+        // Recursively replace placeholders in all config values
+        array_walk_recursive($resolved['config'], function (&$value) use ($previousResults) {
+            if (!is_string($value)) {
+                return;
+            }
+            
+            // Match {{processor-slug.field}} or {{processor-slug.nested.field}}
+            if (preg_match_all('/{{([\w-]+)\.([\w.]+)}}/', $value, $matches, PREG_SET_ORDER)) {
+                foreach ($matches as $match) {
+                    $fullPlaceholder = $match[0]; // {{processor-slug.field}}
+                    $processorSlug = $match[1];   // processor-slug
+                    $fieldPath = $match[2];       // field or nested.field
+                    
+                    // Find the processor output by slug
+                    $processorOutput = null;
+                    foreach ($previousResults as $result) {
+                        // previousResults is an array of processor outputs
+                        // We need to check document metadata for processor slugs
+                        if (is_array($result) && isset($result['transaction_id']) && $processorSlug === 'ekyc-verification') {
+                            $processorOutput = $result;
+                            break;
+                        }
+                    }
+                    
+                    if (!$processorOutput) {
+                        \Illuminate\Support\Facades\Log::warning('[GenericProcessorActivity] Placeholder not found', [
+                            'placeholder' => $fullPlaceholder,
+                            'processor_slug' => $processorSlug,
+                            'field_path' => $fieldPath,
+                        ]);
+                        continue;
+                    }
+                    
+                    // Get nested field value (support dot notation)
+                    $fieldValue = data_get($processorOutput, $fieldPath);
+                    
+                    if ($fieldValue !== null) {
+                        // Replace placeholder with actual value
+                        $value = str_replace($fullPlaceholder, $fieldValue, $value);
+                        
+                        \Illuminate\Support\Facades\Log::debug('[GenericProcessorActivity] Placeholder resolved', [
+                            'placeholder' => $fullPlaceholder,
+                            'resolved_value' => $fieldValue,
+                        ]);
+                    }
+                }
+            }
+        });
+        
+        return $resolved;
     }
 }

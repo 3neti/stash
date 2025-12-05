@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\ProcessorDependencies;
 use App\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Processor extends Model
 {
-    use BelongsToTenant, HasFactory, HasUlids;
+    use BelongsToTenant, HasFactory, HasUlids, ProcessorDependencies;
 
     protected $connection = 'tenant';
 
@@ -28,6 +29,7 @@ class Processor extends Model
         'description',
         'config_schema',
         'output_schema',
+        'dependencies',
         'is_system',
         'is_active',
         'version',
@@ -39,6 +41,7 @@ class Processor extends Model
     protected $casts = [
         'config_schema' => 'array',
         'output_schema' => 'array',
+        'dependencies' => 'array',
         'is_system' => 'boolean',
         'is_active' => 'boolean',
     ];

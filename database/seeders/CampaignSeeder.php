@@ -479,6 +479,54 @@ class CampaignSeeder extends Seeder
                 'retention_days' => 365,
                 'published_at' => now(),
             ],
+            [
+                'name' => 'ENF Electronic Signature',
+                'slug' => 'e-signature',
+                'description' => 'Electronic Notarization Framework: KYC verification + document signing with blockchain timestamps',
+                'state' => \App\States\Campaign\ActiveCampaignState::class,
+                'pipeline_config' => [
+                    'processors' => [
+                        // Step 1: eKYC Verification (generates transaction_id)
+                        ['id' => $processors['ekyc-verification'] ?? null, 'type' => 'validation', 'config' => [
+                            'country' => 'PH',
+                            'transaction_id_prefix' => 'ENF',
+                            'contact_fields' => [
+                                'mobile' => 'required',
+                                'name' => 'required',
+                                'email' => 'optional',
+                            ],
+                        ]],
+                        // Step 2: Electronic Signature (requires KYC approval)
+                        // NOTE: This processor waits for HyperVerge webhook callback
+                        // Then automatically signs document with KYC data
+                        ['id' => $processors['electronic-signature'] ?? null, 'type' => 'signing', 'config' => [
+                            'transaction_id' => '{{ekyc-verification.transaction_id}}', // From previous processor
+                            'tile' => 1, // Bottom-right signature position
+                            'metadata' => [
+                                'notarization_type' => 'ENF',
+                                'document_category' => 'Legal',
+                            ],
+                        ]],
+                    ],
+                ],
+                'checklist_template' => [
+                    ['title' => 'Verify signer identity via KYC', 'required' => true],
+                    ['title' => 'Review signed document with QR watermark', 'required' => true],
+                    ['title' => 'Confirm blockchain timestamp', 'required' => false],
+                ],
+                'allowed_mime_types' => [
+                    'application/pdf', // Only PDF for signing
+                ],
+                'max_file_size_bytes' => 20971520, // 20MB for legal documents
+                'settings' => [
+                    'queue' => 'high-priority',
+                    'locale' => 'en',
+                    'workflow' => 'sequential', // Run processors in order with dependency checking
+                ],
+                'max_concurrent_jobs' => 3,
+                'retention_days' => 2555, // 7 years for legal compliance
+                'published_at' => now(),
+            ],
         ];
 
         foreach ($campaigns as $campaignData) {

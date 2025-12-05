@@ -338,6 +338,67 @@ class ProcessorSeeder extends Seeder
                 'version' => '1.0.0',
                 'author' => 'DeadDrop Team',
             ],
+            [
+                'name' => 'Electronic Signature',
+                'slug' => 'electronic-signature',
+                'class_name' => 'App\\Processors\\ElectronicSignatureProcessor',
+                'category' => 'signing',
+                'description' => 'Sign PDF documents with eKYC verification data, QR codes, and blockchain timestamps',
+                'dependencies' => ['ekyc-verification'], // Requires KYC verification first
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'transaction_id' => ['type' => 'string', 'description' => 'KYC transaction ID from eKYC Verification processor'],
+                        'tile' => ['type' => 'integer', 'default' => 1, 'description' => 'Signature position (1-9)'],
+                        'logo_path' => ['type' => 'string', 'description' => 'Optional logo file path for stamp'],
+                        'metadata' => ['type' => 'object', 'default' => [], 'description' => 'Additional metadata for signature'],
+                    ],
+                    'required' => ['transaction_id'],
+                ],
+                'output_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'signed_document' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'media_id' => ['type' => 'integer'],
+                                'file_name' => ['type' => 'string'],
+                                'size' => ['type' => 'integer'],
+                                'mime_type' => ['type' => 'string'],
+                                'url' => ['type' => 'string'],
+                            ],
+                        ],
+                        'stamp' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'media_id' => ['type' => 'integer'],
+                                'file_name' => ['type' => 'string'],
+                                'url' => ['type' => 'string'],
+                            ],
+                        ],
+                        'transaction_id' => ['type' => 'string'],
+                        'verification_url' => ['type' => 'string'],
+                        'signer_info' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'contact_id' => ['type' => 'string'],
+                                'name' => ['type' => 'string'],
+                                'email' => ['type' => 'string'],
+                                'mobile' => ['type' => 'string'],
+                                'kyc_status' => ['type' => 'string'],
+                                'kyc_completed_at' => ['type' => 'string'],
+                            ],
+                        ],
+                        'signature_timestamp' => ['type' => 'string'],
+                        'tile_position' => ['type' => 'integer'],
+                        'metadata' => ['type' => 'object'],
+                    ],
+                    'required' => ['signed_document', 'stamp', 'transaction_id', 'verification_url', 'signer_info', 'signature_timestamp'],
+                ],
+                'is_system' => true,
+                'version' => '1.0.0',
+                'author' => 'DeadDrop Team',
+            ],
         ];
 
         foreach ($processors as $processorData) {

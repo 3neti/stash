@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "3neti/hyperverge",
-            "version": "v1.0.1",
+            "version": "v1.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/3neti/hyperverge.git",
-                "reference": "c5dd42ac6feef262b0895b52e712728762494322"
+                "reference": "b25b090a9e42baecbc4ca75bbd92963f3152b9f2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/3neti/hyperverge/zipball/c5dd42ac6feef262b0895b52e712728762494322",
-                "reference": "c5dd42ac6feef262b0895b52e712728762494322",
+                "url": "https://api.github.com/repos/3neti/hyperverge/zipball/b25b090a9e42baecbc4ca75bbd92963f3152b9f2",
+                "reference": "b25b090a9e42baecbc4ca75bbd92963f3152b9f2",
                 "shasum": ""
             },
             "require": {
@@ -60,9 +60,9 @@
             "description": "Laravel wrapper for HyperVerge APIs (Selfie Liveness, Face Match, Link KYC, Results API).",
             "support": {
                 "issues": "https://github.com/3neti/hyperverge/issues",
-                "source": "https://github.com/3neti/hyperverge/tree/v1.0.1"
+                "source": "https://github.com/3neti/hyperverge/tree/v1.0.2"
             },
-            "time": "2025-11-22T23:55:18+00:00"
+            "time": "2025-12-05T03:39:34+00:00"
         },
         {
             "name": "bacon/bacon-qr-code",
