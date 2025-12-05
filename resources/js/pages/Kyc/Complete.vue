@@ -3,6 +3,7 @@ import { useEchoPublic } from '@laravel/echo-vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import axios from 'axios'
 import type { ContactData, KycContactResponse } from '@/types/kyc'
+import SignedDocumentDisplay from '@/components/SignedDocumentDisplay.vue'
 
 const props = defineProps<{
   success: boolean
@@ -18,6 +19,8 @@ const props = defineProps<{
 const contactData = ref<ContactData | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+const signedDocument = ref<any | null>(null)
+const processingSignature = ref(true)
 
 const fetchContactData = async () => {
   if (!props.transactionId || !props.success) return
@@ -60,6 +63,21 @@ interface ContactReadyPayload {
   contact: ContactData
 }
 
+interface DocumentSignedPayload {
+  document_job_id: string
+  transaction_id: string
+  signed_document: {
+    filename: string
+    size_kb: number
+    mime_type: string
+    download_url: string
+    qr_watermarked: boolean
+    signed_at: string
+    verification_url?: string
+    signature_mark_url?: string
+  }
+}
+
 if (channelName.value && props.success) {
   const { listen, stopListening, leaveChannel } = useEchoPublic<ContactReadyPayload>(
     channelName.value,
@@ -81,6 +99,29 @@ if (channelName.value && props.success) {
   onBeforeUnmount(() => {
     stopListening()
     leaveChannel(true)
+  })
+}
+
+// Real-time listener for DocumentSigned event
+if (channelName.value && props.success) {
+  const { listen: listenSigned, stopListening: stopListeningSigned, leaveChannel: leaveSignedChannel } = useEchoPublic<DocumentSignedPayload>(
+    channelName.value,
+    '.document.signed',
+    (payload) => {
+      console.log('[KYC Complete] Document signed event received', payload)
+      signedDocument.value = payload
+      processingSignature.value = false
+    }
+  )
+  
+  onMounted(() => {
+    listenSigned()
+    console.log('[KYC Complete] Listening for document.signed on channel:', channelName.value)
+  })
+  
+  onBeforeUnmount(() => {
+    stopListeningSigned()
+    leaveSignedChannel(true)
   })
 }
 </script>
@@ -197,6 +238,23 @@ if (channelName.value && props.success) {
             </div>
           </dl>
         </div>
+
+        <!-- Signed Document Section -->
+        <div v-if="processingSignature && !signedDocument" class="rounded-lg bg-white p-6 shadow">
+          <div class="text-center">
+            <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center">
+              <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+            <p class="text-sm text-gray-600">
+              Processing document signature...
+            </p>
+          </div>
+        </div>
+
+        <SignedDocumentDisplay v-if="signedDocument" :signed-document="signedDocument" />
 
         <!-- Verification Photos -->
         <div v-if="contactData && (contactData.id_card_urls.length > 0 || contactData.selfie_url)" class="rounded-lg bg-white p-6 shadow">
