@@ -28,6 +28,7 @@
         "laravel/tinker": "^2.10.1",
         "laravel/wayfinder": "^0.1.9",
         "lbhurtado/dead-drop-contact": "@dev",
+        "lbhurtado/dead-drop-txtcmdr-client": "@dev",
         "lbhurtado/laravel-model-channel": "@dev",
         "lorisleiva/laravel-actions": "^2.9",
         "openai-php/client": "^0.18.0",
@@ -72,6 +73,8 @@
             "App\\": "app/",
             "LBHurtado\\DeadDrop\\": "packages/*/src",
             "LBHurtado\\Contact\\": "packages/contact/src",
+            "LBHurtado\\ModelChannel\\": "packages/model-channel/src",
+            "LBHurtado\\DeadDrop\\TxtcmdrClient\\": "packages/txtcmdr-client/src",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         }

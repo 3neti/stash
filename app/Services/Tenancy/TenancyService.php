@@ -40,6 +40,10 @@ class TenancyService
 
         // Initialize context (switch connection, fire events)
         TenantContext::initialize($tenant);
+        
+        // Bind tenant ID in service container for model-channel package
+        app()->instance('current_tenant_id', $tenant->id);
+        
         Log::debug('[TenancyService] Context initialized');
     }
 

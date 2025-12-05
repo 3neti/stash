@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b6ec9faac17e686a4a059e05ceae94f3",
+    "content-hash": "ee19a2e5602de609a82245cc2428cb00",
     "packages": [
         {
             "name": "3neti/hyperverge",
@@ -3137,6 +3137,59 @@
                 }
             ],
             "description": "Contact management for Stash multi-tenant platform",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "lbhurtado/dead-drop-txtcmdr-client",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/txtcmdr-client",
+                "reference": "10298ee55474d042d8b572363cfa2d3667f80a8a"
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^7.8",
+                "illuminate/http": "^12.0",
+                "illuminate/notifications": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "mockery/mockery": "^1.6",
+                "pestphp/pest": "^3.0",
+                "phpunit/phpunit": "^11.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LBHurtado\\DeadDrop\\TxtcmdrClient\\TxtcmdrClientServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LBHurtado\\DeadDrop\\TxtcmdrClient\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "LBHurtado\\DeadDrop\\TxtcmdrClient\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Lester Hurtado",
+                    "email": "lester@hurtado.ph"
+                }
+            ],
+            "description": "txtcmdr SMS API client for DeadDrop/Stash - enables tenant-specific SMS via txtcmdr server",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -16799,6 +16852,7 @@
     "minimum-stability": "stable",
     "stability-flags": {
         "lbhurtado/dead-drop-contact": 20,
+        "lbhurtado/dead-drop-txtcmdr-client": 20,
         "lbhurtado/laravel-model-channel": 20
     },
     "prefer-stable": true,

@@ -1,12 +1,12 @@
 <?php
 
-use LBHurtado\ModelChannel\Enums\Channel;
 use LBHurtado\ModelChannel\Tests\Models\User;
+use LBHurtado\ModelChannel\Enums\Channel;
 
 it('can retrieve user channels', function () {
     // Arrange
     $user = User::factory()->create();
-    $user->channels()->create(['name' => 'email', 'value' => 'user@example.com']); // TODO: Check this out. Why is email value allowed
+    $user->channels()->create(['name' => 'email', 'value' => 'user@example.com']);//TODO: Check this out. Why is email value allowed
     $user->channels()->create(['name' => 'mobile', 'value' => '09171234567']);
 
     // Act
@@ -34,7 +34,7 @@ it('can set a valid channel', function () {
     ]);
 });
 //
-// it('throws exception when channel is invalid', function () {
+//it('throws exception when channel is invalid', function () {
 //    // Arrange
 //    $user = User::factory()->create();
 //
@@ -46,9 +46,9 @@ it('can set a valid channel', function () {
 //    // Act & Assert
 //    $this->expectException(\phpDocumentor\Reflection\Exception::class);
 //    $mock->setStatus('invalid_channel', 'value');
-// });
+//});
 //
-// it('can force set a channel even if invalid', function () {
+//it('can force set a channel even if invalid', function () {
 //    // Arrange
 //    $user = User::factory()->create();
 //
@@ -62,7 +62,7 @@ it('can set a valid channel', function () {
 //        'model_type' => User::class,
 //        'model_id' => $user->id,
 //    ]);
-// });
+//});
 //
 it('retrieves channels in descending order of id', function () {
     // Arrange
@@ -90,6 +90,7 @@ it('returns the mobile and webhook values from the mobile channel', function () 
         'name' => 'webhook',
         'value' => 'https://example.com/webhook',
     ]);
+
 
     // Act
     $mobile = $user->mobile;
@@ -184,7 +185,7 @@ it('sets the mobile and webhook attributes and stores it as a channel', function
     // Arrange
     $user = User::factory()->create();
 
-    //    dd(config('model-channel.rules'));
+//    dd(config('model-channel.rules'));
     // Act
     $user->mobile = '9876543210'; // Using the setter
     $user->webhook = 'https://example.com/webhook';
@@ -236,7 +237,7 @@ dataset('inconsistent_mobiles', function () {
     return [
         'E.164 strict match' => ['+639171234567', '639171234567', true],
         'Normalized LIKE match' => ['09171234567', '9171234567', true], // Leading "0" stripped
-        //        'National LIKE match' => ['+63 (917) 123-4567', '0917 123 4567', true], // Spaces ignored TODO: check mo ito edge case naman
+//        'National LIKE match' => ['+63 (917) 123-4567', '0917 123 4567', true], // Spaces ignored TODO: check mo ito edge case naman
         'Leading 0 stripped' => ['09171234567', '917123456789', true], // Additional digits with match
         'No match' => ['+639171234567', '9123456789', false], // Completely different number
     ];
@@ -256,7 +257,8 @@ it('properly resolves phone matches with strict and relaxed conditions', functio
     // Assert
     if ($expectedResult) {
         expect($foundUser)->not()->toBeNull();
-        expect($foundUser->id)->toBe($user->id);
+        expect($foundUser->id)->toBe($user->id)
+        ;
     } else {
         expect($foundUser)->toBeNull();
     }

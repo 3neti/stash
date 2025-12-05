@@ -11,9 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (! Schema::hasTable('channels')) {
-            Schema::create('channels', function (Blueprint $table) {
-                $table->id();
+        if (! Schema::connection('tenant')->hasTable('channels')) {
+            Schema::connection('tenant')->create('channels', function (Blueprint $table) {
+                $table->ulid('id')->primary();
+                $table->ulid('tenant_id')->nullable()->index();
                 $table->string('name');
                 $table->string('value');
                 $table->string('model_type');
@@ -31,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('channels');
+        Schema::connection('tenant')->dropIfExists('channels');
     }
 };

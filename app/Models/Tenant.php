@@ -15,6 +15,9 @@ use Spatie\ModelStatus\HasStatuses;
 class Tenant extends Model
 {
     use HasFactory, HasStatuses, HasUlids, SoftDeletes;
+    
+    // Note: HasChannels not used due to trait conflicts with HasStatuses
+    // Tenant channels can be managed directly via Channel model if needed
 
     protected $connection = 'central';
 

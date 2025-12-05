@@ -7,12 +7,14 @@ use Illuminate\Support\Facades\Config;
 enum Channel: string
 {
     case MOBILE = 'mobile';
+    case EMAIL = 'email';
     case WEBHOOK = 'webhook';
+    case SLACK = 'slack';
 
     public function rules(): array
     {
         // Dynamically retrieve rules from the configuration file
-        $rules = Config::get('model-channel.rules.'.$this->value);
+        $rules = Config::get('model-channel.rules.' . $this->value);
 
         // Throw an exception if no rule is defined for the channel
         if (is_null($rules)) {

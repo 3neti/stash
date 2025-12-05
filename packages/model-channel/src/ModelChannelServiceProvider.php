@@ -9,19 +9,19 @@ class ModelChannelServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__.'/../config/model-channel.php',
+            __DIR__ . '/../config/model-channel.php',
             'model-channel'
         );
     }
 
     public function boot(): void
     {
-        // Migrations are handled separately in the main application
-        // $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        // Migrations are now in the main app migrations directory
+        // $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
 
         // Allow publishing the configuration files
         $this->publishes([
-            __DIR__.'/../config/model-channel.php' => config_path('model-channel.php'),
+            __DIR__ . '/../config/model-channel.php' => config_path('model-channel.php'),
         ], 'config');
     }
 }

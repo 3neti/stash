@@ -3,16 +3,15 @@
 namespace LBHurtado\ModelChannel\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use LBHurtado\ModelChannel\Tests\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use LBHurtado\ModelChannel\Tests\Models\User;
 
 class UserFactory extends Factory
 {
+
     protected $model = User::class;
-
     protected static ?string $password;
-
     public function definition(): array
     {
         return [

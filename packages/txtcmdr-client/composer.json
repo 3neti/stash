@@ -1,0 +1,43 @@
+{
+    "name": "lbhurtado/dead-drop-txtcmdr-client",
+    "description": "txtcmdr SMS API client for DeadDrop/Stash - enables tenant-specific SMS via txtcmdr server",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Lester Hurtado",
+            "email": "lester@hurtado.ph"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "guzzlehttp/guzzle": "^7.8",
+        "illuminate/support": "^12.0",
+        "illuminate/http": "^12.0",
+        "illuminate/notifications": "^12.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0",
+        "pestphp/pest": "^3.0",
+        "mockery/mockery": "^1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "LBHurtado\\DeadDrop\\TxtcmdrClient\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LBHurtado\\DeadDrop\\TxtcmdrClient\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LBHurtado\\DeadDrop\\TxtcmdrClient\\TxtcmdrClientServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
