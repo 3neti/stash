@@ -9,9 +9,11 @@ test('registration screen can be rendered', function () {
 });
 
 test('new users can register', function () {
+    $email = fake()->unique()->safeEmail();
+
     $response = $this->post(route('register.store'), [
         'name' => 'Test User',
-        'email' => 'newuser@example.com',
+        'email' => $email,
         'password' => 'password',
         'password_confirmation' => 'password',
     ]);
