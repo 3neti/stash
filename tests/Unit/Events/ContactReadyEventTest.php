@@ -14,10 +14,8 @@ uses(TestCase::class);
 
 beforeEach(function () {
     // Create tenant and initialize context
-    $this->tenant = Tenant::create([
+    $this->tenant = $this->createTenant([
         'name' => 'Test Tenant',
-        'slug' => 'test-tenant-' . uniqid(),
-        'database' => 'tenant_test',
     ]);
     
     app(\App\Services\Tenancy\TenancyService::class)->initializeTenant($this->tenant);

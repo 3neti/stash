@@ -7,9 +7,10 @@ use App\Models\Document;
 use App\Processors\ElectronicSignatureProcessor;
 use LBHurtado\HyperVerge\Actions\Document\MarkDocumentWithKYC;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use Tests\DeadDropTestCase;
+use Tests\TestCase;
+use Tests\Concerns\SetUpsTenantDatabase;
 
-uses(DeadDropTestCase::class);
+uses(TestCase::class, SetUpsTenantDatabase::class);
 
 beforeEach(function () {
     // Mock the MarkDocumentWithKYC action

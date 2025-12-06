@@ -9,9 +9,10 @@ use App\Tenancy\TenantConnectionManager;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
-use Tests\DeadDropTestCase;
+use Tests\TestCase;
+use Tests\Concerns\SetUpsTenantDatabase;
 
-uses(DeadDropTestCase::class);
+uses(TestCase::class, SetUpsTenantDatabase::class);
 
 test('initializeTenant prepares database and initializes context', function () {
     Event::fake();
