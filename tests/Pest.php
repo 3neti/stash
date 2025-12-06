@@ -11,9 +11,11 @@
 |
 */
 
-// Default: Use TestCase for all tests
-// (Tests will be reintroduced gradually after clean environment is built)
-uses(Tests\TestCase::class)->in('Unit', 'Feature', 'Integration');
+// Default: Use TestCase for tests that don't specify their own
+// Individual test files can override with their own uses() calls
+uses(Tests\TestCase::class)
+    ->in('Feature/Smoke')
+    ->in('Integration');
 
 /*
 |--------------------------------------------------------------------------
