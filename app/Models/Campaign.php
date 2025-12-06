@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Support\Facades\Crypt;
 use Laravel\Sanctum\HasApiTokens;
-use LBHurtado\ModelChannel\Traits\HasChannels;
+use LBHurtado\ModelChannel\Traits\HasAdditionalChannels;
 use Spatie\ModelStates\HasStates;
 
 /**
@@ -48,7 +48,7 @@ use Spatie\ModelStates\HasStates;
  */
 class Campaign extends Model implements AuthenticatableContract
 {
-    use Authorizable, BelongsToTenant, HasApiTokens, HasChannels, HasFactory, HasStates, HasUlids, SoftDeletes;
+    use Authorizable, BelongsToTenant, HasApiTokens, HasAdditionalChannels, HasFactory, HasStates, HasUlids, SoftDeletes;
 
     protected $connection = 'tenant';
 

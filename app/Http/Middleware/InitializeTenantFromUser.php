@@ -22,12 +22,24 @@ class InitializeTenantFromUser
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $user = $request->user();
-        Log::debug('[Middleware] InitializeTenantFromUser', ['user_id' => $user?->id, 'tenant_id' => $user?->tenant_id]);
+        $authenticatable = $request->user();
+        $tenantId = null;
+        $authenticatableType = $authenticatable ? get_class($authenticatable) : null;
+        
+        Log::debug('[Middleware] InitializeTenantFromUser', [
+            'authenticatable_id' => $authenticatable?->id,
+            'authenticatable_type' => $authenticatableType,
+        ]);
 
-        if ($user && $user->tenant_id) {
-            Log::debug('[Middleware] Looking up tenant', ['tenant_id' => $user->tenant_id]);
-            $tenant = Tenant::on('pgsql')->find($user->tenant_id);
+        // Get tenant_id from the authenticated model (User or Campaign)
+        if ($authenticatable && isset($authenticatable->tenant_id)) {
+            $tenantId = $authenticatable->tenant_id;
+            Log::debug('[Middleware] Found tenant_id on authenticatable', ['tenant_id' => $tenantId]);
+        }
+
+        if ($tenantId) {
+            Log::debug('[Middleware] Looking up tenant', ['tenant_id' => $tenantId]);
+            $tenant = Tenant::find($tenantId);
 
             if ($tenant) {
                 Log::debug('[Middleware] Found tenant', ['tenant_id' => $tenant->id, 'tenant_name' => $tenant->name]);
@@ -38,10 +50,10 @@ class InitializeTenantFromUser
                 $tenancyService->initializeTenant($tenant);
                 Log::debug('[Middleware] Tenant context initialized');
             } else {
-                Log::warning('[Middleware] Tenant not found', ['tenant_id' => $user->tenant_id]);
+                Log::warning('[Middleware] Tenant not found', ['tenant_id' => $tenantId]);
             }
         } else {
-            Log::debug('[Middleware] No authenticated user or tenant_id');
+            Log::debug('[Middleware] No tenant_id found on authenticatable');
         }
 
         $response = $next($request);

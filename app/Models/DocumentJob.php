@@ -29,7 +29,6 @@ class DocumentJob extends Model
 
     protected $fillable = [
         'uuid',
-        'tenant_id',
         'campaign_id',
         'document_id',
         'pipeline_instance',

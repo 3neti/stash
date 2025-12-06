@@ -45,7 +45,7 @@ class InitializeTenancy
         $host = $request->getHost();
 
         // Try to find tenant by domain
-        return Tenant::on('pgsql')
+        return Tenant::on('central')
             ->whereHas('domains', fn ($query) => $query->where('domain', $host))
             ->first();
     }

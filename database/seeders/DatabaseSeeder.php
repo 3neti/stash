@@ -61,12 +61,12 @@ class DatabaseSeeder extends Seeder
                 });
                 $this->command->info('✓ Tenant migrations completed');
 
-                // Link admin user to tenant
+                // Link admin user to tenant via pivot table
                 $adminEmail = env('ADMIN_EMAIL');
                 if ($adminEmail) {
-                    $admin = User::on('central')->where('email', $adminEmail)->first();
+                    $admin = User::where('email', $adminEmail)->first();
                     if ($admin) {
-                        $admin->update(['tenant_id' => $tenant->id]);
+                        $tenant->users()->attach($admin->id, ['role' => 'admin']);
                         $this->command->info('✓ Admin user linked to tenant');
                     }
                 }

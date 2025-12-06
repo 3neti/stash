@@ -26,7 +26,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class KycTransaction extends Model
 {
-    protected $connection = 'central';
+    protected $connection = 'central'; // Always use central database
     
     protected $fillable = [
         'transaction_id',

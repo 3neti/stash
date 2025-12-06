@@ -21,19 +21,10 @@ class TenantConnectionManager
         $tenantDb = $this->getTenantDatabaseName($tenant);
 
         config([
-            'database.connections.tenant' => [
-                'driver' => 'pgsql',
-                'host' => config('database.connections.pgsql.host'),
-                'port' => config('database.connections.pgsql.port'),
-                'database' => $tenantDb,
-                'username' => config('database.connections.pgsql.username'),
-                'password' => config('database.connections.pgsql.password'),
-                'charset' => config('database.connections.pgsql.charset'),
-                'prefix' => '',
-                'prefix_indexes' => true,
-                'search_path' => 'public',
-                'sslmode' => 'prefer',
-            ],
+            'database.connections.tenant' => array_merge(
+                config('database.connections.central'),
+                ['database' => $tenantDb]
+            ),
         ]);
 
         // Purge any existing tenant connection to force reconnection
@@ -57,7 +48,7 @@ class TenantConnectionManager
     }
     public function switchToCentral(): void
     {
-        DB::setDefaultConnection('pgsql');
+        DB::setDefaultConnection('central');
     }
 
     /**
@@ -69,7 +60,7 @@ class TenantConnectionManager
         $dbName = $this->getTenantDatabaseName($tenant);
 
         // PostgreSQL requires CREATE DATABASE to run outside a transaction
-        $pdo = DB::connection('pgsql')->getPdo();
+        $pdo = DB::connection('central')->getPdo();
         
         // Check if we're in a transaction and commit it first
         if ($pdo->inTransaction()) {
@@ -90,7 +81,7 @@ class TenantConnectionManager
         $dbName = $this->getTenantDatabaseName($tenant);
 
         // Terminate all connections to the database first
-        DB::connection('pgsql')->statement(
+        DB::connection('central')->statement(
             sprintf(
                 "SELECT pg_terminate_backend(pg_stat_activity.pid)
                 FROM pg_stat_activity
@@ -101,7 +92,7 @@ class TenantConnectionManager
         );
 
         // Drop the database
-        DB::connection('pgsql')->statement(
+        DB::connection('central')->statement(
             sprintf('DROP DATABASE IF EXISTS "%s"', $dbName)
         );
     }
@@ -113,7 +104,7 @@ class TenantConnectionManager
     {
         $dbName = $this->getTenantDatabaseName($tenant);
 
-        $result = DB::connection('pgsql')->select(
+        $result = DB::connection('central')->select(
             'SELECT 1 FROM pg_database WHERE datname = ?',
             [$dbName]
         );
@@ -133,19 +124,10 @@ class TenantConnectionManager
             
             // Ensure tenant connection is configured
             config([
-                'database.connections.tenant' => [
-                    'driver' => 'pgsql',
-                    'host' => config('database.connections.pgsql.host'),
-                    'port' => config('database.connections.pgsql.port'),
-                    'database' => $dbName,
-                    'username' => config('database.connections.pgsql.username'),
-                    'password' => config('database.connections.pgsql.password'),
-                    'charset' => config('database.connections.pgsql.charset'),
-                    'prefix' => '',
-                    'prefix_indexes' => true,
-                    'search_path' => 'public',
-                    'sslmode' => 'prefer',
-                ],
+                'database.connections.tenant' => array_merge(
+                    config('database.connections.central'),
+                    ['database' => $dbName]
+                ),
             ]);
             
             // Purge and reconnect to tenant DB

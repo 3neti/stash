@@ -8,7 +8,7 @@ use LBHurtado\ModelChannel\Database\Factories\UserFactory;
 use LBHurtado\ModelChannel\Contracts\ChannelsInterface;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use LBHurtado\ModelChannel\Traits\HasChannels;
+use LBHurtado\ModelChannel\Traits\HasAdditionalChannels;
 use Illuminate\Notifications\Notifiable;
 
 /**
@@ -23,7 +23,7 @@ use Illuminate\Notifications\Notifiable;
  */
 class User extends Authenticatable implements ChannelsInterface
 {
-    use HasChannels;
+    use HasAdditionalChannels;
     use HasFactory;
     use Notifiable;
 

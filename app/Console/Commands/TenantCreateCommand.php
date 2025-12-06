@@ -30,7 +30,7 @@ class TenantCreateCommand extends Command
         $domain = $this->option('domain');
 
         // Validate slug uniqueness
-        if (Tenant::on('pgsql')->where('slug', $slug)->exists()) {
+        if (Tenant::on('central')->where('slug', $slug)->exists()) {
             $this->error("Tenant with slug '{$slug}' already exists");
 
             return self::FAILURE;
@@ -40,8 +40,8 @@ class TenantCreateCommand extends Command
 
         try {
             // Create tenant record and domain in a transaction
-            $tenant = DB::connection('pgsql')->transaction(function () use ($name, $slug, $email, $domain) {
-                $tenant = Tenant::on('pgsql')->create([
+            $tenant = DB::connection('central')->transaction(function () use ($name, $slug, $email, $domain) {
+                $tenant = Tenant::on('central')->create([
                     'name' => $name,
                     'slug' => $slug,
                     'email' => $email,

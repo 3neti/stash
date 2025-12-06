@@ -88,7 +88,7 @@ class SetupDashboardTest extends Command
 
         try {
             $slug = str($name)->slug();
-            $existingTenant = DB::connection('pgsql')
+            $existingTenant = DB::connection('central')
                 ->table('tenants')
                 ->where('slug', $slug)
                 ->first();
@@ -100,7 +100,7 @@ class SetupDashboardTest extends Command
                     $this->info('✓ Using existing tenant');
 
                     // CRITICAL: Always ensure tenant database and schema are properly initialized
-                    $tenant = \App\Models\Tenant::on('pgsql')->find($existingTenant->id);
+                    $tenant = \App\Models\Tenant::on('central')->find($existingTenant->id);
                     
                     // Create database if it doesn't exist
                     if (! $manager->tenantDatabaseExists($tenant)) {
@@ -134,7 +134,7 @@ class SetupDashboardTest extends Command
                 '--domain' => $domain,
             ]);
 
-            $tenant = DB::connection('pgsql')
+            $tenant = DB::connection('central')
                 ->table('tenants')
                 ->where('slug', $slug)
                 ->first();
@@ -158,7 +158,7 @@ class SetupDashboardTest extends Command
         $this->info('📦 Running tenant migrations...');
 
         try {
-            $tenantModel = \App\Models\Tenant::on('pgsql')->find($tenant->id);
+            $tenantModel = \App\Models\Tenant::on('central')->find($tenant->id);
 
             TenantContext::run($tenantModel, function () {
                 Artisan::call('migrate', [
@@ -207,7 +207,7 @@ class SetupDashboardTest extends Command
         $this->info('🌱 Seeding test data...');
 
         try {
-            $tenantModel = \App\Models\Tenant::on('pgsql')->find($tenant->id);
+            $tenantModel = \App\Models\Tenant::on('central')->find($tenant->id);
 
             TenantContext::run($tenantModel, function () {
                 Artisan::call('db:seed', [
@@ -233,7 +233,7 @@ class SetupDashboardTest extends Command
 
         try {
             // Check if user exists by email (regardless of tenant)
-            $existingUser = \App\Models\User::on('pgsql')
+            $existingUser = \App\Models\User::on('central')
                 ->where('email', 'test@example.com')
                 ->first();
 
@@ -275,7 +275,7 @@ class SetupDashboardTest extends Command
             }
 
             // Create new user in central database linked to tenant
-            $user = \App\Models\User::on('pgsql')->create([
+            $user = \App\Models\User::on('central')->create([
                 'tenant_id' => $tenant->id,
                 'name' => 'Test User',
                 'email' => 'test@example.com',

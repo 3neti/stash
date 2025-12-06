@@ -74,7 +74,7 @@ test('contact can be linked to processor execution via contactables', function (
         
         // Create processor execution
         $processor = Processor::factory()->create(['slug' => 'ekyc-verification']);
-        $documentJob = DocumentJob::factory()->create(['tenant_id' => $this->tenant->id]);
+        $documentJob = DocumentJob::factory()->create();
         $execution = ProcessorExecution::factory()->create([
             'processor_id' => $processor->id,
             'job_id' => $documentJob->id,
@@ -112,7 +112,7 @@ test('contact can retrieve signing history', function () {
         // Create 3 signing events
         $executions = collect();
         for ($i = 1; $i <= 3; $i++) {
-            $documentJob = DocumentJob::factory()->create(['tenant_id' => $this->tenant->id]);
+            $documentJob = DocumentJob::factory()->create();
             $execution = ProcessorExecution::factory()->create([
                 'processor_id' => $processor->id,
                 'job_id' => $documentJob->id,
@@ -142,7 +142,7 @@ test('contact can get latest kyc execution', function () {
         ]);
         
         $processor = Processor::factory()->create(['slug' => 'ekyc-verification']);
-        $documentJob = DocumentJob::factory()->create(['tenant_id' => $this->tenant->id]);
+        $documentJob = DocumentJob::factory()->create();
         
         // Create older execution
         sleep(1); // Ensure different timestamps

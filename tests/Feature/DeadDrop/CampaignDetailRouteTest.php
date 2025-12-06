@@ -10,10 +10,12 @@ use App\Tenancy\TenantContext;
 uses()->group('feature', 'campaign', 'web', 'tenant');
 
 test('authenticated user can view campaign detail page', function () {
-    // Setup: Create user with tenant
-    $user = User::factory()->create(['email_verified_at' => now()]);
+    // Setup: Create tenant and user
     $tenant = Tenant::factory()->create();
-    $user->update(['tenant_id' => $tenant->id]);
+    $user = User::factory()->create([
+        'email_verified_at' => now(),
+    ]);
+    $tenant->users()->attach($user->id, ['role' => 'member']);
 
     // Setup: Initialize tenant context and create campaign
     TenantContext::run($tenant, function () use ($user) {
@@ -33,10 +35,12 @@ test('authenticated user can view campaign detail page', function () {
 });
 
 test('authenticated user can view campaign edit page', function () {
-    // Setup: Create user with tenant
-    $user = User::factory()->create(['email_verified_at' => now()]);
+    // Setup: Create tenant and user
     $tenant = Tenant::factory()->create();
-    $user->update(['tenant_id' => $tenant->id]);
+    $user = User::factory()->create([
+        'email_verified_at' => now(),
+    ]);
+    $tenant->users()->attach($user->id, ['role' => 'member']);
 
     // Setup: Initialize tenant context and create campaign
     TenantContext::run($tenant, function () use ($user) {
@@ -55,10 +59,12 @@ test('authenticated user can view campaign edit page', function () {
 });
 
 test('authenticated user can delete campaign', function () {
-    // Setup: Create user with tenant
-    $user = User::factory()->create(['email_verified_at' => now()]);
+    // Setup: Create tenant and user
     $tenant = Tenant::factory()->create();
-    $user->update(['tenant_id' => $tenant->id]);
+    $user = User::factory()->create([
+        'email_verified_at' => now(),
+    ]);
+    $tenant->users()->attach($user->id, ['role' => 'member']);
 
     // Setup: Initialize tenant context and create campaign
     TenantContext::run($tenant, function () use ($user) {

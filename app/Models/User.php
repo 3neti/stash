@@ -7,14 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
-use LBHurtado\ModelChannel\Traits\HasChannels;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasChannels;
-
-    protected $connection = 'central';
+    use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -25,10 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'tenant_id',
-        'role',
         'email_verified_at',
-        'permissions',
     ];
 
     /**
@@ -58,10 +52,21 @@ class User extends Authenticatable
     }
 
     /**
-     * Get database notification connection name.
+     * Get the tenants this user belongs to.
      */
-    public function receivesBroadcastNotificationsOn(): string
+    public function tenants(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return 'tenant'; // Store notifications in tenant database
+        return $this->belongsToMany(Tenant::class, 'tenant_user')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    /**
+     * Check if user belongs to a specific tenant.
+     */
+    public function belongsToTenant(string|Tenant $tenant): bool
+    {
+        $tenantId = $tenant instanceof Tenant ? $tenant->id : $tenant;
+        return $this->tenants()->where('tenant_id', $tenantId)->exists();
     }
 }

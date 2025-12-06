@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Config;
 enum Channel: string
 {
     case MOBILE = 'mobile';
-    case EMAIL = 'email';
+    // case EMAIL = 'email'; // Removed: Conflicts with User model's email attribute
     case WEBHOOK = 'webhook';
     case SLACK = 'slack';
 

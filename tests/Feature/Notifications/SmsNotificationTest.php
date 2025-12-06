@@ -35,11 +35,12 @@ class SmsNotificationTest extends DeadDropTestCase
 
         // Seed tenant data
         TenantContext::run($this->tenant, function () {
-            // Create user
-            User::create([
+            // Create user on central connection (users don't belong to tenant DB)
+            User::on('central')->create([
                 'name' => 'Test User',
                 'email' => 'test@example.com',
                 'password' => bcrypt('password'),
+                'tenant_id' => $this->tenant->id,
             ]);
 
             // Create campaign

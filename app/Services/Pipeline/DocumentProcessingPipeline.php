@@ -42,13 +42,9 @@ class DocumentProcessingPipeline
             'campaign_id' => $campaign->id,
         ]);
 
-        // Get tenant ID from context
-        $tenantId = TenantContext::current()?->id;
-
         // Create DocumentJob with snapshot of pipeline configuration
         $job = DocumentJob::create([
             'uuid' => (string) Str::uuid(),
-            'tenant_id' => $tenantId,
             'campaign_id' => $campaign->id,
             'document_id' => $document->id,
             'pipeline_instance' => $campaign->pipeline_config,
@@ -72,6 +68,9 @@ class DocumentProcessingPipeline
 
         // Fire event that job was created
         event(new DocumentJobCreated($job, $document, $campaign));
+
+        // Get tenant ID from current context for workflow
+        $tenantId = TenantContext::current()?->id;
 
         // Start Laravel Workflow
         Log::info('[Pipeline] Starting Laravel Workflow', [

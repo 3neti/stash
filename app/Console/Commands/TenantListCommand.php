@@ -15,7 +15,7 @@ class TenantListCommand extends Command
 
     public function handle(): int
     {
-        $query = Tenant::on('pgsql')->with('domains');
+        $query = Tenant::on('central')->with('domains');
 
         if ($status = $this->option('status')) {
             $query->where('status', $status);

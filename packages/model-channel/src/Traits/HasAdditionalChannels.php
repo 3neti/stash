@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\Eloquent\Builder;
 use \Exception;
 
-trait HasChannels
+trait HasAdditionalChannels
 {
     public function channels(): MorphMany
     {

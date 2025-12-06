@@ -35,7 +35,7 @@ trait TenantAware
         return [
             function ($job, $next) {
                 if ($this->tenantId) {
-                    $tenant = Tenant::on('pgsql')->find($this->tenantId);
+                    $tenant = Tenant::on('central')->find($this->tenantId);
 
                     if (! $tenant) {
                         throw new \RuntimeException("Tenant {$this->tenantId} not found");

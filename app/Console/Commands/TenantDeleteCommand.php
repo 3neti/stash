@@ -20,7 +20,7 @@ class TenantDeleteCommand extends Command
     public function handle(TenantConnectionManager $manager): int
     {
         $tenantId = $this->argument('tenant');
-        $tenant = Tenant::on('pgsql')->find($tenantId);
+        $tenant = Tenant::on('central')->find($tenantId);
 
         if (! $tenant) {
             $this->error("Tenant {$tenantId} not found");
@@ -41,7 +41,7 @@ class TenantDeleteCommand extends Command
         }
 
         try {
-            DB::connection('pgsql')->transaction(function () use ($tenant, $manager) {
+            DB::connection('central')->transaction(function () use ($tenant, $manager) {
                 // Drop tenant database
                 $this->info('Dropping tenant database...');
                 $manager->dropTenantDatabase($tenant);

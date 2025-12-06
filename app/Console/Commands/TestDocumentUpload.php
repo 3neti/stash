@@ -54,7 +54,7 @@ class TestDocumentUpload extends Command
         try {
             // Step 1: Load tenant first (to get DB connection)
             $this->info('Step 1: Loading tenant...');
-            $tenant = Tenant::on('pgsql')->first();
+            $tenant = Tenant::on('central')->first();
             
             if (!$tenant) {
                 $this->error("❌ No tenants found");

@@ -16,10 +16,10 @@ class Tenant extends Model
 {
     use HasFactory, HasStatuses, HasUlids, SoftDeletes;
     
-    // Note: HasChannels not used due to trait conflicts with HasStatuses
+    protected $connection = 'central'; // Always use central database
+    
+    // Note: HasAdditionalChannels not used due to trait conflicts with HasStatuses
     // Tenant channels can be managed directly via Channel model if needed
-
-    protected $connection = 'central';
 
     protected $fillable = [
         'name',
@@ -79,9 +79,11 @@ class Tenant extends Model
     /**
      * Get tenant users.
      */
-    public function users(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function users(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->hasMany(User::class, 'tenant_id');
+        return $this->belongsToMany(User::class, 'tenant_user')
+            ->withPivot('role')
+            ->withTimestamps();
     }
 
     /**

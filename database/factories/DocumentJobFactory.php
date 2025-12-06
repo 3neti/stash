@@ -21,7 +21,6 @@ class DocumentJobFactory extends Factory
     {
         return [
             'uuid' => fake()->uuid(),
-            'tenant_id' => Tenant::factory(),
             'campaign_id' => Campaign::factory(),
             'document_id' => Document::factory(),
             'pipeline_instance' => [

@@ -25,7 +25,6 @@ class UserSeeder extends Seeder
                     'name' => $adminName,
                     'password' => Hash::make($adminPassword),
                     'email_verified_at' => now(),
-                    'role' => 'admin',
                 ]
             );
 
@@ -34,6 +33,8 @@ class UserSeeder extends Seeder
             } else {
                 $this->command->info("✓ Admin user exists: {$adminEmail}");
             }
+            
+            // Note: Attach to tenant in TenantSeeder after tenants are created
         }
 
         // Create test user for browser testing

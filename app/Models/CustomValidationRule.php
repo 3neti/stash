@@ -28,10 +28,7 @@ class CustomValidationRule extends Model
 {
     use HasUlids;
 
-    /**
-     * Connection name for central database.
-     */
-    protected $connection = 'central';
+    protected $connection = 'central'; // Always use central database
 
     /**
      * The attributes that are mass assignable.

@@ -14,5 +14,5 @@ use Workflow\Models\StoredWorkflow as BaseStoredWorkflow;
  */
 class StoredWorkflow extends BaseStoredWorkflow
 {
-    protected $connection = 'central';
+    protected $connection = 'central'; // Always use central database for workflows
 }

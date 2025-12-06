@@ -16,8 +16,8 @@ class FixTestUserCommand extends Command
 
     public function handle(): int
     {
-        $user = User::on('pgsql')->where('email', 'test@example.com')->first();
-        $tenant = Tenant::on('pgsql')->where('slug', 'test-company')->first();
+        $user = User::on('central')->where('email', 'test@example.com')->first();
+        $tenant = Tenant::on('central')->where('slug', 'test-company')->first();
 
         if (! $user) {
             $this->error('Test user not found');

@@ -23,8 +23,8 @@ class TenantMigrateCommand extends Command
         $tenantId = $this->argument('tenant');
 
         $tenants = $tenantId
-            ? [Tenant::on('pgsql')->findOrFail($tenantId)]
-            : Tenant::on('pgsql')->get();
+            ? [Tenant::on('central')->findOrFail($tenantId)]
+            : Tenant::on('central')->get();
 
         if ($tenants->isEmpty()) {
             $this->warn('No tenants found');

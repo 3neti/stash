@@ -2,7 +2,9 @@
 
 use App\Models\Campaign;
 use App\Models\Document;
+use App\Models\Tenant;
 use App\Models\User;
+use App\Tenancy\TenantContext;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -139,8 +141,16 @@ describe('Batch Upload', function () {
         Storage::fake('tenant');
         Queue::fake();
 
+        // Initialize tenant context
+        $this->tenant = Tenant::factory()->create();
+        TenantContext::initialize($this->tenant);
+
         $this->campaign = Campaign::factory()->create();
         $this->campaign->createToken('API Token');
+    });
+
+    afterEach(function () {
+        TenantContext::forgetCurrent();
     });
 
     test('uploads 5 valid files successfully', function () {
