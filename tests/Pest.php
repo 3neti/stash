@@ -1,10 +1,5 @@
 <?php
 
-uses(
-    Tests\DuskTestCase::class,
-    // Illuminate\Foundation\Testing\DatabaseMigrations::class,
-)->in('Browser');
-
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -16,33 +11,9 @@ uses(
 |
 */
 
-// DeadDrop Package Tests (tenant-aware with dual DB setup)
-uses(Tests\DeadDropTestCase::class)
-    ->in('Feature/DeadDrop', 'Unit/DeadDrop', 'Integration');
-
-// Laravel Feature Tests (Auth, Settings, etc.) - use standard TestCase with RefreshDatabase
-uses(Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Feature/Auth', 'Feature/Settings');
-
-// Campaign Feature Tests - use DeadDropTestCase for tenant-aware testing
-uses(Tests\DeadDropTestCase::class)
-    ->in('Feature/Campaign');
-
-// API tests - use DeadDropTestCase for tenant-aware testing
-uses(Tests\DeadDropTestCase::class)
-    ->in('Feature/Api');
-
-// Top-level Feature tests - standard TestCase with RefreshDatabase
-uses(Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Feature/*.php');
-
-// State Machine tests - use DeadDropTestCase
-uses(Tests\DeadDropTestCase::class)
-    ->in('Feature/StateMachine');
-
-// Top-level Unit tests - use DeadDropTestCase (for state tests)
-uses(Tests\DeadDropTestCase::class)
-    ->in('Unit/*.php');
+// Default: Use TestCase for all tests
+// (Tests will be reintroduced gradually after clean environment is built)
+uses(Tests\TestCase::class)->in('Unit', 'Feature', 'Integration');
 
 /*
 |--------------------------------------------------------------------------

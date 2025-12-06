@@ -33,3 +33,4 @@ yarn-error.log
 /.mcp.json
 /CLAUDE.md
 /.junie/
+/tests-legacy/
