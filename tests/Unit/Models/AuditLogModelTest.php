@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+use Tests\Concerns\SetUpsTenantDatabase;
+use Tests\TestCase;
+
+uses(TestCase::class, SetUpsTenantDatabase::class);
+
 use App\Models\AuditLog;
 use App\Models\Campaign;
 use App\Models\User;
@@ -138,7 +143,7 @@ it('can retrieve auditable entity', function () {
 });
 
 it('scopes logs by user', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->connection('central')->create();
 
     AuditLog::factory()->create(['user_id' => $user->id]);
     AuditLog::factory()->create(['user_id' => $user->id]);
@@ -224,7 +229,7 @@ it('prevents deletes of audit logs', function () {
 
 it('creates audit log using static log method', function () {
     $campaign = Campaign::factory()->create();
-    $user = User::factory()->create();
+    $user = User::factory()->connection('central')->create();
 
     $log = AuditLog::log(
         auditableType: Campaign::class,

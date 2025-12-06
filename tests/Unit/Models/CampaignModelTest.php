@@ -1,5 +1,10 @@
 <?php
 
+use Tests\Concerns\SetUpsTenantDatabase;
+use Tests\TestCase;
+
+uses(TestCase::class, SetUpsTenantDatabase::class);
+
 use App\Models\Campaign;
 use App\States\Campaign\ActiveCampaignState;
 use App\States\Campaign\DraftCampaignState;

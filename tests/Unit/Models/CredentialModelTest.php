@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+use Tests\Concerns\SetUpsTenantDatabase;
+use Tests\TestCase;
+
+uses(TestCase::class, SetUpsTenantDatabase::class);
+
 use App\Models\Campaign;
 use App\Models\Credential;
 use App\Models\Processor;

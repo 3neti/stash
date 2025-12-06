@@ -2,6 +2,8 @@
 
 namespace Tests\Concerns;
 
+use App\Models\Tenant;
+use App\Services\Tenancy\TenancyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -11,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
  * - Uses RefreshDatabase to ensure clean state
  * - Configures both 'central' and 'tenant' connections to use transactions
  * - Runs tenant migrations after central database is refreshed
+ * - Auto-creates a default tenant and initializes tenant context
  * 
  * Usage:
  *   class MyTest extends TestCase
@@ -18,9 +21,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
  *       use SetUpsTenantDatabase;
  *       
  *       test('example', function () {
- *           $tenant = $this->createTenant();
- *           $this->inTenantContext($tenant, function () {
- *               // Test code using tenant database
+ *           // Default tenant already initialized, can use tenant models directly
+ *           $campaign = Campaign::factory()->create();
+ *           
+ *           // Or create additional tenants
+ *           $otherTenant = $this->createTenant(['slug' => 'other']);
+ *           $this->inTenantContext($otherTenant, function () {
+ *               // Test code using other tenant database
  *           });
  *       });
  *   }
@@ -28,6 +35,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 trait SetUpsTenantDatabase
 {
     use RefreshDatabase;
+
+    /**
+     * Default tenant for tests.
+     */
+    protected ?Tenant $defaultTenant = null;
 
     /**
      * Define database connections to refresh and transact.
@@ -54,5 +66,14 @@ trait SetUpsTenantDatabase
             '--path' => 'database/migrations/tenant',
             '--force' => true,
         ]);
+
+        // Auto-create default tenant and initialize context
+        $this->defaultTenant = $this->createTenant([
+            'slug' => 'test-tenant',
+            'name' => 'Test Tenant',
+        ]);
+
+        // Initialize tenant context globally for this test
+        app(TenancyService::class)->initializeTenant($this->defaultTenant);
     }
 }

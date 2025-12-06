@@ -1,5 +1,10 @@
 <?php
 
+use Tests\Concerns\SetUpsTenantDatabase;
+use Tests\TestCase;
+
+uses(TestCase::class, SetUpsTenantDatabase::class);
+
 use App\Models\Campaign;
 use App\Models\Document;
 use App\Models\User;
@@ -93,7 +98,7 @@ describe('Document Model - Relationships', function () {
     });
 
     test('document belongs to user when user_id is set', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->connection('central')->create();
         $document = Document::factory()->create(['user_id' => $user->id]);
 
         expect($document->user)->toBeInstanceOf(User::class)
@@ -101,7 +106,7 @@ describe('Document Model - Relationships', function () {
     });
 
     test('can assign user to document after creation', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->connection('central')->create();
         $document = Document::factory()->create(['user_id' => null]);
 
         expect($document->user)->toBeNull();
