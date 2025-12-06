@@ -1,0 +1,6 @@
+full_name,email,phone,employee_id,department,age,registration_date,bio
+Juan Dela Cruz,juan@company.com,+639171234567,EMP-001234,Engineering,32,12/25/2024,"Developer #php #laravel #vue"
+Maria Santos,maria@test.com,09181234567,EMP-002345,Marketing,28,01/15/2024,"Marketer #seo #content"
+Pedro Reyes,pedro@company.com,9191234567,EMP-003456,Sales,45,06/10/2023,"Salesman #b2b #enterprise"
+Anna Garcia,anna@test.com,+639201234567,EMP-004567,HR,35,03/20/2024,"HR Manager #recruitment #talent"
+Jose Tan,jose@test.com,09211234567,EMP-005678,Engineering,29,11/05/2024,"Engineer #python #api #microservices"
