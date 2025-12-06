@@ -25,22 +25,19 @@ trait UsesDashboardSetup
             'status' => 'active',
         ], $overrides));
 
-        // Create or update test user on central DB and link to tenant
-        $user = User::on('central')->firstOrCreate(
+        // Create or update test user on central DB
+        $user = User::firstOrCreate(
             ['email' => 'test@example.com'],
             [
                 'name' => 'Test User',
                 'password' => bcrypt('password'),
                 'email_verified_at' => now(),
-                'role' => 'owner',
-                'tenant_id' => $tenant->id,
             ]
         );
         
-        // If user already existed, update tenant_id
-        if (!$user->wasRecentlyCreated && $user->tenant_id !== $tenant->id) {
-            $user->tenant_id = $tenant->id;
-            $user->save();
+        // Attach user to tenant via pivot table if not already attached
+        if (!$tenant->users()->where('user_id', $user->id)->exists()) {
+            $tenant->users()->attach($user->id, ['role' => 'owner']);
         }
 
         return [$tenant, $user];

@@ -80,13 +80,37 @@ composer run dev    # Start all services: Laravel server, queue worker, logs, an
 composer run dev:ssr  # For server-side rendering with Inertia.js SSR
 ```
 
-### Testing
+### Testing (Cost-Efficient Approach)
+
+**CRITICAL: This project has 527 tests. Running full suite costs ~250k tokens ($4). Follow incremental testing workflow.**
+
 ```bash
-composer run test          # Run all tests via Pest
-php artisan test           # Alternative direct command
-php artisan test --filter  # Run specific tests by name/filter
-php artisan test tests/Feature/ExampleTest.php  # Run specific file
+# Phase 1: Quick health check (500 tokens, ~$0.01)
+php artisan test --compact 2>&1 | tail -5
+
+# Phase 2: List failures only (5k tokens, ~$0.08)
+php artisan test 2>&1 | grep "^   FAIL  Tests" | cut -d' ' -f4
+
+# Phase 3: Run specific test (10-20k tokens, ~$0.15-0.30)
+php artisan test --filter TestClassName
+php artisan test tests/Feature/SpecificTest.php
+
+# Phase 4: Full suite verification ONLY at end (250k tokens, ~$4)
+php artisan test --compact 2>&1 | tail -10
 ```
+
+**AGENT RULES:**
+1. **NEVER** run `php artisan test` without `--filter` or `--compact` flags
+2. For initial check, **ASK USER** to run: `php artisan test --compact 2>&1 | tail -5`
+3. User provides results → Agent analyzes → Agent suggests targeted test
+4. **ASK USER** to run targeted tests: `php artisan test --filter TestName`
+5. Full suite only at end when user believes all fixes complete
+
+**Why ask user to run tests?**
+- Agent running tests directly costs 250k tokens ($4) per full run
+- User running tests and pasting results costs only ~5k tokens ($0.08)
+- **95% cost savings** by having user run commands and share output
+- Agent focuses on analysis and code fixes, not executing expensive commands
 
 ### Code Quality
 
@@ -259,7 +283,8 @@ return Inertia::render('Page', [
 ### Testing Requirements
 - **Every change must be tested** (new test or update existing)
 - Use **Pest v4** for testing
-- Run minimum required tests for speed:
+- **Follow cost-efficient testing workflow** (see Testing section above)
+- Run **targeted tests only** during development:
   ```bash
   php artisan test --filter TestName
   php artisan test tests/Feature/SpecificTest.php
@@ -331,7 +356,7 @@ packages/my-package/
 
 #### Testing Packages
 ```bash
-# Run tests for specific package
+# Run tests for specific package only (cost-efficient)
 php artisan test packages/my-package/tests
 
 # Or using Pest directly
@@ -487,7 +512,7 @@ Do this:
 - Create tests in `tests/Feature/DeadDrop/` directory (not generic Feature directory)
 - Extend `DeadDropTestCase` as base class
 - Use `TenantContext::run($tenant, function () { /* test code */ })`
-- Run full test suite after each phase: `php artisan test`
+- Run **targeted tests** after changes: `php artisan test --filter YourTest`
 - Write 3+ tests covering different scenarios
 
 Avoid this:
@@ -549,7 +574,7 @@ git --no-pager log
 ### Do
 - Follow existing code conventions in the application
 - Use Laravel Boost's `search-docs` before implementing features
-- Run tests after changes to ensure nothing breaks
+- Run **targeted tests** after changes: `php artisan test --filter TestName`
 - Use Wayfinder-generated routes in Vue components (type-safe)
 - Eager load relationships to prevent N+1 queries
 - Create Form Requests for validation (not inline validation)
@@ -569,9 +594,10 @@ php artisan wayfinder:generate
 ```
 
 ### Test Failures After Migration
-Run fresh migrations in test environment:
+Run targeted tests with fresh migrations:
 ```bash
-php artisan test --env=testing
+# Target specific failing test, not full suite
+php artisan test --filter MigrationRelatedTest
 ```
 
 ## Laravel Workflow for Document Processing
@@ -1057,10 +1083,10 @@ Reference in translations with `:placeholder_name`:
 ### Testing
 
 ```bash
-# Unit tests - locale detection
+# Unit tests - locale detection (targeted)
 php artisan test tests/Unit/Services/CsvImportProcessorLocaleTest.php
 
-# Feature tests - localized validation (EN/FIL/ES)
+# Feature tests - localized validation (targeted)
 php artisan test tests/Feature/DeadDrop/CsvImportLocalizedValidationTest.php
 ```
 

@@ -36,12 +36,12 @@ class SmsNotificationTest extends DeadDropTestCase
         // Seed tenant data
         TenantContext::run($this->tenant, function () {
             // Create user on central connection (users don't belong to tenant DB)
-            User::on('central')->create([
+            $user = User::on('central')->create([
                 'name' => 'Test User',
                 'email' => 'test@example.com',
                 'password' => bcrypt('password'),
-                'tenant_id' => $this->tenant->id,
             ]);
+            $this->tenant->users()->attach($user->id, ['role' => 'member']);
 
             // Create campaign
             Campaign::create([
@@ -143,7 +143,7 @@ class SmsNotificationTest extends DeadDropTestCase
     public function test_notification_uses_correct_sms_message_format(): void
     {
         TenantContext::run($this->tenant, function () {
-            $user = User::first();
+            $user = User::on('central')->first();
             $campaign = Campaign::first();
             $document = Document::create([
                 'filename' => 'test-format.pdf',

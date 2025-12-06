@@ -27,7 +27,7 @@ class DocumentProgressEndToEndTest extends TestCase
 
         // Setup: Create and associate user with tenant
         $user = User::factory()->create(['email' => 'test@example.com']);
-        $user->update(['tenant_id' => $tenant->id]);
+        $tenant->users()->attach($user->id, ['role' => 'member']);
 
         // Setup: Create campaign with processors in tenant
         TenantContext::run($tenant, function () {
@@ -58,9 +58,9 @@ class DocumentProgressEndToEndTest extends TestCase
             ]);
         });
 
-        // Verify precondition: User has tenant_id
-        $this->assertNotNull($user->tenant_id);
-        $this->assertEquals($tenant->id, $user->tenant_id);
+        // Verify precondition: User belongs to tenant
+        $this->assertTrue($user->belongsToTenant($tenant));
+        $this->assertEquals($tenant->id, $user->tenants()->first()->id);
 
         // Act: Call progress API as authenticated user
         $response = $this->actingAs($user)->getJson("/api/documents/{$document->uuid}/progress");
@@ -86,7 +86,7 @@ class DocumentProgressEndToEndTest extends TestCase
 
         // Setup: Create and associate user with tenant
         $user = User::factory()->create(['email' => 'metrics@example.com']);
-        $user->update(['tenant_id' => $tenant->id]);
+        $tenant->users()->attach($user->id, ['role' => 'member']);
 
         // Setup: Create campaign and document in tenant
         TenantContext::run($tenant, function () {
@@ -134,8 +134,8 @@ class DocumentProgressEndToEndTest extends TestCase
      */
     public function test_document_progress_api_handles_user_without_tenant(): void
     {
-        // Setup: Create user WITHOUT tenant_id
-        $user = User::factory()->create(['email' => 'no-tenant@example.com', 'tenant_id' => null]);
+        // Setup: Create user WITHOUT tenant association
+        $user = User::factory()->create(['email' => 'no-tenant@example.com']);
 
         // Setup: Create a document (in any tenant context)
         $tenant = Tenant::factory()->create();

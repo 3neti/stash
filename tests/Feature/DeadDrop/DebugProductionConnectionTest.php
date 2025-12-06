@@ -20,7 +20,7 @@ test('debug: trace database connections during middleware flow', function () {
     // Setup
     $tenant = Tenant::factory()->create();
     $user = User::factory()->create(['email_verified_at' => now()]);
-    $user->update(['tenant_id' => $tenant->id]);
+    $tenant->users()->attach($user->id, ['role' => 'member']);
 
     TenantContext::run($tenant, function () {
         Campaign::factory()->create(['name' => 'Debug Campaign']);
@@ -28,9 +28,11 @@ test('debug: trace database connections during middleware flow', function () {
 
     // Simulate middleware flow
     $retrievedUser = User::find($user->id);
-    expect($retrievedUser->tenant_id)->toBe($tenant->id);
+    $userTenant = $retrievedUser->tenants()->first();
+    expect($userTenant)->not->toBeNull();
+    expect($userTenant->id)->toBe($tenant->id);
 
-    $retrievedTenant = Tenant::find($retrievedUser->tenant_id);
+    $retrievedTenant = Tenant::find($userTenant->id);
     expect($retrievedTenant->id)->toBe($tenant->id);
 
     // This is what middleware does
