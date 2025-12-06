@@ -25,7 +25,6 @@ use Workflow\Events\WorkflowFailed;
 use Workflow\Models\StoredWorkflow;
 use Workflow\WorkflowStub;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 class FeatureFlagIntegrationTest extends TestCase
 {

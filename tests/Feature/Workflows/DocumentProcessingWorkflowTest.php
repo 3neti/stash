@@ -12,7 +12,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Workflow\WorkflowStub;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 /**
  * DocumentProcessingWorkflowTest

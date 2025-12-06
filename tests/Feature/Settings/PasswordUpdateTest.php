@@ -2,10 +2,9 @@
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Fortify\Features;
 
-uses(Tests\TestCase::class);
-
-test('password update page is displayed', function () {
+test('password update page can be accessed', function () {
     $user = User::factory()->create();
 
     $response = $this

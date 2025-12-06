@@ -9,8 +9,6 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\UsesDashboardSetup;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
-
 uses(UsesDashboardSetup::class)
     ->group('feature', 'document', 'action', 'tenant');
 

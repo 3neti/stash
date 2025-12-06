@@ -12,8 +12,6 @@ use App\Models\Campaign;
 use App\Models\Document;
 use App\Processors\ExtractionProcessor;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
-
 uses()->group('integration', 'processors', 'extraction');
 
 beforeEach(function () {

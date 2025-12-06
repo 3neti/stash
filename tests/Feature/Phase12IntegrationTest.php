@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 /**
  * Phase 1.2: Custom Multi-Database Tenancy Integration Tests

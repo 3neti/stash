@@ -8,7 +8,6 @@ use App\Models\Processor;
 use App\Models\ProcessorExecution;
 use App\Models\UsageEvent;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 describe('Campaign Relationships', function () {
     test('campaign has many documents', function () {

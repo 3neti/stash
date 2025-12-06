@@ -11,7 +11,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 class TenancyTest extends TestCase
 {

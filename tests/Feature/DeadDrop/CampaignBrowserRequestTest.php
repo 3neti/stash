@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 test('browser request: campaign show page loads without SQLSTATE error', function () {
     test()->markTestSkipped('Missing campaigns/Show Inertia component - route returns 404');

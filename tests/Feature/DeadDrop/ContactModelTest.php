@@ -7,7 +7,6 @@ use App\Models\Processor;
 use App\Models\Tenant;
 use App\Tenancy\TenantContext;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();

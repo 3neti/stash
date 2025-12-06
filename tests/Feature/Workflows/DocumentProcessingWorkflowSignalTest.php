@@ -2,10 +2,6 @@
 
 use App\Models\KycTransaction;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
-
-uses(DeadDropTestCase::class);
-
 test('kyc transaction has workflow_id and document_job_id columns', function () {
     // Verify the migration added the columns
     $columns = \DB::connection('central')

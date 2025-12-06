@@ -7,7 +7,6 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\TenantContext;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 test('campaign page loads without SQLSTATE error after fresh setup', function () {
     test()->markTestSkipped('Missing campaigns/Show Inertia component - route returns 404');

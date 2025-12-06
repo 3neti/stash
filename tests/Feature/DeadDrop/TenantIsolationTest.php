@@ -7,11 +7,9 @@ use App\Models\Document;
 use App\Models\Processor;
 use App\Models\UsageEvent;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
-
 describe('Tenant Isolation Tests', function () {
     test('queries are scoped to tenant database', function () {
-        // Create campaigns in default tenant (from DeadDropTestCase)
+        // Create campaigns in default tenant
         Campaign::factory()->count(3)->create();
 
         // Verify count in current tenant

@@ -4,7 +4,6 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\TenantContext;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 test('guests are redirected to the login page', function () {
     $response = $this->get(route('dashboard'));

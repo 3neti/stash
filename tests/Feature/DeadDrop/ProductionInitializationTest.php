@@ -9,7 +9,6 @@ use App\Tenancy\TenantConnectionManager;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 uses()->group('feature', 'tenant', 'production');
 

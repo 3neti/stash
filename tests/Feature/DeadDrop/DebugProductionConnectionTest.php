@@ -9,7 +9,6 @@ use App\Tenancy\TenantConnectionManager;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 uses()->group('debug');
 

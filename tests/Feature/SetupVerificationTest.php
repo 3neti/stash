@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 class SetupVerificationTest extends TestCase
 {

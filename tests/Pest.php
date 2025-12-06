@@ -11,11 +11,30 @@
 |
 */
 
-// Default: Use TestCase for tests that don't specify their own
-// Individual test files can override with their own uses() calls
+// Auth and Settings tests use standard RefreshDatabase (non-tenant)
 uses(Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in(__DIR__ . '/Feature')
-    ->in(__DIR__ . '/Integration');
+    ->in('Feature/Auth')
+    ->in('Feature/Settings')
+    ->in('Feature/ExampleTest.php');
+
+// Tenant-aware Feature tests
+uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class)
+    ->in('Feature/Campaign')
+    ->in('Feature/DeadDrop')
+    ->in('Feature/Documents')
+    ->in('Feature/StateMachine')
+    ->in('Feature/Workflows')
+    ->in('Feature/Smoke');
+
+// Top-level Feature tests (use tenant setup to be safe)
+uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class)
+    ->in('Feature/Phase12IntegrationTest.php')
+    ->in('Feature/TenancyTest.php')
+    ->in('Feature/DashboardTest.php')
+    ->in('Feature/SetupVerificationTest.php');
+
+// Integration tests also use tenant database setup
+uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class)->in('Integration');
 
 /*
 |--------------------------------------------------------------------------

@@ -2,7 +2,6 @@
 
 use App\Models\User;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 test('authenticated user can create campaign with valid enum type', function () {
     $user = User::factory()->create(['email_verified_at' => now()]);

@@ -17,7 +17,6 @@ use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\UsesDashboardSetup;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 uses(UsesDashboardSetup::class)
     ->group('feature', 'pipeline', 'end-to-end');

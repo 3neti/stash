@@ -8,8 +8,6 @@ use App\Models\Campaign;
 use App\Models\Document;
 use App\Processors\ClassificationProcessor;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
-
 uses()->group('integration', 'processors', 'classification');
 
 beforeEach(function () {

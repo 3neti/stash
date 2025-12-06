@@ -1,6 +1,5 @@
 <?php
 
-uses(Tests\TestCase::class);
 
 test('registration screen can be rendered', function () {
     $response = $this->get(route('register'));

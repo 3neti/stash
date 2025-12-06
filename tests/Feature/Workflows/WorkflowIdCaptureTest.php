@@ -7,10 +7,6 @@ use App\Models\KycTransaction;
 use App\Models\Processor;
 use App\Models\Tenant;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
-
-uses(DeadDropTestCase::class);
-
 test('activity captures workflow id when registering kyc transaction', function () {
     // Create tenant
     $tenant = Tenant::factory()->create();

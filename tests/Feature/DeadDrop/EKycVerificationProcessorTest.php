@@ -10,7 +10,6 @@ use App\Processors\EKycVerificationProcessor;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Http;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 beforeEach(function () {
     test()->markTestSkipped('Pending: EKycVerificationProcessor class does not exist yet');

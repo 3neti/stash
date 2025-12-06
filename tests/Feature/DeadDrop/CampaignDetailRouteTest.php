@@ -7,7 +7,6 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\TenantContext;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 uses()->group('feature', 'campaign', 'web', 'tenant');
 

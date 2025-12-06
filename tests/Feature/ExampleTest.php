@@ -1,8 +1,6 @@
 <?php
 
-uses(Tests\TestCase::class);
-
-test('returns a successful response', function () {
+test('example', function () {
     $response = $this->get(route('home'));
 
     $response->assertStatus(200);

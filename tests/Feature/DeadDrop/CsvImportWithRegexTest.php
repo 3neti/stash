@@ -1,5 +1,6 @@
 <?php
 
+namespace Tests\Feature\DeadDrop;
 
 use App\Models\Campaign;
 use App\Models\Document;
@@ -10,10 +11,9 @@ use App\Data\Pipeline\ProcessorConfigData;
 use App\Data\Processors\ProcessorContextData;
 use Illuminate\Support\Facades\Storage;
 use App\Tenancy\TenantContext;
+use Tests\TestCase;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
-
-class CsvImportWithRegexTest extends DeadDropTestCase
+class CsvImportWithRegexTest extends TestCase
 {
     private Campaign $campaign;
     private CsvImportProcessor $processor;
@@ -22,7 +22,6 @@ class CsvImportWithRegexTest extends DeadDropTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->markTestSkipped('Pending: Align CsvImportProcessor transformations and validation schema.');
         
         $this->processor = new CsvImportProcessor();
         

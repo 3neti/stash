@@ -2,9 +2,7 @@
 
 use App\Models\User;
 
-uses(Tests\TestCase::class);
-
-test('profile page is displayed', function () {
+test('profile edit page can be accessed', function () {
     $user = User::factory()->create();
 
     $response = $this

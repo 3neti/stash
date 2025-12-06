@@ -7,8 +7,6 @@ use App\Models\Document;
 use App\Processors\OcrProcessor;
 use Illuminate\Support\Facades\Storage;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
-
 describe('OcrProcessor Integration', function () {
     beforeEach(function () {
         // Ensure storage disk is set up

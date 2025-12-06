@@ -1,5 +1,6 @@
 <?php
 
+namespace Tests\Feature\DeadDrop;
 
 use App\Models\Campaign;
 use App\Models\CustomValidationRule;
@@ -11,15 +12,14 @@ use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
-
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
+use Tests\TestCase;
 
 /**
  * Feature tests for localized CSV import validation.
  *
  * Tests validation error messages in EN, FIL, and ES locales.
  */
-class CsvImportLocalizedValidationTest extends DeadDropTestCase
+class CsvImportLocalizedValidationTest extends TestCase
 {
     use RefreshDatabase;
 

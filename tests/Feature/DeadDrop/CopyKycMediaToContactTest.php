@@ -2,26 +2,18 @@
 
 declare(strict_types=1);
 
-
 use App\Models\Contact;
 use App\Models\ProcessorExecution;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
+beforeEach(function () {
+    Storage::fake('tenant');
+});
 
-class CopyKycMediaToContactTest extends DeadDropTestCase
-{
-    protected function setUp(): void
-    {
-        parent::setUp();
-        Storage::fake('tenant');
-    }
-
-    public function test_media_copied_from_execution_to_contact_on_approval(): void
-    {
-        // Create ProcessorExecution with KYC images
-        $execution = ProcessorExecution::factory()->create();
+test('media copied from execution to contact on approval', function () {
+    // Create ProcessorExecution with KYC images
+    $execution = ProcessorExecution::factory()->create();
         
         $idCard1 = UploadedFile::fake()->image('id_full.jpg');
         $idCard2 = UploadedFile::fake()->image('id_cropped.jpg');
@@ -55,60 +47,55 @@ class CopyKycMediaToContactTest extends DeadDropTestCase
         // Assert: Original media on execution still exists
         $this->assertCount(2, $execution->fresh()->getMedia('kyc_id_cards'));
         $this->assertCount(1, $execution->fresh()->getMedia('kyc_selfies'));
-    }
+});
 
-    public function test_contact_media_accessible_after_copy(): void
-    {
-        $execution = ProcessorExecution::factory()->create();
+test('contact media accessible after copy', function () {
+    $execution = ProcessorExecution::factory()->create();
         
-        $idCard = UploadedFile::fake()->image('id_card.jpg');
-        $execution->addMedia($idCard)->toMediaCollection('kyc_id_cards');
+    $idCard = UploadedFile::fake()->image('id_card.jpg');
+    $execution->addMedia($idCard)->toMediaCollection('kyc_id_cards');
         
-        $contact = Contact::create([
-            'name' => 'Test User',
-            'kyc_transaction_id' => 'TEST-'.time(),
-        ]);
+    $contact = Contact::create([
+        'name' => 'Test User',
+        'kyc_transaction_id' => 'TEST-'.time(),
+    ]);
         
-        // Copy
-        foreach ($execution->getMedia('kyc_id_cards') as $media) {
-            $media->copy($contact, 'kyc_id_cards');
-        }
-        
-        // Assert: Contact media is accessible
-        $contactMedia = $contact->getFirstMedia('kyc_id_cards');
-        $this->assertNotNull($contactMedia);
-        $this->assertEquals('id_card.jpg', $contactMedia->file_name);
+    // Copy
+    foreach ($execution->getMedia('kyc_id_cards') as $media) {
+        $media->copy($contact, 'kyc_id_cards');
     }
+        
+    // Assert: Contact media is accessible
+    $contactMedia = $contact->getFirstMedia('kyc_id_cards');
+    $this->assertNotNull($contactMedia);
+    $this->assertEquals('id_card.jpg', $contactMedia->file_name);
+});
 
-    public function test_both_collections_copied_independently(): void
-    {
-        $execution = ProcessorExecution::factory()->create();
+test('both collections copied independently', function () {
+    $execution = ProcessorExecution::factory()->create();
         
-        $idCard = UploadedFile::fake()->image('id.jpg');
-        $selfie = UploadedFile::fake()->image('selfie.jpg');
+    $idCard = UploadedFile::fake()->image('id.jpg');
+    $selfie = UploadedFile::fake()->image('selfie.jpg');
         
-        $execution->addMedia($idCard)->toMediaCollection('kyc_id_cards');
-        $execution->addMedia($selfie)->toMediaCollection('kyc_selfies');
+    $execution->addMedia($idCard)->toMediaCollection('kyc_id_cards');
+    $execution->addMedia($selfie)->toMediaCollection('kyc_selfies');
         
-        $contact = Contact::create([
-            'name' => 'Test User',
-            'kyc_transaction_id' => 'TEST-'.time(),
-        ]);
+    $contact = Contact::create([
+        'name' => 'Test User',
+        'kyc_transaction_id' => 'TEST-'.time(),
+    ]);
         
-        // Copy both collections
-        foreach ($execution->getMedia('kyc_id_cards') as $media) {
-            $media->copy($contact, 'kyc_id_cards');
-        }
-        foreach ($execution->getMedia('kyc_selfies') as $media) {
-            $media->copy($contact, 'kyc_selfies');
-        }
-        
-        // Assert: Both collections exist independently
-        $this->assertCount(1, $contact->getMedia('kyc_id_cards'));
-        $this->assertCount(1, $contact->getMedia('kyc_selfies'));
-        $this->assertNotEquals(
-            $contact->getFirstMedia('kyc_id_cards')->id,
-            $contact->getFirstMedia('kyc_selfies')->id
-        );
+    // Copy both collections
+    foreach ($execution->getMedia('kyc_id_cards') as $media) {
+        $media->copy($contact, 'kyc_id_cards');
     }
-}
+    foreach ($execution->getMedia('kyc_selfies') as $media) {
+        $media->copy($contact, 'kyc_selfies');
+    }
+        
+// Assert: Both collections exist independently
+expect($contact->getMedia('kyc_id_cards'))->toHaveCount(1);
+expect($contact->getMedia('kyc_selfies'))->toHaveCount(1);
+expect($contact->getFirstMedia('kyc_id_cards')->id)
+    ->not->toBe($contact->getFirstMedia('kyc_selfies')->id);
+});

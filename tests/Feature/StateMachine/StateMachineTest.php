@@ -23,7 +23,6 @@ use App\States\ProcessorExecution\PendingExecutionState;
 use App\States\ProcessorExecution\RunningExecutionState;
 use App\States\ProcessorExecution\SkippedExecutionState;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 beforeEach(function () {
     $this->campaign = Campaign::factory()->create();

@@ -8,7 +8,6 @@ use App\Tenancy\TenantContext;
 use Illuminate\Http\UploadedFile;
 use Tests\Support\UsesDashboardSetup;
 
-uses(Tests\TestCase::class, Tests\Concerns\SetUpsTenantDatabase::class);
 
 uses(UsesDashboardSetup::class)
     ->group('feature', 'document', 'campaign', 'web', 'tenant');
