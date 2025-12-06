@@ -13,9 +13,9 @@
 
 // Default: Use TestCase for tests that don't specify their own
 // Individual test files can override with their own uses() calls
-uses(Tests\TestCase::class)
-    ->in('Feature/Smoke')
-    ->in('Integration');
+uses(Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->in(__DIR__ . '/Feature')
+    ->in(__DIR__ . '/Integration');
 
 /*
 |--------------------------------------------------------------------------
