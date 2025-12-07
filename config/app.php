@@ -123,4 +123,17 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Tenant Auto-Onboarding
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, new tenants will automatically have their database created,
+    | migrations run, and default campaign templates applied via the
+    | TenantObserver. Set to false to disable automatic onboarding.
+    |
+    */
+
+    'tenant_auto_onboarding' => env('TENANT_AUTO_ONBOARDING', true),
+
 ];

@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Listeners\WorkflowCompletedListener;
 use App\Listeners\WorkflowFailedListener;
+use App\Models\Tenant;
+use App\Observers\TenantObserver;
 use App\Services\DocumentVerificationUrlResolver;
 use App\Services\HypervergeCredentialResolver;
 use App\Services\StashDocumentStorage;
@@ -73,6 +75,9 @@ class AppServiceProvider extends ServiceProvider
         // Register workflow event listeners
         Event::listen(WorkflowCompleted::class, WorkflowCompletedListener::class);
         Event::listen(WorkflowFailed::class, WorkflowFailedListener::class);
+
+        // Register tenant observer for automatic onboarding
+        Tenant::observe(TenantObserver::class);
 
         $this->configureRateLimiting();
     }
