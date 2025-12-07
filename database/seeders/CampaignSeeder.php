@@ -7,6 +7,7 @@ use App\Models\Processor;
 use App\Models\Tenant;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Validation\Rule;
 
 class CampaignSeeder extends Seeder
@@ -16,15 +17,26 @@ class CampaignSeeder extends Seeder
      */
     public function run(): void
     {
+        // Check if we should test campaign:import command
+        $useImportCommand = env('CAMPAIGN_SEEDER_USE_IMPORT', false);
+
         // If running in tenant context, seed campaigns
         if (TenantContext::isInitialized()) {
-            $this->seedCampaigns();
+            if ($useImportCommand) {
+                $this->seedCampaignsViaImportCommand();
+            } else {
+                $this->seedCampaigns();
+            }
         } else {
             // Otherwise, seed for all tenants
             $tenants = Tenant::on('pgsql')->get();
             foreach ($tenants as $tenant) {
-                TenantContext::run($tenant, function () {
-                    $this->seedCampaigns();
+                TenantContext::run($tenant, function () use ($useImportCommand) {
+                    if ($useImportCommand) {
+                        $this->seedCampaignsViaImportCommand();
+                    } else {
+                        $this->seedCampaigns();
+                    }
                 });
             }
         }
@@ -537,5 +549,158 @@ class CampaignSeeder extends Seeder
         }
 
         $this->command->info('Seeded '.count($campaigns).' campaigns');
+    }
+
+    /**
+     * Seed campaigns via campaign:import command (TEST MODE).
+     *
+     * This tests the campaign:import command by creating campaigns
+     * using the same flow as importing from JSON/YAML files.
+     */
+    private function seedCampaignsViaImportCommand(): void
+    {
+        // Get current tenant from context
+        $tenant = TenantContext::current();
+        if (! $tenant) {
+            $this->command->error('No tenant context found.');
+
+            return;
+        }
+
+        // Get processor ID mappings (slug => database ID)
+        $processors = Processor::pluck('id', 'slug')->toArray();
+        if (empty($processors)) {
+            $this->command->warn('No processors found. Run ProcessorSeeder first.');
+
+            return;
+        }
+
+        $this->command->info('Testing campaign:import command...');
+
+        // Define campaigns in import format (state strings, type strings, no processor IDs)
+        $campaignDefinitions = [
+            [
+                'name' => 'ENF Electronic Signature',
+                'slug' => 'e-signature',
+                'description' => 'Electronic Notarization Framework: KYC verification + document signing with blockchain timestamps',
+                'type' => 'custom',
+                'state' => 'active',
+                'processors' => [
+                    // Step 1: eKYC Verification
+                    ['id' => 'ekyc-step', 'type' => 'ekycverification', 'config' => [
+                        'country' => 'PH',
+                        'transaction_id_prefix' => 'ENF',
+                        'contact_fields' => [
+                            'mobile' => 'required',
+                            'name' => 'required',
+                            'email' => 'optional',
+                        ],
+                    ]],
+                    // Step 2: Electronic Signature
+                    ['id' => 'signature-step', 'type' => 'electronicsignature', 'config' => [
+                        'transaction_id' => '{{ekyc-verification.transaction_id}}',
+                        'tile' => 1,
+                        'metadata' => [
+                            'notarization_type' => 'ENF',
+                            'document_category' => 'Legal',
+                        ],
+                    ]],
+                ],
+                'checklist_template' => [
+                    ['title' => 'Verify signer identity via KYC', 'required' => true],
+                    ['title' => 'Review signed document with QR watermark', 'required' => true],
+                    ['title' => 'Confirm blockchain timestamp', 'required' => false],
+                ],
+                'allowed_mime_types' => [
+                    'application/pdf', // Only PDF for signing
+                ],
+                'max_file_size_bytes' => 20971520, // 20MB for legal documents
+                'settings' => [
+                    'queue' => 'high-priority',
+                    'locale' => 'en',
+                    'workflow' => 'sequential',
+                ],
+                'max_concurrent_jobs' => 3,
+                'retention_days' => 2555, // 7 years for legal compliance
+            ],
+        ];
+
+        foreach ($campaignDefinitions as $campaignData) {
+            // Check if campaign already exists
+            if (Campaign::where('slug', $campaignData['slug'])->exists()) {
+                $this->command->warn("Campaign '{$campaignData['slug']}' already exists. Skipping.");
+
+                continue;
+            }
+
+            // Write to temporary JSON file
+            $tmpFile = sys_get_temp_dir().'/campaign-'.uniqid().'.json';
+            file_put_contents($tmpFile, json_encode($campaignData, JSON_PRETTY_PRINT));
+
+            try {
+                // Call campaign:import command
+                Artisan::call('campaign:import', [
+                    'file' => $tmpFile,
+                    '--tenant' => $tenant->id,
+                ]);
+
+                $output = Artisan::output();
+                $this->command->line($output);
+
+                // CRITICAL: Update processor IDs in pipeline_config
+                // campaign:import uses step IDs, but workflow needs database IDs
+                $campaign = Campaign::where('slug', $campaignData['slug'])->first();
+                if ($campaign) {
+                    $pipelineConfig = $campaign->pipeline_config;
+                    foreach ($pipelineConfig['processors'] as $index => $processor) {
+                        // Map processor type to database ID
+                        $processorSlug = $this->getProcessorSlugFromType($processor['type']);
+                        if (isset($processors[$processorSlug])) {
+                            $pipelineConfig['processors'][$index]['id'] = $processors[$processorSlug];
+                        } else {
+                            $this->command->warn("Processor '{$processor['type']}' (slug: {$processorSlug}) not found in database.");
+                        }
+                    }
+                    $campaign->update(['pipeline_config' => $pipelineConfig]);
+                    $this->command->info("  → Updated processor IDs for workflow execution");
+                }
+
+                $this->command->info("✓ Imported: {$campaignData['name']}");
+            } catch (\Exception $e) {
+                $this->command->error("✗ Failed to import '{$campaignData['name']}': {$e->getMessage()}");
+            } finally {
+                // Clean up temp file
+                if (file_exists($tmpFile)) {
+                    unlink($tmpFile);
+                }
+            }
+        }
+
+        $this->command->info('Campaign import test completed.');
+    }
+
+    /**
+     * Map processor type to slug.
+     *
+     * campaign:import uses ProcessorRegistry which maps types to processors.
+     * This method replicates that mapping for database ID resolution.
+     */
+    private function getProcessorSlugFromType(string $type): string
+    {
+        // Map processor types to slugs (must match ProcessorRegistry)
+        return match ($type) {
+            'ocr' => 'tesseract-ocr',
+            'classification' => 'document-classifier',
+            'extraction' => 'data-extractor',
+            'dataenricher' => 'data-enricher',
+            'ekycverification' => 'ekyc-verification',
+            'electronicsignature' => 'electronic-signature',
+            'emailnotifier' => 'email-notifier',
+            'openaivision' => 'openai-vision-ocr',
+            's3storage' => 's3-storage',
+            'schemavalidator' => 'schema-validator',
+            'csvimport' => 'csv-importer',
+            default => $type, // Fallback to type as slug
+        };
     }
 }
