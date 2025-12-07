@@ -37,7 +37,10 @@ class TenantOnboardingService
             // 2. Run tenant migrations
             $this->runTenantMigrations($tenant);
 
-            // 3. Apply default campaign templates
+            // 3. Seed processors (needed by templates)
+            $this->seedProcessors($tenant);
+
+            // 4. Apply default campaign templates
             $this->applyDefaultTemplates($tenant);
 
             // 4. Fire success event
@@ -90,6 +93,23 @@ class TenantOnboardingService
         });
 
         Log::info("Migrations completed for tenant: {$tenant->name}");
+    }
+
+    /**
+     * Seed processors needed by campaign templates.
+     */
+    private function seedProcessors(Tenant $tenant): void
+    {
+        Log::info("Seeding processors for tenant: {$tenant->name}");
+
+        TenantContext::run($tenant, function () {
+            Artisan::call('db:seed', [
+                '--class' => 'ProcessorSeeder',
+                '--force' => true,
+            ]);
+        });
+
+        Log::info("Processors seeded for tenant: {$tenant->name}");
     }
 
     /**
