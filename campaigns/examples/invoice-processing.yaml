@@ -1,0 +1,57 @@
+name: Invoice Processing
+slug: invoice-processing
+description: Extract and validate invoice data from uploaded documents
+type: template
+state: active
+
+processors:
+  - id: ocr
+    type: ocr
+    config:
+      language: eng
+      psm: 3
+      dpi: 300
+
+  - id: classify
+    type: classification
+    config:
+      categories:
+        - invoice
+        - receipt
+        - contract
+        - other
+      model: gpt-4o-mini
+      temperature: 0.3
+      min_confidence: 0.7
+
+  - id: extract
+    type: extraction
+    config:
+      model: gpt-4o-mini
+      schema:
+        invoice:
+          - invoice_number
+          - date
+          - vendor
+          - total_amount
+        receipt:
+          - merchant
+          - date
+          - total
+        contract:
+          - parties
+          - date
+          - terms
+
+settings:
+  locale: en
+  queue: high-priority
+
+allowed_mime_types:
+  - application/pdf
+  - image/png
+  - image/jpeg
+
+max_file_size_bytes: 10485760
+max_concurrent_jobs: 10
+retention_days: 90

@@ -1,0 +1,12 @@
+name: Basic OCR
+description: Simple OCR text extraction
+type: custom
+# state: draft (optional, defaults to 'draft')
+# allowed_mime_types: ['application/pdf'] (optional, defaults to PDF)
+
+processors:
+  - id: ocr
+    type: ocr
+    config:
+      language: eng
+      psm: 3

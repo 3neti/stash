@@ -27,6 +27,7 @@ class CreateCampaign
             'type' => ['required', 'in:template,custom,meta'],
             'pipeline_config' => ['nullable', 'array'],
             'settings' => ['nullable', 'array'],
+            'allowed_mime_types' => ['nullable', 'array'],
         ];
     }
 
@@ -42,6 +43,7 @@ class CreateCampaign
             'type' => $data['type'],
             'pipeline_config' => $data['pipeline_config'] ?? [],
             'settings' => $data['settings'] ?? [],
+            'allowed_mime_types' => $data['allowed_mime_types'] ?? ['application/pdf'],
         ]);
     }
 

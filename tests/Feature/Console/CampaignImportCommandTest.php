@@ -1,0 +1,127 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Models\Campaign;
+use App\Models\Processor;
+use Tests\Concerns\SetUpsTenantDatabase;
+use Tests\TestCase;
+
+uses(TestCase::class, SetUpsTenantDatabase::class);
+
+beforeEach(function () {
+    // Default tenant is already initialized by SetUpsTenantDatabase
+    // Create processor in tenant database
+    Processor::factory()->create([
+        'slug' => 'ocr',
+        'name' => 'OCR',
+        'class_name' => 'App\\Processors\\OcrProcessor',
+    ]);
+
+    // Create temporary test file
+    $this->testFile = sys_get_temp_dir().'/test-campaign-'.uniqid().'.json';
+});
+
+afterEach(function () {
+    if (file_exists($this->testFile)) {
+        unlink($this->testFile);
+    }
+});
+
+test('command imports valid campaign from JSON file', function () {
+    $campaignData = [
+        'name' => 'CLI Test Campaign',
+        'type' => 'custom',
+        'state' => 'draft',
+        'processors' => [
+            ['id' => 'ocr', 'type' => 'ocr', 'config' => ['language' => 'eng']],
+        ],
+    ];
+
+    file_put_contents($this->testFile, json_encode($campaignData));
+
+    $this->artisan('campaign:import', [
+        'file' => $this->testFile,
+        '--tenant' => $this->defaultTenant->id,
+    ])
+        ->expectsOutput('✓ Campaign imported successfully!')
+        ->assertExitCode(0);
+
+    $campaign = Campaign::where('name', 'CLI Test Campaign')->first();
+
+    expect($campaign)->not->toBeNull()
+        ->and($campaign->name)->toBe('CLI Test Campaign');
+});
+
+test('command requires tenant option', function () {
+    $campaignData = [
+        'name' => 'Test Campaign',
+        'type' => 'custom',
+        'state' => 'draft',
+        'processors' => [
+            ['id' => 'ocr', 'type' => 'ocr', 'config' => []],
+        ],
+    ];
+
+    file_put_contents($this->testFile, json_encode($campaignData));
+
+    $this->artisan('campaign:import', [
+        'file' => $this->testFile,
+    ])
+        ->expectsOutput('Tenant ID required. Use --tenant=<id>')
+        ->assertExitCode(1);
+});
+
+test('command validates file exists', function () {
+    $this->artisan('campaign:import', [
+        'file' => '/nonexistent/file.json',
+        '--tenant' => $this->defaultTenant->id,
+    ])
+        ->expectsOutput('File not found: /nonexistent/file.json')
+        ->assertExitCode(1);
+});
+
+test('command shows database constraint errors', function () {
+    $invalidData = [
+        'name' => 'Invalid Campaign',
+        'type' => 'invalid-type', // Will fail at database level (CHECK constraint)
+        'state' => 'draft',
+        'processors' => [
+            ['id' => 'ocr', 'type' => 'ocr', 'config' => []],
+        ],
+    ];
+
+    file_put_contents($this->testFile, json_encode($invalidData));
+
+    $this->artisan('campaign:import', [
+        'file' => $this->testFile,
+        '--tenant' => $this->defaultTenant->id,
+    ])
+        ->expectsOutputToContain('Import failed:')
+        ->assertExitCode(1);
+});
+
+test('command validate-only does not create campaign', function () {
+    $campaignData = [
+        'name' => 'Validate Only Campaign',
+        'type' => 'custom',
+        'state' => 'draft',
+        'processors' => [
+            ['id' => 'ocr', 'type' => 'ocr', 'config' => []],
+        ],
+    ];
+
+    file_put_contents($this->testFile, json_encode($campaignData));
+
+    $this->artisan('campaign:import', [
+        'file' => $this->testFile,
+        '--tenant' => $this->defaultTenant->id,
+        '--validate-only' => true,
+    ])
+        ->expectsOutput('✓ Validation passed! Campaign definition is valid.')
+        ->assertExitCode(0);
+
+    $campaign = Campaign::where('name', 'Validate Only Campaign')->first();
+
+    expect($campaign)->toBeNull();
+});

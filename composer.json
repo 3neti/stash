@@ -43,6 +43,7 @@
         "spatie/laravel-model-status": "^1.18",
         "spatie/laravel-webhook-client": "^3.3",
         "symfony/expression-language": "^8.0",
+        "symfony/yaml": "^7.0",
         "thiagoalessio/tesseract_ocr": "^2.13"
     },
     "require-dev": {
