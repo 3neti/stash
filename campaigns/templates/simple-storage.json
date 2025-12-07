@@ -1,0 +1,37 @@
+{
+  "name": "Simple File Storage",
+  "slug": "simple-storage",
+  "description": "Store files in S3 and send email notification when complete",
+  "type": "template",
+  "state": "active",
+  "processors": [
+    {
+      "id": "s3-step",
+      "type": "s3storage",
+      "config": {
+        "bucket": "stash-documents",
+        "prefix": "uploads/",
+        "storage_class": "STANDARD"
+      }
+    },
+    {
+      "id": "notify-step",
+      "type": "emailnotifier",
+      "config": {
+        "subject": "File Uploaded Successfully",
+        "template": "file-uploaded",
+        "recipients": ["{{uploader.email}}"]
+      }
+    }
+  ],
+  "allowed_mime_types": [
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/tiff"
+  ],
+  "max_file_size_bytes": 10485760,
+  "settings": {
+    "queue": "default"
+  }
+}

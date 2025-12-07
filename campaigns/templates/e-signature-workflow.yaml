@@ -1,0 +1,48 @@
+name: E-Signature Workflow
+slug: e-signature-workflow
+description: KYC verification, document signing, storage, and notification
+type: template
+state: active
+
+processors:
+  - id: ekyc-step
+    type: ekycverification
+    config:
+      country: PH
+      transaction_id_prefix: SIG
+      contact_fields:
+        mobile: required
+        name: required
+        email: optional
+
+  - id: signature-step
+    type: electronicsignature
+    config:
+      transaction_id: "{{ekyc-step.transaction_id}}"
+      tile: 1
+      metadata:
+        workflow: e-signature
+        category: Legal
+
+  - id: s3-step
+    type: s3storage
+    config:
+      bucket: stash-documents
+      prefix: signed/
+
+  - id: notify-step
+    type: emailnotifier
+    config:
+      subject: Document Signed Successfully
+      template: document-signed
+      recipients: ["{{signer.email}}"]
+
+allowed_mime_types:
+  - application/pdf
+
+max_file_size_bytes: 20971520
+retention_days: 2555
+
+settings:
+  queue: high-priority
+  workflow: sequential
