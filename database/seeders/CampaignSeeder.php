@@ -633,14 +633,10 @@ class CampaignSeeder extends Seeder
                 continue;
             }
 
-            // Write to temporary JSON file
-            $tmpFile = sys_get_temp_dir().'/campaign-'.uniqid().'.json';
-            file_put_contents($tmpFile, json_encode($campaignData, JSON_PRETTY_PRINT));
-
             try {
-                // Call campaign:import command
+                // Call campaign:import command with JSON string (no temp files!)
                 Artisan::call('campaign:import', [
-                    'file' => $tmpFile,
+                    '--json' => json_encode($campaignData),
                     '--tenant' => $tenant->id,
                 ]);
 
@@ -668,11 +664,6 @@ class CampaignSeeder extends Seeder
                 $this->command->info("✓ Imported: {$campaignData['name']}");
             } catch (\Exception $e) {
                 $this->command->error("✗ Failed to import '{$campaignData['name']}': {$e->getMessage()}");
-            } finally {
-                // Clean up temp file
-                if (file_exists($tmpFile)) {
-                    unlink($tmpFile);
-                }
             }
         }
 
