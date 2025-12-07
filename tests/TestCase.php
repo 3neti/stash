@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Testing\TestResponse;
 
 /**
@@ -19,6 +20,17 @@ use Illuminate\Testing\TestResponse;
  */
 abstract class TestCase extends BaseTestCase
 {
+    /**
+     * Set up the test case.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+        
+        // Disable auto-onboarding globally for all tests to prevent observer interference
+        Config::set('app.tenant_auto_onboarding', false);
+    }
+    
     /**
      * Create a tenant with default attributes.
      * 
