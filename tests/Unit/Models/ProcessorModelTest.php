@@ -10,6 +10,11 @@ uses(TestCase::class, SetUpsTenantDatabase::class);
 use App\Models\Processor;
 use Illuminate\Support\Str;
 
+beforeEach(function () {
+    // Clean up processors from previous tests to ensure isolation
+    Processor::query()->forceDelete();
+});
+
 it('can create a processor with required fields', function () {
     $processor = Processor::create([
         'name' => 'Test OCR Processor',
