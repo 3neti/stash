@@ -9,6 +9,11 @@ use App\Models\Campaign;
 use App\States\Campaign\ActiveCampaignState;
 use App\States\Campaign\DraftCampaignState;
 
+beforeEach(function () {
+    // Clean up campaigns from previous tests to ensure isolation
+    Campaign::query()->forceDelete();
+});
+
 describe('Campaign Model - Direct Creation', function () {
     test('can create campaign with minimal attributes', function () {
         $campaign = Campaign::create([

@@ -11,6 +11,11 @@ use Tests\TestCase;
 uses(TestCase::class, SetUpsTenantDatabase::class);
 
 beforeEach(function () {
+    // Clean up campaigns from previous tests to ensure isolation
+    $this->inTenantContext($this->defaultTenant, function () {
+        Campaign::query()->forceDelete();
+    });
+
     // Default tenant is already initialized by SetUpsTenantDatabase
     // Register processors needed by templates
     $this->inTenantContext($this->defaultTenant, function () {

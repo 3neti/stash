@@ -16,6 +16,7 @@
  * - Broadcasting: Use Event::fake() or Broadcasting::fake() for Reverb/Pusher
  */
 
+use App\Actions\Campaigns\ApplyDefaultTemplates;
 use App\Models\Campaign;
 use App\Models\Document;
 use App\Models\DocumentJob;
@@ -35,17 +36,17 @@ uses(SetUpsTenantDatabase::class);
 dataset('campaign', [
     'e-signature campaign' => [
         ['ProcessorSeeder', 'CampaignSeeder'],  // seeders
-        ['validation', 'signing'],  // processor types (not IDs)
-        'e-signature',  // slug
-        2,  // expected processor count
+        ['ekycverification', 'electronicsignature', 's3storage', 'emailnotifier'],  // processor types
+        'e-signature-workflow',  // slug (matches template file)
+        4,  // expected processor count (ekyc + signature + s3 + email)
         'Signature',  // expected name substring
     ],
-    'csv-import campaign' => [
+    'ocr-processing campaign' => [
         ['ProcessorSeeder', 'CampaignSeeder'],  // seeders
-        ['ocr', 'classification', 'extraction', 'validation'],  // processor types
-        'employee-csv-import',  // slug
-        4,  // expected processor count
-        'CSV',  // expected name substring
+        ['ocr', 'classification', 'schemavalidator', 's3storage', 'emailnotifier'],  // processor types
+        'ocr-processing',  // slug (matches template file)
+        5,  // expected processor count (ocr + classify + validate + s3 + email)
+        'OCR',  // expected name substring
     ],
 ]);
 
@@ -58,6 +59,16 @@ describe('Real-World E-Signature Workflow', function () {
             // Create a minimal PDF for testing
             file_put_contents($this->testPdfPath, "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<<>>>>endobj\nxref\n0 4\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n149\n%%EOF");
         }
+
+        // Register processors needed by campaign templates
+        $this->inTenantContext($this->defaultTenant, function () {
+            // Run ProcessorSeeder to ensure processors exist
+            $this->artisan('db:seed', ['--class' => 'ProcessorSeeder', '--force' => true]);
+
+            // Register processors in registry
+            $registry = app(\App\Services\Pipeline\ProcessorRegistry::class);
+            $registry->registerFromDatabase();
+        });
     });
 
     test('1. Vite assets are built and accessible', function () {
@@ -153,8 +164,17 @@ describe('Real-World E-Signature Workflow', function () {
             $this->artisan('db:seed', ['--class' => $seeder, '--force' => true]);
         }
 
-        // Check campaign exists using the slug parameter
-        $campaign = Campaign::where('slug', $slug)->first();
+        // CampaignSeeder no longer creates campaigns directly - it calls ApplyDefaultTemplates
+        // We need to manually call ApplyDefaultTemplates with the specific template for this test
+        $this->inTenantContext($this->defaultTenant, function () use ($seeders, $slug) {
+            if (in_array('CampaignSeeder', $seeders) && Campaign::count() === 0) {
+                // Apply the template that matches the campaign slug in the dataset
+                ApplyDefaultTemplates::run($this->defaultTenant, [$slug]);
+            }
+        });
+
+        // Check campaign exists using the slug parameter (must be in tenant context)
+        $campaign = $this->inTenantContext($this->defaultTenant, fn() => Campaign::where('slug', $slug)->first());
 
         expect($campaign)->not->toBeNull();
         expect($campaign->name)->toContain($expectedNameSubstring);
@@ -448,8 +468,16 @@ describe('Real-World E-Signature Workflow', function () {
             $this->artisan('db:seed', ['--class' => $seeder, '--force' => true]);
         }
 
-        // Get seeded campaign
-        $campaign = Campaign::where('slug', $slug)->first();
+        // CampaignSeeder no longer creates campaigns directly - manually apply templates
+        $this->inTenantContext($this->defaultTenant, function () use ($seeders, $slug) {
+            if (in_array('CampaignSeeder', $seeders) && Campaign::count() === 0) {
+                // Apply the template that matches the campaign slug in the dataset
+                ApplyDefaultTemplates::run($this->defaultTenant, [$slug]);
+            }
+        });
+
+        // Get seeded campaign (must be in tenant context)
+        $campaign = $this->inTenantContext($this->defaultTenant, fn() => Campaign::where('slug', $slug)->first());
         expect($campaign)->not->toBeNull("Campaign '{$slug}' should be seeded");
 
         // Fake queue to process synchronously
@@ -505,8 +533,16 @@ describe('Real-World E-Signature Workflow', function () {
             $this->artisan('db:seed', ['--class' => $seeder, '--force' => true]);
         }
 
-        // Get seeded campaign
-        $campaign = Campaign::where('slug', $slug)->first();
+        // CampaignSeeder no longer creates campaigns directly - manually apply templates
+        $this->inTenantContext($this->defaultTenant, function () use ($seeders, $slug) {
+            if (in_array('CampaignSeeder', $seeders) && Campaign::count() === 0) {
+                // Apply the template that matches the campaign slug in the dataset
+                ApplyDefaultTemplates::run($this->defaultTenant, [$slug]);
+            }
+        });
+
+        // Get seeded campaign (must be in tenant context)
+        $campaign = $this->inTenantContext($this->defaultTenant, fn() => Campaign::where('slug', $slug)->first());
         expect($campaign)->not->toBeNull("Campaign '{$slug}' should be seeded");
 
         $uuid = 'e2ed9386-2fef-470a-bfa0-66e3c8e78f3f';
