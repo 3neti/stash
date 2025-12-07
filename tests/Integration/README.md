@@ -4,16 +4,33 @@ Real-world workflow tests that simulate actual production usage.
 
 ## Test Status
 
-✅ **ALL TESTS PASSING** (as of 2025-12-06)
-- **5 tests passing** (20 assertions)
+✅ **ALL TESTS PASSING** (as of 2025-12-07)
+- **13 tests passing** (80 assertions)
 - **3 tests skipped** (environment-specific)
-- **Duration**: ~3 seconds
+- **Duration**: ~5.6 seconds
 
 See `TEST_RESULTS.md` for detailed results.
 
 ## RealWorldWorkflowTest.php
 
-Simulates the complete e-signature document processing workflow.
+Simulates complete document processing workflows using **data-driven testing**.
+
+### Test Architecture
+
+**Dataset-Driven**: Tests use a campaign dataset to validate multiple workflow types automatically:
+- ✅ **e-signature campaign** (validation + signing processors)
+- ✅ **employee-csv-import campaign** (ocr + classification + extraction + validation processors)
+
+**Adding New Campaigns**: Simply add to the dataset (line 42):
+```php
+'your-campaign' => [
+    ['ProcessorSeeder', 'CampaignSeeder'],  // seeders to run
+    ['processor-type-1', 'processor-type-2'],  // expected types
+    'campaign-slug',  // slug to query
+    2,  // expected processor count
+    'Name Substring',  // expected name contains
+],
+```
 
 ### What It Tests
 
@@ -21,10 +38,15 @@ Simulates the complete e-signature document processing workflow.
 2. **Broadcasting** - Validates Reverb/Pusher configuration
 3. **Database** 
    - Schema validation (central + tenant tables)
-   - Seeder creates e-signature campaign
+   - Seeder creates campaigns (2 campaigns × 1 test = 2 variations)
+   - Workflow execution with mocked processors
+   - Signal pattern for KYC callbacks
+   - Processor activity validation
+   - State machine transitions
+   - Workflow events
    - Queue connection is working
-4. **Document Processing** - Simulates `document:process` command
-5. **KYC Callback** - Tests auto-approval webhook handling
+4. **Document Processing** - Simulates `document:process` command (2 campaigns × 1 test = 2 variations)
+5. **KYC Callback** - Tests auto-approval webhook handling (2 campaigns × 1 test = 2 variations)
 
 ### Running the Tests
 
@@ -61,16 +83,21 @@ php artisan test tests/Integration/RealWorldWorkflowTest.php
 
 ### Test Coverage
 
-| Test | What It Validates | Services Required |
-|------|------------------|-------------------|
-| 1. Vite assets | Frontend build working | npm run dev |
-| 2. Broadcasting config | Reverb/Pusher setup | None (config only) |
-| 3a. Database schema | Migrations ran correctly | Database |
-| 3b. Database seed | E-signature campaign exists | Database + Seeder |
-| 3c. Queue working | Redis/SQS connection | Queue service |
-| 4. Document process | Command creates doc + job | Database |
-| 5. KYC callback | Webhook handling | Database + Routes |
-| Full workflow | End-to-end upload → sign | All services |
+| Test | What It Validates | Variations | Services Required |
+|------|------------------|------------|-------------------|
+| 1. Vite assets | Frontend build working | 1 | npm run dev |
+| 2. Broadcasting config | Reverb/Pusher setup | 1 | None (config only) |
+| 3a. Database schema | Migrations ran correctly | 1 | Database |
+| 3b. Database seed | Campaign seeder creates campaigns | 2 (per dataset) | Database + Seeder |
+| 3d. Workflow execution | DocumentProcessingPipeline with mocks | 1 | Database + WorkflowStub |
+| 3e. Signal pattern | KYC callback mechanism | 1 | Database + WorkflowStub |
+| 3f. Activity validation | GenericProcessorActivity execution | 1 | Database + WorkflowStub |
+| 3g. State transitions | Document/Job state machines | 1 | Database |
+| 3h. Events | DocumentJobCreated dispatch | 1 | Database + Event fake |
+| 3c. Queue working | Redis/SQS connection | 1 | Queue service |
+| 4. Document process | Command creates doc + job | 2 (per dataset) | Database |
+| 5. KYC callback | Webhook handling | 2 (per dataset) | Database + Routes |
+| Full workflow | End-to-end upload → sign | 1 | All services |
 
 ### What Gets Skipped
 
@@ -108,7 +135,25 @@ php artisan document:process ~/Downloads/Invoice.pdf \
 
 ### Adding More Real-World Tests
 
-Follow this pattern:
+#### Option 1: Add to Existing Dataset (Recommended)
+To test a new campaign, just add it to the dataset:
+
+```php
+dataset('campaign', [
+    'your-new-campaign' => [
+        ['ProcessorSeeder', 'CampaignSeeder'],
+        ['processor-type-1', 'processor-type-2'],
+        'your-campaign-slug',
+        2,
+        'Campaign Name',
+    ],
+]);
+```
+
+This automatically runs tests 3b, 4, and 5 for your campaign.
+
+#### Option 2: Create Independent Test
+For workflow-specific tests:
 
 ```php
 test('your workflow name', function () {
@@ -130,10 +175,12 @@ test('your workflow name', function () {
 ### Best Practices
 
 1. **Use fakes** for external services (Storage, Queue, Event)
-2. **Skip conditionally** if prerequisites aren't met
-3. **Clean up** after tests (RefreshDatabase handles this)
-4. **Test in isolation** - each test should be independent
-5. **Document requirements** - specify what services/setup is needed
+2. **Use datasets** for testing multiple campaigns/scenarios
+3. **Skip conditionally** if prerequisites aren't met
+4. **Clean up** after tests (RefreshDatabase handles this)
+5. **Test in isolation** - each test should be independent
+6. **Document requirements** - specify what services/setup is needed
+7. **Type parameters** explicitly in dataset-driven tests
 
 ### Troubleshooting
 
