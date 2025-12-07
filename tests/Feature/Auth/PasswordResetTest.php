@@ -2,7 +2,12 @@
 
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+use Tests\TestCase;
+
+uses(TestCase::class, RefreshDatabase::class);
 
 test('reset password link screen can be rendered', function () {
     $response = $this->get(route('password.request'));
