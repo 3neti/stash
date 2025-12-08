@@ -22,22 +22,26 @@ function start() {
     local keep_flag="$1"
     echo "${GREEN}Starting Stash development environment...${NC}\n"
     
+    # Restart PHP to clear opcache (important after code changes)
+    echo "${YELLOW}[0/5] Restarting PHP to clear opcache...${NC}"
+    herd restart php > /dev/null 2>&1
+    
     # Clean up old PIDs and callback lock
     rm -f "$PIDFILE" storage/logs/.callback-triggered
     
     # 1. Optimize and start Vite
-    echo "${YELLOW}[1/4] Starting Vite dev server (Herd serves Laravel)...${NC}"
+    echo "${YELLOW}[1/5] Starting Vite dev server (Herd serves Laravel)...${NC}"
     php artisan optimize:clear > /dev/null 2>&1
     npm run dev > storage/logs/vite.log 2>&1 &
     echo $! >> "$PIDFILE"
     
     # 2. Start Reverb
-    echo "${YELLOW}[2/4] Starting Reverb websocket server...${NC}"
+    echo "${YELLOW}[2/5] Starting Reverb websocket server...${NC}"
     php artisan reverb:start --debug > storage/logs/reverb.log 2>&1 &
     echo $! >> "$PIDFILE"
     
     # 3. Clear logs, migrate (no seed), create tenant (triggers auto-onboarding), start queue worker
-    echo "${YELLOW}[3/4] Resetting database, creating tenant, and starting queue worker...${NC}"
+    echo "${YELLOW}[3/5] Resetting database, creating tenant, and starting queue worker...${NC}"
     truncate -s0 storage/logs/laravel.log
     php artisan migrate:fresh > storage/logs/migration.log 2>&1
     
@@ -83,7 +87,7 @@ function start() {
     echo $! >> "$PIDFILE"
     
     # 4. Process test document and capture output
-    echo "${YELLOW}[4/5] Processing test document (waiting for workflow)...${NC}"
+    echo "${YELLOW}[4/6] Processing test document (waiting for workflow)...${NC}"
     echo "${YELLOW}Campaign:${NC} $CAMPAIGN"
     local doc_output="storage/logs/document-process.log"
     rm -f "$doc_output"
@@ -98,7 +102,7 @@ function start() {
     echo "${YELLOW}  ⏱${NC}  Waiting for workflow completion (may wait for callback signal)..."
     
     # 5. Extract redirect_url and trigger KYC callback (once)
-    echo "${YELLOW}[5/5] Waiting for redirect_url...${NC}"
+    echo "${YELLOW}[5/6] Waiting for redirect_url...${NC}"
     (while ! grep -q 'redirect_url' "$doc_output" 2>/dev/null; do sleep 0.5; done && \
      sleep 1 && \
      callback_url=$(grep -o 'http://stash.test/kyc/callback/[a-f0-9-]*' "$doc_output" | head -1 | uniq) && \
