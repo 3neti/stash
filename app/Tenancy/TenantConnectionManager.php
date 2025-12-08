@@ -60,11 +60,21 @@ class TenantConnectionManager
         $dbName = $this->getTenantDatabaseName($tenant);
 
         // PostgreSQL requires CREATE DATABASE to run outside a transaction
-        $pdo = DB::connection('central')->getPdo();
+        $connection = DB::connection('central');
+        $pdo = $connection->getPdo();
         
-        // Check if we're in a transaction and commit it first
-        if ($pdo->inTransaction()) {
-            $pdo->commit();
+        // Try to commit any active transaction
+        // Note: Laravel may track transaction level differently than PDO
+        try {
+            // Use Laravel's transaction manager to properly rollback/commit
+            while ($connection->transactionLevel() > 0) {
+                $connection->commit();
+            }
+        } catch (\Exception $e) {
+            // Ignore transaction errors - we just need to be outside a transaction
+            \Illuminate\Support\Facades\Log::debug('[TenantConnectionManager] Transaction cleanup', [
+                'error' => $e->getMessage(),
+            ]);
         }
         
         // Now safely execute CREATE DATABASE outside transaction

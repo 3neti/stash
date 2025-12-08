@@ -13,7 +13,7 @@ PIDFILE=".dev.pids"
 TRANSACTION_ID=${TRANSACTION_ID:-"EKYC-1764773764-3863"}
 
 # Default campaign (can be overridden with CAMPAIGN env var)
-CAMPAIGN=${CAMPAIGN:-"e-signature"}
+CAMPAIGN=${CAMPAIGN:-"e-signature-workflow"}
 
 # Keep services running after completion (env override or --keep flag)
 KEEP_ALIVE=${KEEP_ALIVE:-0}
@@ -36,10 +36,18 @@ function start() {
     php artisan reverb:start --debug > storage/logs/reverb.log 2>&1 &
     echo $! >> "$PIDFILE"
     
-    # 3. Clear logs, migrate, start queue worker
-    echo "${YELLOW}[3/4] Resetting database and starting queue worker...${NC}"
+    # 3. Clear logs, migrate (no seed), create tenant (triggers auto-onboarding), start queue worker
+    echo "${YELLOW}[3/4] Resetting database, creating tenant, and starting queue worker...${NC}"
     truncate -s0 storage/logs/laravel.log
-    php artisan migrate:fresh --seed > storage/logs/migration.log 2>&1
+    php artisan migrate:fresh > storage/logs/migration.log 2>&1
+    
+    # REAL-WORLD: Create tenant (triggers TenantObserver → auto-onboarding)
+    echo "${YELLOW}  ✓${NC} Creating tenant: Default Organization (default)"
+    php artisan tenant:create "Default Organization" \
+        --slug=default \
+        --email=admin@example.com \
+        >> storage/logs/migration.log 2>&1
+    
     php artisan queue:work > storage/logs/queue.log 2>&1 &
     echo $! >> "$PIDFILE"
     
@@ -66,9 +74,6 @@ function start() {
          > storage/logs/kyc-callback.log 2>&1 && \
          echo "  ✓ Callback completed at $(date '+%H:%M:%S')"; \
      fi) &
-    
-    # Wait for document processing to complete
-    wait $doc_process_pid
     
     # Wait for document processing to complete
     wait $doc_process_pid
@@ -231,8 +236,9 @@ LOG FILES:
   storage/logs/document-process.log   Document processing output
 
 DOCUMENT PROCESSING WORKFLOW:
-  1. Fresh database migration with seeders
-  2. Upload Invoice.pdf to campaign
+  1. Fresh database migration (no seeds)
+  2. Create tenant (auto-onboarding: DB + migrations + processors + templates)
+  3. Upload Invoice.pdf to campaign
   3. Start Laravel Workflow execution
   4. Process through eKYC Verification processor
   5. Wait for workflow to reach "awaiting_callback" state
