@@ -23,9 +23,9 @@ function start() {
     echo "${GREEN}Starting Stash development environment...${NC}\n"
     
     # Clear all caches for clean state
-    echo "${YELLOW}[0/5] Clearing caches...${NC}"
+    echo "${YELLOW}[0/5] Clearing caches and queues...${NC}"
     php artisan optimize:clear > /dev/null 2>&1  # Clears config, route, view, cache, and opcache
-    redis-cli FLUSHALL > /dev/null 2>&1 || true  # Clear Redis queues (ignore if Redis not running)
+    php artisan queue:clear > /dev/null 2>&1 || true  # Clear Laravel queues (safer than FLUSHALL)
     
     # Clean up old PIDs and callback lock
     rm -f "$PIDFILE" storage/logs/.callback-triggered
