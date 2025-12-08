@@ -62,9 +62,25 @@ class ApplyDefaultTemplates
 
         return TenantContext::run($tenant, function () use ($templatePath, $tenant, $templateSlug) {
             // Import campaign from template file
-            Artisan::call('campaign:import', [
+            $exitCode = Artisan::call('campaign:import', [
                 'file' => $templatePath,
                 '--tenant' => $tenant->id,
+            ]);
+            
+            $output = Artisan::output();
+            
+            if ($exitCode !== 0) {
+                Log::error("Campaign import failed for template '{$templateSlug}'", [
+                    'exit_code' => $exitCode,
+                    'output' => $output,
+                    'template_path' => $templatePath,
+                    'tenant_id' => $tenant->id,
+                ]);
+                throw new \RuntimeException("Campaign import failed: {$output}");
+            }
+            
+            Log::debug("Campaign import succeeded for template '{$templateSlug}'", [
+                'output' => $output,
             ]);
 
             // Get the created campaign (assumes slug matches template slug)

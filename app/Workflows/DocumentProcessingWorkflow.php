@@ -69,9 +69,12 @@ class DocumentProcessingWorkflow extends Workflow
                 GenericProcessorActivity::class,
                 $documentJobId,
                 $index,          // Processor index in pipeline
-                $results,        // Previous results for context
+                $results,        // Previous results indexed by step_id
                 $tenantId
             );
+            
+            // Get step_id from config for result indexing
+            $stepId = $processorConfig['step_id'] ?? "step_{$index}";
 
             // Check if processor is awaiting external callback (e.g., KYC verification)
             if (($result['awaiting_callback'] ?? false) && !empty($result['transaction_id'])) {
@@ -98,7 +101,7 @@ class DocumentProcessingWorkflow extends Workflow
                     ]);
                     
                     // Merge timeout status into result
-                    $results[] = array_merge($result, [
+                    $results[$stepId] = array_merge($result, [
                         'kyc_status' => 'timeout',
                         'callback_received' => false,
                         'error' => 'KYC callback timeout after 24 hours',
@@ -115,13 +118,13 @@ class DocumentProcessingWorkflow extends Workflow
                         'callback_data' => $callbackData,
                     ]);
                     
-                    $results[] = array_merge($result, $callbackData, [
+                    $results[$stepId] = array_merge($result, $callbackData, [
                         'callback_received' => true,
                     ]);
                 }
             } else {
-                // No callback needed - store result directly
-                $results[] = $result;
+                // No callback needed - store result indexed by step_id
+                $results[$stepId] = $result;
             }
         }
 

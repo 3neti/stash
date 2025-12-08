@@ -6,7 +6,7 @@ state: active
 
 processors:
   - id: ekyc-step
-    type: ekycverification
+    type: ekyc-verification
     config:
       country: PH
       transaction_id_prefix: SIG
@@ -16,7 +16,7 @@ processors:
         email: optional
 
   - id: signature-step
-    type: electronicsignature
+    type: electronic-signature
     config:
       transaction_id: "{{ekyc-step.transaction_id}}"
       tile: 1
@@ -25,13 +25,13 @@ processors:
         category: Legal
 
   - id: s3-step
-    type: s3storage
+    type: s3-storage
     config:
       bucket: stash-documents
       prefix: signed/
 
   - id: notify-step
-    type: emailnotifier
+    type: email-notifier
     config:
       subject: Document Signed Successfully
       template: document-signed

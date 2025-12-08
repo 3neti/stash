@@ -7,7 +7,7 @@
   "processors": [
     {
       "id": "s3-step",
-      "type": "s3storage",
+      "type": "s3-storage",
       "config": {
         "bucket": "stash-documents",
         "prefix": "uploads/",
@@ -16,7 +16,7 @@
     },
     {
       "id": "notify-step",
-      "type": "emailnotifier",
+      "type": "email-notifier",
       "config": {
         "subject": "File Uploaded Successfully",
         "template": "file-uploaded",

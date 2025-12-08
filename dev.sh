@@ -48,6 +48,37 @@ function start() {
         --email=admin@example.com \
         >> storage/logs/migration.log 2>&1
     
+    # Wait for observer to complete onboarding (database, migrations, processors, templates)
+    echo "${YELLOW}  ⏳${NC} Waiting for auto-onboarding to complete..."
+    sleep 3  # Give observer time to complete asynchronously
+    
+    # Verify campaigns were created from templates
+    echo "${YELLOW}  ✓${NC} Verifying campaigns created from templates:"
+    campaign_count=$(php artisan tinker --execute="\$tenant = \App\Models\Tenant::on('central')->where('slug', 'default')->first(); \App\Tenancy\TenantContext::run(\$tenant, function() { echo \App\Models\Campaign::count(); });" 2>/dev/null | tail -1)
+    
+    if [[ "$campaign_count" -eq "0" ]]; then
+        echo "${RED}  ✗ No campaigns found! Auto-onboarding may have failed.${NC}"
+        echo "${YELLOW}  → Check storage/logs/laravel.log for errors${NC}"
+        stop
+        exit 1
+    fi
+    
+    # List created campaigns
+    php artisan tinker --execute="\$tenant = \App\Models\Tenant::on('central')->where('slug', 'default')->first(); \App\Tenancy\TenantContext::run(\$tenant, function() { foreach (\App\Models\Campaign::all() as \$c) { echo '    - ' . \$c->slug . ' (" . \$c->name . ")' . PHP_EOL; } });" 2>/dev/null
+    
+    # Verify the target campaign exists
+    campaign_exists=$(php artisan tinker --execute="\$tenant = \App\Models\Tenant::on('central')->where('slug', 'default')->first(); \App\Tenancy\TenantContext::run(\$tenant, function() { echo \App\Models\Campaign::where('slug', '$CAMPAIGN')->exists() ? '1' : '0'; });" 2>/dev/null | tail -1)
+    
+    if [[ "$campaign_exists" != "1" ]]; then
+        echo "${RED}  ✗ Campaign '$CAMPAIGN' not found!${NC}"
+        echo "${YELLOW}  → Available campaigns listed above${NC}"
+        echo "${YELLOW}  → Update CAMPAIGN env var or DEFAULT_CAMPAIGN_TEMPLATES in .env${NC}"
+        stop
+        exit 1
+    fi
+    
+    echo "${YELLOW}  ✓${NC} Campaign '$CAMPAIGN' verified"
+    
     php artisan queue:work > storage/logs/queue.log 2>&1 &
     echo $! >> "$PIDFILE"
     
@@ -56,11 +87,15 @@ function start() {
     echo "${YELLOW}Campaign:${NC} $CAMPAIGN"
     local doc_output="storage/logs/document-process.log"
     rm -f "$doc_output"
+    
+    # Run document processing (will wait for workflow completion)
     php artisan document:process ~/Downloads/Invoice.pdf \
         --campaign="$CAMPAIGN" \
         --wait \
         --show-output 2>&1 | tee "$doc_output" &
     local doc_process_pid=$!
+    
+    echo "${YELLOW}  ⏱${NC}  Waiting for workflow completion (may wait for callback signal)..."
     
     # 5. Extract redirect_url and trigger KYC callback (once)
     echo "${YELLOW}[5/5] Waiting for redirect_url...${NC}"
@@ -72,11 +107,17 @@ function start() {
          echo "  → Triggering: ${callback_url}?transactionId=$TRANSACTION_ID&status=auto_approved" && \
          curl -s "${callback_url}?transactionId=$TRANSACTION_ID&status=auto_approved" \
          > storage/logs/kyc-callback.log 2>&1 && \
-         echo "  ✓ Callback completed at $(date '+%H:%M:%S')"; \
+         echo "  ✓ Callback completed at $(date '+%H:%M:%S')" && \
+         echo "  ⏳ Waiting 5 seconds for queue job to signal workflow..." && \
+         sleep 5; \
      fi) &
     
     # Wait for document processing to complete
     wait $doc_process_pid
+    
+    # Echo pipeline config for the campaign (after tenant is initialized)
+    echo "\n${YELLOW}Campaign Pipeline Config (from database):${NC}"
+    php artisan tinker --execute="\$tenant = \App\Models\Tenant::on('central')->where('slug', 'default')->first(); \App\Tenancy\TenantContext::run(\$tenant, function() { \$campaign = \App\Models\Campaign::where('slug', '$CAMPAIGN')->first(); if (\$campaign && isset(\$campaign->pipeline_config['processors'])) { foreach (\$campaign->pipeline_config['processors'] as \$p) { echo '  - id: ' . (\$p['id'] ?? 'N/A') . ', type: ' . (\$p['type'] ?? 'N/A') . PHP_EOL; } } else { echo '  Campaign not found or no processors' . PHP_EOL; } });" 2>/dev/null
     
     echo "\n${GREEN}✓ Development environment ready!${NC}"
     
@@ -169,7 +210,9 @@ COMMANDS:
   start     Start all development services and process test document
             - Starts Vite dev server (with HMR)
             - Starts Reverb websocket server
-            - Resets database with fresh migrations and seeds
+            - Resets database with fresh migrations (no seeds)
+            - Creates tenant (triggers auto-onboarding via TenantObserver)
+            - Verifies campaigns created from templates
             - Starts queue worker
             - Processes test document through workflow
             - Auto-triggers KYC callback
@@ -236,17 +279,25 @@ LOG FILES:
   storage/logs/document-process.log   Document processing output
 
 DOCUMENT PROCESSING WORKFLOW:
-  1. Fresh database migration (no seeds)
-  2. Create tenant (auto-onboarding: DB + migrations + processors + templates)
-  3. Upload Invoice.pdf to campaign
-  3. Start Laravel Workflow execution
-  4. Process through eKYC Verification processor
-  5. Wait for workflow to reach "awaiting_callback" state
-  6. Auto-trigger KYC callback with transaction ID
-  7. Continue workflow through Electronic Signature processor
-  8. Generate signed PDF with QR watermark and verification stamp
-  9. Display clickable document links
-  10. Auto-stop services (unless --keep flag used)
+  1. Fresh database migration (no DatabaseSeeder)
+  2. Create tenant via tenant:create command
+  3. TenantObserver → TenantOnboardingService auto-onboarding:
+     - Create tenant database
+     - Run tenant migrations
+     - Seed processors via ProcessorSeeder
+     - Import campaign templates from campaigns/templates/
+  4. Verify campaigns created from templates (configurable via .env)
+  5. Start queue worker for workflows
+  6. Upload Invoice.pdf to campaign
+  7. Start Laravel Workflow execution
+  8. Process through eKYC Verification processor
+  9. Wait for workflow to reach "awaiting_callback" state
+  10. Auto-trigger KYC callback with transaction ID
+  11. Queue worker processes callback job and signals workflow
+  12. Workflow resumes and continues through Electronic Signature processor
+  12. Generate signed PDF with QR watermark and verification stamp
+  13. Display clickable document links
+  14. Auto-stop services (unless --keep flag used)
 
 REQUIREMENTS:
   - Laravel Herd (serves stash.test automatically)
@@ -259,6 +310,9 @@ NOTES:
   - PID tracking file: .dev.pids
   - Callback lock file: storage/logs/.callback-triggered (auto-cleaned)
   - Reverb may fail if port 8080 is already in use (non-fatal)
+  - Workflow may pause waiting for external callbacks (eKYC verification)
+  - Callback signals are processed asynchronously via queue workers
+  - Use Ctrl+C to stop document processing if workflow hangs
 
 For more information, see: WARP.md
 

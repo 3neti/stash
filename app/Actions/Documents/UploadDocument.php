@@ -73,6 +73,9 @@ class UploadDocument
         // 1. Generate unique document ID
         $documentId = (string) new Ulid;
 
+        // 1a. Use fixed UUID for testing if configured (like HYPERVERGE_FIXED_TRANSACTION_IDS)
+        $fixedUuid = config('app.fixed_document_uuid') ?: env('FIXED_DOCUMENT_UUID');
+
         // 2. Calculate file hash for integrity
         $hash = hash_file('sha256', $file->getRealPath());
 
@@ -89,10 +92,13 @@ class UploadDocument
         Log::debug('[UploadDocument] File stored');
 
         // 5. Create Document record
-        Log::debug('[UploadDocument] Creating document record', ['document_id' => $documentId]);
+        Log::debug('[UploadDocument] Creating document record', [
+            'document_id' => $documentId,
+            'fixed_uuid' => $fixedUuid ?? null,
+        ]);
         $document = Document::create([
             'id' => $documentId,
-            'uuid' => (string) Str::uuid(),
+            'uuid' => $fixedUuid ?: (string) Str::uuid(),
             'campaign_id' => $campaign->id,
             'original_filename' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType(),

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Processors;
 
 use App\Data\Pipeline\ProcessorConfigData;
+use App\Events\DocumentSignedEvent;
 use App\Models\Contact;
 use App\Models\Document;
 use App\Models\ProcessorExecution;
@@ -104,8 +105,8 @@ class ElectronicSignatureProcessor extends AbstractProcessor
             'kyc_completed_at' => $contact->kyc_completed_at?->toIso8601String(),
         ];
         
-        // 10. Return output
-        return [
+        // 10. Prepare output
+        $output = [
             'signed_document' => [
                 'media_id' => $signedDocument->id,
                 'file_name' => $signedDocument->file_name,
@@ -125,6 +126,20 @@ class ElectronicSignatureProcessor extends AbstractProcessor
             'tile_position' => $tile,
             'metadata' => $metadata,
         ];
+        
+        // 11. Broadcast document signed event for real-time browser notification
+        // Get documentJobId from context if available
+        $documentJobId = $this->context?->documentJobId ?? $document->documentJob?->id;
+        
+        if ($documentJobId) {
+            event(new DocumentSignedEvent(
+                transactionId: $transactionId,
+                documentJobId: $documentJobId,
+                signedDocument: $output
+            ));
+        }
+        
+        return $output;
     }
     
     public function canProcess(Document $document): bool

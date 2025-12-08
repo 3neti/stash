@@ -31,6 +31,9 @@ class ImportCampaign
         CampaignImportData $data,
         ProcessorRegistry $registry
     ): Campaign {
+        // Load processors from tenant database into registry
+        $registry->registerFromDatabase();
+        
         // Validate processors array is not empty
         if ($data->processors->count() === 0) {
             throw new \InvalidArgumentException('Campaign must have at least one processor.');
@@ -42,6 +45,9 @@ class ImportCampaign
         // Validate step IDs are unique
         $this->validateUniqueStepIds($data->processors);
 
+        // Map processor types to actual Processor model ULIDs
+        $processorsWithUlids = $this->mapProcessorTypesToUlids($data->processors);
+
         // Create campaign directly (like CampaignSeeder does)
         // This allows us to set all fields including state and optional fields
         $campaignData = [
@@ -51,7 +57,7 @@ class ImportCampaign
             'type' => $data->type,
             'state' => $this->mapStateStringToClass($data->state),
             'pipeline_config' => [
-                'processors' => $data->processors->toArray(),
+                'processors' => $processorsWithUlids,
             ],
             'settings' => $data->settings ?? [],
             'allowed_mime_types' => $data->allowed_mime_types ?? ['application/pdf'],
@@ -100,6 +106,40 @@ class ImportCampaign
             }
             $ids[] = $processor->id;
         }
+    }
+
+    /**
+     * Map processor types (slugs) to actual Processor model ULIDs.
+     * 
+     * Replaces the template 'type' field with the database processor ULID in the 'id' field.
+     * This maintains backward compatibility with code that expects 'id' to be a ULID.
+     */
+    private function mapProcessorTypesToUlids($processors): array
+    {
+        $mapped = [];
+        
+        foreach ($processors as $processor) {
+            $processorArray = is_array($processor) ? $processor : $processor->toArray();
+            
+            // Look up Processor model by slug (type)
+            $processorModel = \App\Models\Processor::where('slug', $processorArray['type'])->first();
+            
+            if (!$processorModel) {
+                throw new \InvalidArgumentException(
+                    "Processor not found in database with slug: {$processorArray['type']}"
+                );
+            }
+            
+            // Preserve original template ID as 'step_id' for placeholder resolution
+            $processorArray['step_id'] = $processorArray['id'];
+            
+            // Replace 'id' with the actual Processor ULID
+            $processorArray['id'] = $processorModel->id;
+            
+            $mapped[] = $processorArray;
+        }
+        
+        return $mapped;
     }
 
     /**

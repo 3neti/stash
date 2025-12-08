@@ -114,7 +114,15 @@ class GenericProcessorActivity extends Activity
 
         $processor = $registry->get($processorModel->slug);
 
-        // Resolve placeholders in config (e.g., {{ekyc-verification.transaction_id}})
+        // Resolve placeholders in config (e.g., {{ekyc-step.transaction_id}})
+        \Illuminate\Support\Facades\Log::debug('[GenericProcessorActivity] Resolving placeholders', [
+            'processor_index' => $processorIndex,
+            'processor_type' => $processorType,
+            'step_id' => $processorConfig['step_id'] ?? null,
+            'previous_results_keys' => array_keys($previousResults),
+            'config' => $processorConfig,
+        ]);
+        
         $resolvedConfig = $this->resolveConfigPlaceholders(
             $processorConfig,
             $previousResults
@@ -301,16 +309,9 @@ class GenericProcessorActivity extends Activity
                     $processorSlug = $match[1];   // processor-slug
                     $fieldPath = $match[2];       // field or nested.field
                     
-                    // Find the processor output by slug
-                    $processorOutput = null;
-                    foreach ($previousResults as $result) {
-                        // previousResults is an array of processor outputs
-                        // We need to check document metadata for processor slugs
-                        if (is_array($result) && isset($result['transaction_id']) && $processorSlug === 'ekyc-verification') {
-                            $processorOutput = $result;
-                            break;
-                        }
-                    }
+                    // Find the processor output by step_id (which matches placeholder prefix)
+                    // previousResults is now indexed by step_id: ['ekyc-step' => [...], 'signature-step' => [...]]
+                    $processorOutput = $previousResults[$processorSlug] ?? null;
                     
                     if (!$processorOutput) {
                         \Illuminate\Support\Facades\Log::warning('[GenericProcessorActivity] Placeholder not found', [
