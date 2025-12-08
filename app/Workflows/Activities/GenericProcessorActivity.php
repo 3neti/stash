@@ -86,10 +86,10 @@ class GenericProcessorActivity extends Activity
         }
 
         $processorConfig = $processorConfigs[$processorIndex];
-        $processorId = $processorConfig['id'] ?? null;
+        $processorType = $processorConfig['type'] ?? null;
 
         // Handle null processor (skip this step)
-        if (! $processorId) {
+        if (! $processorType) {
             return [
                 'skipped' => true,
                 'reason' => 'No processor configured at this index',
@@ -97,10 +97,11 @@ class GenericProcessorActivity extends Activity
             ];
         }
 
-        // Step 4: Load Processor model
-        $processorModel = Processor::find($processorId);
+        // Step 4: Load Processor model by slug (type)
+        // Note: 'type' in template = processor slug in database
+        $processorModel = Processor::where('slug', $processorType)->first();
         if (! $processorModel) {
-            throw new NonRetryableException("Processor not found: {$processorId}");
+            throw new NonRetryableException("Processor not found with slug: {$processorType}");
         }
 
         // Step 5: Get processor implementation from registry
