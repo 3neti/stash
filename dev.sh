@@ -23,7 +23,12 @@ function start() {
     echo "${GREEN}Starting Stash development environment...${NC}\n"
     
     # Restart PHP to clear opcache (important after code changes)
-    echo "${YELLOW}[0/5] Restarting PHP to clear opcache...${NC}"
+    echo "${YELLOW}[0/5] Clearing caches and restarting PHP...${NC}"
+    php artisan cache:clear > /dev/null 2>&1
+    php artisan config:clear > /dev/null 2>&1
+    php artisan route:clear > /dev/null 2>&1
+    php artisan view:clear > /dev/null 2>&1
+    redis-cli FLUSHALL > /dev/null 2>&1 || true  # Clear Redis queues (ignore if Redis not running)
     herd restart php > /dev/null 2>&1
     
     # Clean up old PIDs and callback lock
